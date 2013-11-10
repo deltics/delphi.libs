@@ -79,7 +79,7 @@ interface
     Deltics.Threads,
     Deltics.ImageLists,
     Deltics.Smoketest,
-    Deltics.Smoketest.Console.ResultsPanel, System.Actions;
+    Deltics.Smoketest.Console.ResultsPanel;
 
 
   const

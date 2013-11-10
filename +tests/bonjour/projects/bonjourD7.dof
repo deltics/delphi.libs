@@ -94,13 +94,13 @@ OutputDir=$(bin)
 UnitOutputDir=$(dcu)
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=$(fastmm);$(deltics)\rtl;$(deltics)\smoketest;$(deltics)\vcl
+SearchPath=$(deltics)\bonjour;$(deltics)\rtl;$(deltics)\smoketest
 Packages=vcl;rtl;vclx;indy;vclie;xmlrtl;inetdbbde;inet;inetdbxpress;dbrtl;soaprtl;dsnap;VclSmp;dbexpress;vcldb;dbxcds;inetdb;bdertl;vcldbx;adortl;teeui;teedb;tee;ibxpress;visualclx;visualdbclx;vclactnband;vclshlctrls;IntrawebDB_50_70;Intraweb_50_70;Rave50CLX;Rave50VCL;dclOfficeXP
-Conditionals=FullDebugMode;deltics_smoketest
+Conditionals=deltics_bonjour
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
-RunParams=-dp -r
+RunParams=
 HostApplication=
 Launcher=
 UseLauncher=0
@@ -142,9 +142,10 @@ Item1=deltics_bonjour;INFESTED
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=2
-Item0=$(deltics)\bonjour;$(deltics)\rtl;$(deltics)\smoketest;$(deltics)\vcl
-Item1=$(DELPHI)\Lib\Debug;$(deltics)\bonjour;$(deltics)\rtl;$(deltics)\smoketest;$(deltics)\vcl
+Count=3
+Item0=$(deltics)\bonjour;$(deltics)\rtl;$(deltics)\smoketest
+Item1=$(deltics)\bonjour;$(deltics)\rtl;$(deltics)\smoketest;$(deltics)\vcl
+Item2=$(DELPHI)\Lib\Debug;$(deltics)\bonjour;$(deltics)\rtl;$(deltics)\smoketest;$(deltics)\vcl
 [HistoryLists\hlUnitOutputDirectory]
 Count=1
 Item0=$(dcu)

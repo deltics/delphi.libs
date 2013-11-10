@@ -1,9 +1,9 @@
 object SmokeTestConsole: TSmokeTestConsole
   Left = 290
   Top = 205
+  Width = 946
+  Height = 484
   Caption = 'Smoketest'
-  ClientHeight = 446
-  ClientWidth = 930
   Color = clWindow
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

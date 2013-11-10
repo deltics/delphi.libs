@@ -1,0 +1,130 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{6c950208-75e4-4e66-8b79-3003a16782b5}</ProjectGuid>
+			<MainSource>bonjour.d2010.dpr</MainSource>
+			<Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+			<DCC_DependencyCheckOutputName>TestBonjour.exe</DCC_DependencyCheckOutputName>
+			<ProjectVersion>13.4</ProjectVersion>
+			<Config Condition="'$(Config)'==''">Debug</Config>
+			<FrameworkType>None</FrameworkType>
+			<Base>True</Base>
+			<Platform Condition="'$(Platform)'==''">Win32</Platform>
+			<TargetedPlatforms>1</TargetedPlatforms>
+			<AppType>Console</AppType>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_1)'!=''">
+			<Cfg_1>true</Cfg_1>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_2)'!=''">
+			<Cfg_2>true</Cfg_2>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_Define>deltics_bonjour;$(DCC_Define)</DCC_Define>
+			<VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+			<DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Winapi;$(DCC_Namespace)</DCC_Namespace>
+			<VerInfo_Locale>5129</VerInfo_Locale>
+			<DCC_UnitSearchPath>$(deltics)\bonjour;$(deltics)\rtl;$(deltics)\smoketest;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<BRCC_Defines>FullDebugMode;$(BRCC_Defines)</BRCC_Defines>
+			<DCC_DependencyCheckOutputName>bonjour.d2010.exe</DCC_DependencyCheckOutputName>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_1)'!=''">
+			<DCC_ExeOutput>$(bin)\Win32Release</DCC_ExeOutput>
+			<DCC_DependencyCheckOutputName>c:\dev\bin\Win32Release\bonjour.d2010.exe</DCC_DependencyCheckOutputName>
+			<DCC_DcuOutput>$(dcu)\release</DCC_DcuOutput>
+			<Version>7.0</Version>
+			<DCC_DebugInformation>False</DCC_DebugInformation>
+			<DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
+			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+			<DCC_MapFile>3</DCC_MapFile>
+			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_2)'!=''">
+			<DCC_DependencyCheckOutputName>c:\dev\bin\Win32Debug\bonjour.d2010.exe</DCC_DependencyCheckOutputName>
+			<DCC_ExeOutput>$(bin)\Win32Debug</DCC_ExeOutput>
+			<DCC_DebugDCUs>true</DCC_DebugDCUs>
+			<DCC_DcuOutput>$(dcu)\debug</DCC_DcuOutput>
+			<Version>7.0</Version>
+			<DCC_MapFile>3</DCC_MapFile>
+			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+			<DCC_ObjOutput>$(DCU)</DCC_ObjOutput>
+			<DCC_HppOutput>$(DCU)</DCC_HppOutput>
+			<DCC_ResourcePath>$(DCU);$(DCC_ResourcePath)</DCC_ResourcePath>
+			<DCC_ObjPath>$(DCU);$(DCC_ObjPath)</DCC_ObjPath>
+			<DCC_IncludePath>$(DCU);$(DCC_IncludePath)</DCC_IncludePath>
+		</PropertyGroup>
+		<ItemGroup>
+			<DelphiCompile Include="bonjour.d2010.dpr">
+				<MainSource>MainSource</MainSource>
+			</DelphiCompile>
+			<BuildConfiguration Include="Base">
+				<Key>Base</Key>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Debug">
+				<Key>Cfg_2</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Release">
+				<Key>Cfg_1</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+		</ItemGroup>
+		<Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+		<ProjectExtensions>
+			<Borland.Personality>Delphi.Personality.12</Borland.Personality>
+			<Borland.ProjectType>VCLApplication</Borland.ProjectType>
+			<BorlandProject>
+				<Delphi.Personality>
+					<Parameters>
+						<Parameters Name="UseLauncher">False</Parameters>
+						<Parameters Name="LoadAllSymbols">True</Parameters>
+						<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
+					</Parameters>
+					<VersionInfo>
+						<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
+						<VersionInfo Name="AutoIncBuild">False</VersionInfo>
+						<VersionInfo Name="MajorVer">1</VersionInfo>
+						<VersionInfo Name="MinorVer">0</VersionInfo>
+						<VersionInfo Name="Release">0</VersionInfo>
+						<VersionInfo Name="Build">0</VersionInfo>
+						<VersionInfo Name="Debug">False</VersionInfo>
+						<VersionInfo Name="PreRelease">False</VersionInfo>
+						<VersionInfo Name="Special">False</VersionInfo>
+						<VersionInfo Name="Private">False</VersionInfo>
+						<VersionInfo Name="DLL">False</VersionInfo>
+						<VersionInfo Name="Locale">5129</VersionInfo>
+						<VersionInfo Name="CodePage">1252</VersionInfo>
+					</VersionInfo>
+					<VersionInfoKeys>
+						<VersionInfoKeys Name="CompanyName"/>
+						<VersionInfoKeys Name="FileDescription"/>
+						<VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
+						<VersionInfoKeys Name="InternalName"/>
+						<VersionInfoKeys Name="LegalCopyright"/>
+						<VersionInfoKeys Name="LegalTrademarks"/>
+						<VersionInfoKeys Name="OriginalFilename"/>
+						<VersionInfoKeys Name="ProductName"/>
+						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
+						<VersionInfoKeys Name="Comments"/>
+					</VersionInfoKeys>
+					<Source>
+						<Source Name="MainSource">bonjour.d2010.dpr</Source>
+					</Source>
+					<Excluded_Packages/>
+				</Delphi.Personality>
+				<Platforms>
+					<Platform value="Win64">False</Platform>
+					<Platform value="OSX32">False</Platform>
+					<Platform value="Win32">True</Platform>
+				</Platforms>
+			</BorlandProject>
+			<ProjectFileVersion>12</ProjectFileVersion>
+		</ProjectExtensions>
+	</Project>

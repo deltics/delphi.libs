@@ -9,12 +9,15 @@ MAKE = $(ROOT)\bin\make.exe -$(MAKEFLAGS) -f$**
 DCC = $(ROOT)\bin\dcc32.exe $**
 BRCC = $(ROOT)\bin\brcc32.exe $**
 #------------------------------------------------------------------------------
-PROJECTS = selftestD7.exe
+PROJECTS = selftestD7.exe bonjourD7.exe
 #------------------------------------------------------------------------------
 default: $(PROJECTS)
 #------------------------------------------------------------------------------
 
 selftestD7.exe: smoketest\projects\selftestD7.dpr
+  $(DCC)
+
+bonjourD7.exe: bonjour\projects\bonjourD7.dpr
   $(DCC)
 
 

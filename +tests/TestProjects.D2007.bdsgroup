@@ -10,7 +10,8 @@
 	</PersonalityInfo>
 	<Default.Personality>  <Projects>
       <Projects Name="selftest.d2007.exe">smoketest\projects\selftest.d2007.bdsproj</Projects>
-      <Projects Name="Targets">selftest.d2007.exe</Projects>
+      <Projects Name="bonjour.d2007.exe">bonjour\projects\bonjour.d2007.bdsproj</Projects>
+      <Projects Name="Targets">selftest.d2007.exe bonjour.d2007.exe</Projects>
     </Projects>
     <Dependencies/>
   </Default.Personality>
