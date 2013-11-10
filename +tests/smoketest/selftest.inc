@@ -1,0 +1,1 @@
+{$i deltics.smoketest.inc}
