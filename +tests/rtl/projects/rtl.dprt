@@ -1,0 +1,16 @@
+
+  program rtl.%VER%;
+
+uses
+  FastMM4,
+  Deltics.Smoketest,
+>..
+  Test.Strings,
+  Test.Strings.ANSI,
+  Test.Strings.UTF8,
+  Test.Strings.WIDE,
+  Test.Strings.STR;
+
+begin
+  Smoketest.Ready;
+end.

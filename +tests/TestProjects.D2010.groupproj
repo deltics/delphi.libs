@@ -6,6 +6,9 @@
 			<Projects Include="smoketest\projects\selftest.d2010.dproj">
 				<Dependencies/>
 			</Projects>
+			<Projects Include="\\psf\Home\Dropbox\dev\src\delphi\libs\libs.dev\+tests\rtl\projects\rtl.d2010.dpr">
+				<Dependencies/>
+			</Projects>
 			<Projects Include="bonjour\projects\bonjour.d2010.dproj">
 				<Dependencies/>
 			</Projects>
@@ -26,6 +29,15 @@
 		<Target Name="selftest_d2010:Make">
 			<MSBuild Targets="Make" Projects="smoketest\projects\selftest.d2010.dproj"/>
 		</Target>
+		<Target Name="rtl_d2010">
+			<MSBuild Projects="\\psf\Home\Dropbox\dev\src\delphi\libs\libs.dev\+tests\rtl\projects\rtl.d2010.dpr"/>
+		</Target>
+		<Target Name="rtl_d2010:Clean">
+			<MSBuild Targets="Clean" Projects="\\psf\Home\Dropbox\dev\src\delphi\libs\libs.dev\+tests\rtl\projects\rtl.d2010.dpr"/>
+		</Target>
+		<Target Name="rtl_d2010:Make">
+			<MSBuild Targets="Make" Projects="\\psf\Home\Dropbox\dev\src\delphi\libs\libs.dev\+tests\rtl\projects\rtl.d2010.dpr"/>
+		</Target>
 		<Target Name="bonjour_d2010">
 			<MSBuild Projects="bonjour\projects\bonjour.d2010.dproj"/>
 		</Target>
@@ -36,13 +48,13 @@
 			<MSBuild Targets="Make" Projects="bonjour\projects\bonjour.d2010.dproj"/>
 		</Target>
 		<Target Name="Build">
-			<CallTarget Targets="selftest_d2010;bonjour_d2010"/>
+			<CallTarget Targets="selftest_d2010;rtl_d2010;bonjour_d2010"/>
 		</Target>
 		<Target Name="Clean">
-			<CallTarget Targets="selftest_d2010:Clean;bonjour_d2010:Clean"/>
+			<CallTarget Targets="selftest_d2010:Clean;rtl_d2010:Clean;bonjour_d2010:Clean"/>
 		</Target>
 		<Target Name="Make">
-			<CallTarget Targets="selftest_d2010:Make;bonjour_d2010:Make"/>
+			<CallTarget Targets="selftest_d2010:Make;rtl_d2010:Make;bonjour_d2010:Make"/>
 		</Target>
 		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 	</Project>

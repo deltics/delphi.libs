@@ -1,0 +1,19 @@
+
+  program selftest.%VER%;
+
+uses
+  FastMM4,
+  Deltics.Smoketest,
+>..
+  SelfTest.ArticleHierarchy,
+  SelfTest.TestControl,
+  SelfTest.Consts,
+  SelfTest.Passes,
+  SelfTest.Failures,
+  SelfTest.Extensions,
+  SelfTest.Inspections,
+  SelfTest.Benchmarking;
+
+begin
+  Smoketest.Ready;
+end.

@@ -6,6 +6,9 @@
         <Projects Include="smoketest\projects\selftest.xe5.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="rtl\projects\rtl.xe5.dproj">
+            <Dependencies/>
+        </Projects>
         <Projects Include="bonjour\projects\bonjour.xe5.dproj">
             <Dependencies/>
         </Projects>
@@ -26,6 +29,15 @@
     <Target Name="selftest_xe5:Make">
         <MSBuild Projects="smoketest\projects\selftest.xe5.dproj" Targets="Make"/>
     </Target>
+    <Target Name="rtl_xe5">
+        <MSBuild Projects="rtl\projects\rtl.xe5.dproj"/>
+    </Target>
+    <Target Name="rtl_xe5:Clean">
+        <MSBuild Projects="rtl\projects\rtl.xe5.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="rtl_xe5:Make">
+        <MSBuild Projects="rtl\projects\rtl.xe5.dproj" Targets="Make"/>
+    </Target>
     <Target Name="bonjour_xe5">
         <MSBuild Projects="bonjour\projects\bonjour.xe5.dproj"/>
     </Target>
@@ -36,13 +48,13 @@
         <MSBuild Projects="bonjour\projects\bonjour.xe5.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="selftest_xe5;bonjour_xe5"/>
+        <CallTarget Targets="selftest_xe5;rtl_xe5;bonjour_xe5"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="selftest_xe5:Clean;bonjour_xe5:Clean"/>
+        <CallTarget Targets="selftest_xe5:Clean;rtl_xe5:Clean;bonjour_xe5:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="selftest_xe5:Make;bonjour_xe5:Make"/>
+        <CallTarget Targets="selftest_xe5:Make;rtl_xe5:Make;bonjour_xe5:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
