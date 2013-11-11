@@ -170,6 +170,8 @@ interface
        constructor.
     }
     private
+      fReusable: Boolean;
+      fRunning: Boolean;
       fTerminated: Boolean;
       fWorkEthic: TWorkEthic;
     protected
@@ -183,10 +185,16 @@ interface
     public
       constructor Create(const aWorkEthic: TWorkEthic = weRunContinuously;
                          const aPriority: TThreadPriority = tpLower;
-                         const aStackSize: Word = 0); reintroduce; virtual;
+                         const aStackSize: Word = 0;
+                         const aRunning: Boolean = TRUE;
+                         const aReusable: Boolean = FALSE); reintroduce; virtual;
       class procedure Execute(const aProc: TMotileProc); overload;
       procedure AfterConstruction; override;
+      procedure Start;
+      procedure Stop;
       procedure Terminate; override;
+      property Reusable: Boolean read fReusable;
+      property Running: Boolean read fRunning;
     end;
 
 
@@ -297,6 +305,8 @@ implementation
 
         finally
           aMotile.Finalise;
+          aMotile.fRunning    := FALSE;
+          aMotile.fTerminated := FALSE;
         end;
 
       except
@@ -304,7 +314,9 @@ implementation
       end;
 
     finally
-      aMotile.Free;
+      if NOT aMotile.Reusable then
+        aMotile.Free;
+
       ExitThread(0);
     end;
   end;
@@ -601,9 +613,14 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TMotile.Create(const aWorkEthic: TWorkEthic;
                              const aPriority: TThreadPriority;
-                             const aStackSize: Word);
+                             const aStackSize: Word;
+                             const aRunning: Boolean;
+                             const aReusable: Boolean);
   begin
     inherited Create(aStackSize);
+
+    fReusable   := aReusable;
+    fRunning    := aRunning;    // Signals AfterConstruction to start the thread
 
     fPriority   := aPriority;
     fWorkEthic  := aWorkEthic;
@@ -622,12 +639,26 @@ implementation
   begin
     inherited;
 
-    fHandle:= BeginThread(NIL, StackSize * 1024, @MotileProc, Pointer(self), CREATE_SUSPENDED, fID);
-    if fHandle = 0 then
-      raise EThread.CreateFmt('Error creating motile: %s', [SysErrorMessage(GetLastError)]);
+    if Running then
+    begin
+      fRunning := FALSE;  // Need to turn Running off otherwise Start will be a NO-OP
+      Start;
+    end;
+  end;
 
-    SetThreadPriority(Handle, Priorities[Priority]);
-    ResumeThread(Handle);
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TMotile.get_Name: String;
+  begin
+    result := fName;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TMotile.set_Name(aValue: String);
+  begin
+    fName := aValue;
+    inherited;
   end;
 
 
@@ -653,18 +684,29 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TMotile.get_Name: String;
+  procedure TMotile.Start;
   begin
-    result := fName;
+    if Running then
+      EXIT;
+
+    fHandle:= BeginThread(NIL, StackSize * 1024, @MotileProc, Pointer(self), CREATE_SUSPENDED, fID);
+    if fHandle = 0 then
+      raise EThread.CreateFmt('Error creating motile: %s', [SysErrorMessage(GetLastError)]);
+
+    SetThreadPriority(Handle, Priorities[Priority]);
+    ResumeThread(Handle);
+
+    fRunning := TRUE;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TMotile.set_Name(aValue: String);
+  procedure TMotile.Stop;
   begin
-    fName := aValue;
-    inherited;
+    Terminate;
   end;
+
+
 
 
 {$ifNdef DELPHI2006_OR_LATER}
