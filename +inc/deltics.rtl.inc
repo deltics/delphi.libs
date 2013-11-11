@@ -11,6 +11,7 @@
   {$define deltics_imagelists}
   {$define deltics_messagehandler}
   {$define deltics_multicast}
+  {$define deltics_oscillator}
   {$define deltics_rtti}
   {$define deltics_sizegrip}
   {$define deltics_statelist}

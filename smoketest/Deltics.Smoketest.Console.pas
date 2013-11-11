@@ -85,7 +85,6 @@ interface
   const
     STM_UpdateItem = WM_USER + 1;
     STM_AutoRun    = WM_USER + 2;
-    STM_Animate    = WM_USER + 3;
 
   type
     TWndProc = procedure(var aMessage: TMessage) of object;
@@ -185,7 +184,7 @@ interface
                     const aObject: ITestArticle);
       procedure AddChildren(const aItem: TListItem);
       procedure RemoveChildren(const aItem: TListItem);
-      procedure Animate(const aFrame: Integer);
+      procedure Animate(const aFrame: Word);
       function CloneRunningItemsList: TList;
       procedure AlignProgressBar;
       function ItemImageIndex(const aObject: ITestArticle): Integer; overload;
@@ -223,6 +222,7 @@ implementation
     Deltics.RTTI,
     Deltics.SysUtils,
     Deltics.Threads.Worker,
+    Deltics.Oscillator,
     Deltics.Windows;
 
 
@@ -260,40 +260,9 @@ implementation
     IMG_TestDisabled            : Integer = -1;
 
 
-  type
-    TAnimator = class(TMessageHandler)
-      procedure STMAnimate(var aMsg: TMessage); message STM_Animate;
-    end;
-
-    TAnimationClock = class(TWorkerThread)
-    private
-      fAnimator: HWND;
-      fFrame: Integer;
-    protected
-      procedure Execute; override;
-      property Animator: HWND read fAnimator write fAnimator;
-      property Frame: Integer read fFrame;
-    end;
-
   var
-    Animator: TAnimator;
-    FPS: TAnimationClock;
+    FPS: TOscillator;
 
-
-
-  procedure TAnimationClock.Execute;
-  const
-    FPS_12 = 1000 div 12;
-  begin
-    fFrame := 1;
-
-    while NOT Terminating do
-    begin
-      fFrame := ((fFrame + 1) mod 12);
-      PostMessage(fAnimator, STM_Animate, fFrame, 0);
-      Sleep(FPS_12);
-    end;
-  end;
 
 
   procedure TSmoketestConsole.FormCreate(Sender: TObject);
@@ -312,6 +281,8 @@ implementation
 
   begin
     DoubleBuffered := True;
+
+    FPS := TOscillator.CreateSuspended(12, Animate);
 
     fCSI          := TCriticalSection.Create;
     fRunningItems := TThreadList.Create;
@@ -745,7 +716,7 @@ implementation
       list.Free;
     end;
 
-    FPS.Terminate;
+    FPS.Stop;
 
     UpdateStatusBar;
     Screen.Cursor := crDefault;
@@ -754,7 +725,7 @@ implementation
 
   procedure TSmoketestConsole.OnSuiteStarted(Sender: TObject);
   begin
-    FPS.Resume;
+    FPS.Start;
 
     Screen.Cursor := crAppStart;
 
@@ -818,7 +789,7 @@ implementation
     if (aObject.ArticleType = atSmoketest) then
       result := IMG_ROOT
     else if aObject.IsRunning then
-      result := IMG_Running + FPS.Frame
+      result := IMG_Running + FPS.Phase
     else if (aObject.ArticleType = atPerformanceCase) then
       result := IMG_PerformanceCase
     else if (aObject.ArticleType = atTestCase) then
@@ -894,6 +865,8 @@ implementation
 
     if CanClose then
       lvHierarchy.Items.Clear;
+
+    FreeAndNIL(FPS);
   end;
 
 
@@ -1265,7 +1238,7 @@ implementation
   end;
 
 
-  procedure TSmoketestConsole.Animate(const aFrame: Integer);
+  procedure TSmoketestConsole.Animate(const aFrame: Word);
   var
     i: Integer;
     item: TListItem;
@@ -1292,12 +1265,6 @@ implementation
     finally
       fCSI.Leave;
     end;
-  end;
-
-
-  procedure TAnimator.STMAnimate(var aMsg: TMessage);
-  begin
-    Console.Animate(Integer(aMsg.wParam));
   end;
 
 
@@ -1401,20 +1368,4 @@ implementation
 
 
 
-procedure DoFinalization;
-begin
-  FPS.Free;
-  Animator.Free;
-end;
-
-
-initialization
-  if IsConsole then
-    EXIT;
-
-  Animator      := TAnimator.Create;
-  FPS           := TAnimationClock.CreateSuspended(1);
-  FPS.Animator  := Animator.Handle;
-  RegisterFinalization(DoFinalization, 'Deltics.Smoketest.Console');
-
-end.
+end.
