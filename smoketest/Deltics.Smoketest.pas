@@ -827,8 +827,14 @@ interface
       procedure Alert(aMessage: String);
       function Inspect(aName: String = ''): IInspector; overload;
       function Inspect(aName: String; aArgs: array of const): IInspector; overload;
-      function Test(aName: String = '{actual}'): ITest; overload;
-      function Test(aName: String; const aArgs: array of const): ITest; overload;
+      function Test(aName: ANSIString = '{actual}'): ITest; overload;
+      function Test(aName: ANSIString; const aArgs: array of const): ITest; overload;
+      function Test(aName: UnicodeString = '{actual}'): ITest; overload;
+      function Test(aName: UnicodeString; const aArgs: array of const): ITest; overload;
+    {$ifdef EnhancedOverloads}
+      function Test(aName: UTF8String = '{actual}'): ITest; overload;
+      function Test(aName: UTF8String; const aArgs: array of const): ITest; overload;
+    {$endif}
       function TestDatetime(aName: String = '{actual}'): DatetimeTest; overload;
       function TestDatetime(aName: String; const aArgs: array of const): DatetimeTest; overload;
       procedure Note(aMessage: WideString); overload;
@@ -1523,6 +1529,12 @@ interface
       function EndsWith(const aString: UnicodeString): Evaluation; overload;
       function Equals(const aExpected: ANSIString): Evaluation; overload;
       function Equals(const aExpected: UnicodeString): Evaluation; overload;
+    {$ifdef EnhancedOverloads}
+      function BeginsWith(const aString: UTF8String): Evaluation; overload;
+      function Contains(const aSubString: UTF8String): Evaluation; overload;
+      function EndsWith(const aString: UTF8String): Evaluation; overload;
+      function Equals(const aExpected: UTF8String): Evaluation; overload;
+    {$endif}
     end;
 
     TextExpectation = interface
@@ -3789,7 +3801,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestCase.Test(aName: String): ITest;
+  function TTestCase.Test(aName: ANSIString): ITest;
+  begin
+    result := Test(WIDE.FromANSI(aName));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.Test(aName: UnicodeString): ITest;
   begin
     aName := Trim(aName);
 
@@ -3801,10 +3820,33 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestCase.Test(aName: String; const aArgs: array of const): ITest;
+  function TTestCase.Test(aName: ANSIString; const aArgs: array of const): ITest;
   begin
-    result := Test(Format(aName, aArgs));
+    result := Test(WIDE.FromANSI(aName), aArgs);
   end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.Test(aName: UnicodeString; const aArgs: array of const): ITest;
+  begin
+    result := Test(WideFormat(aName, aArgs));
+  end;
+
+
+{$ifdef EnhancedOverloads}
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.Test(aName: UTF8String): ITest;
+  begin
+    result := Test(WIDE.FromUTF8(aName));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.Test(aName: UTF8String; const aArgs: array of const): ITest;
+  begin
+    result := Test(WIDE.FromUTF8(aName), aArgs);
+  end;
+{$endif}
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }

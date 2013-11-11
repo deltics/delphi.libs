@@ -348,6 +348,12 @@ interface
       function EndsWith(const aString: UnicodeString): Evaluation; overload;
       function Equals(const aExpected: ANSIString): Evaluation; reintroduce; overload;
       function Equals(const aExpected: UnicodeString): Evaluation; reintroduce; overload;
+    {$ifdef EnhancedOverloads}
+      function BeginsWith(const aString: UTF8String): Evaluation; overload;
+      function Contains(const aSubString: UTF8String): Evaluation; overload;
+      function EndsWith(const aString: UTF8String): Evaluation; overload;
+      function Equals(const aExpected: UTF8String): Evaluation; reintroduce; overload;
+    {$endif}
     end;
 
 
@@ -2616,6 +2622,35 @@ implementation
     OK := (Value = aExpected);
   end;
 
+
+{$ifdef EnhancedOverloads}
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TStringExpectation.BeginsWith(const aString: UTF8String): Evaluation;
+  begin
+    result := BeginsWith(WIDE.FromUTF8(aString));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TStringExpectation.Contains(const aSubString: UTF8String): Evaluation;
+  begin
+    result := Contains(WIDE.FromUTF8(aSubString));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TStringExpectation.EndsWith(const aString: UTF8String): Evaluation;
+  begin
+    result := EndsWith(WIDE.FromUTF8(aString));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TStringExpectation.Equals(const aExpected: UTF8String): Evaluation;
+  begin
+    result := Equals(WIDE.FromUTF8(aExpected));
+  end;
+{$endif}
 
 
 
