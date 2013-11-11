@@ -1,0 +1,12 @@
+
+  program bonjour.%VER%;
+
+uses
+  FastMM4,
+  Deltics.Smoketest,
+>..
+  Bonjour.Tests;
+
+begin
+  Smoketest.Ready;
+end.
