@@ -806,8 +806,11 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TServiceInfo.DoResolved;
   begin
-    fResolved.SetEvent;
-    FreeAndNIL(fResolved);
+    if Assigned(fResolved) then
+    begin
+      fResolved.SetEvent;
+      FreeAndNIL(fResolved);
+    end;
 
     fResolving := FALSE;
 
