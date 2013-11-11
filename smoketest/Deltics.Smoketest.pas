@@ -827,12 +827,13 @@ interface
       procedure Alert(aMessage: String);
       function Inspect(aName: String = ''): IInspector; overload;
       function Inspect(aName: String; aArgs: array of const): IInspector; overload;
-      function Test(aName: ANSIString = '{actual}'): ITest; overload;
+      function Test: ITest; overload;
+      function Test(aName: ANSIString): ITest; overload;
       function Test(aName: ANSIString; const aArgs: array of const): ITest; overload;
-      function Test(aName: UnicodeString = '{actual}'): ITest; overload;
+      function Test(aName: UnicodeString): ITest; overload;
       function Test(aName: UnicodeString; const aArgs: array of const): ITest; overload;
     {$ifdef EnhancedOverloads}
-      function Test(aName: UTF8String = '{actual}'): ITest; overload;
+      function Test(aName: UTF8String): ITest; overload;
       function Test(aName: UTF8String; const aArgs: array of const): ITest; overload;
     {$endif}
       function TestDatetime(aName: String = '{actual}'): DatetimeTest; overload;
@@ -3798,6 +3799,13 @@ implementation
     State.Leave(aStateID);
   end;
 
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.Test: ITest;
+  begin
+    result := Test('{actual}');
+  end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
