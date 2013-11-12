@@ -50,11 +50,14 @@ implementation
 
   procedure TUTF8Tests.Transcoding;
   begin
-    Test('UTF8.Encode!').Expect(UTF8.Encode(SRCS)).Equals(SRCU);
+    Test('UTF8 -> ANSI').Expect(ANSI.FromUTF8(UTF8.Encode('™'))).Equals('™');
+    Test('UTF8 -> WIDE').Expect(WIDE.FromUTF8(UTF8.Encode('™'))).Equals('™');
+
+    Test('UTF8.Encode!').Expect(UTF8.Encode(SRCS)).Equals(WIDE.FromUTF8(SRCU));
     Test('UTF8.Decode!').Expect(UTF8.Decode(SRCU)).Equals(SRCS);
 
-    Test('FromANSI!').Expect(UTF8.FromANSI(SRCA)).Equals(SRCU);
-    Test('FromWide!').Expect(UTF8.FromWide(SRCW)).Equals(SRCU);
+    Test('FromANSI!').Expect(UTF8.FromANSI(SRCA)).Equals(WIDE.FromUTF8(SRCU));
+    Test('FromWide!').Expect(UTF8.FromWide(SRCW)).Equals(WIDE.FromUTF8(SRCU));
   end;
 
 
@@ -174,7 +177,7 @@ implementation
     PrepareVectors(SRC, VECTOR);
 
     for i := 0 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].A).Expect(UTF8.Lowercase(VECTOR[i].A)).Equals(VECTOR[i].B);
+      Test(VECTOR[i].A).Expect(UTF8.Lowercase(VECTOR[i].A)).Equals(WIDE.FromUTF8(VECTOR[i].B));
   end;
 
 
@@ -193,7 +196,7 @@ implementation
     PrepareVectors(SRC, VECTOR);
 
     for i := 0 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].A).Expect(UTF8.Uppercase(VECTOR[i].A)).Equals(VECTOR[i].B);
+      Test(VECTOR[i].A).Expect(UTF8.Uppercase(VECTOR[i].A)).Equals(WIDE.FromUTF8(VECTOR[i].B));
   end;
 
 

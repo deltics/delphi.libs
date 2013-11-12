@@ -55,8 +55,7 @@ interface
     UCS4Char    = Cardinal;
     UCS4String  = array of UCS4Char;
 
-    UTF8String  = type ANSIString;
-
+    UTF8String    = type ANSIString;
     UnicodeString = type WideString;
   {$endif}
 
