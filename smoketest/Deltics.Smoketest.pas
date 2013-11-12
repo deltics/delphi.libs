@@ -182,7 +182,7 @@ interface
 
     IExpectation = interface
     ['{A5C6A9EC-D6B8-4BD8-8BFA-43E79F71374C}']
-      function Supports(const aIID: TGUID; const aName: String = ''): Evaluation;
+      function Supports(const aIID: TGUID; const aName: UnicodeString = ''): Evaluation;
     end;
 
 
@@ -242,7 +242,7 @@ interface
       function Expect(aValue: Pointer): PointerExpectation; overload;
       function Expect(aValue: ANSIString): StringExpectation; overload;
       function Expect(aValue: UnicodeString): StringExpectation; overload;
-      function Expecting(aClass: TExceptionClass; aMessage: String = ''): ExceptionExpectation;
+      function Expecting(aClass: TExceptionClass; aMessage: UnicodeString = ''): ExceptionExpectation;
       function UnexpectedException: ExceptionExpectation;
 
       property Part[aPart: Variant]: ITest read get_Part; default;
@@ -268,7 +268,7 @@ interface
 
     IReason = interface
     ['{5826E6E6-D9E8-4EDD-8ACD-FF74C13F937A}']
-      procedure Because(const aExplanation: String);
+      procedure Because(const aExplanation: UnicodeString);
     end;
 
 
@@ -289,7 +289,7 @@ interface
 
 
     IHaveChildCases   = interface ['{E5518D96-A989-4E6F-8CB7-B24D83548FEE}'] procedure AddCases; end;
-    INameCase         = interface ['{BDAA53B3-DC49-486B-BB75-B6A098B0E45F}'] function NameForCase: String; end;
+    INameCase         = interface ['{BDAA53B3-DC49-486B-BB75-B6A098B0E45F}'] function NameForCase: UnicodeString; end;
     ISetupSmoketest   = interface ['{C6ABF342-11F2-4D89-96D9-E47E09EBA6DC}'] procedure SetupSmoketest; end;
     ICleanupSmoketest = interface ['{4E4A026F-EACD-4CAC-BB2E-32F3CFE6E465}'] procedure CleanupSmoketest; end;
     ISetupTestRun     = interface ['{41AD1AC7-488E-4344-BEBF-3082F7010DB5}'] procedure SetupTestRun; end;
@@ -317,7 +317,7 @@ interface
       function get_Child(const aIndex: Integer): ITestArticle;
       function get_ArticleType: TTestArticleType;
       function get_Count: Integer;
-      function get_DisplayName: String;
+      function get_DisplayName: UnicodeString;
       function get_EffectivelyEnabled: Boolean;
       function get_Elapsed: Int64;
       function get_Enabled: Boolean;
@@ -325,9 +325,9 @@ interface
       function get_HasErrors: Boolean;
       function get_ID: Int64;
       function get_IsRunning: Boolean;
-      function get_Name: String;
+      function get_Name: UnicodeString;
       function get_Parent: ITestArticle;
-      function get_Reference: String;
+      function get_Reference: UnicodeString;
       procedure set_Enabled(const aValue: Boolean);
 
       function AsObject(var aRef; const aClass: TClass = NIL): Boolean;
@@ -335,7 +335,7 @@ interface
       property Child[const aIndex: Integer]: ITestArticle read get_Child; default;
       property ArticleType: TTestArticleType read get_ArticleType;
       property Count: Integer read get_Count;
-      property DisplayName: String read get_DisplayName;
+      property DisplayName: UnicodeString read get_DisplayName;
       property EffectivelyEnabled: Boolean read get_EffectivelyEnabled;
       property Elapsed: Int64 read get_Elapsed;
       property Enabled: Boolean read get_Enabled write set_Enabled;
@@ -343,9 +343,9 @@ interface
       property HasFailures: Boolean read get_HasFailures;
       property ID: Int64 read get_ID;
       property IsRunning: Boolean read get_IsRunning;
-      property Name: String read get_Name;
+      property Name: UnicodeString read get_Name;
       property Parent: ITestArticle read get_Parent;
-      property Reference: String read get_Reference;
+      property Reference: UnicodeString read get_Reference;
     end;
 
 
@@ -354,8 +354,8 @@ interface
       function get_Case(const aIndex: Integer): TCase;
       function get_CaseCount: Integer;
 
-      function FindCase(const aNamePath: String): ITestCase;
-      function FindMethod(const aNamePath: String): ITestMethod;
+      function FindCase(const aNamePath: UnicodeString): ITestCase;
+      function FindMethod(const aNamePath: UnicodeString): ITestMethod;
 
       property Cases[const aIndex: Integer]: TCase read get_Case;
       property CaseCount: Integer read get_CaseCount;
@@ -386,22 +386,22 @@ interface
     ITestCase = interface(ITestArticle)
     ['{42108727-60B8-4B87-ADAD-24CA723E8030}']
       function get_CaseByIndex(const aIndex: Integer): ITestCase;
-      function get_CaseByName(const aName: String): ITestCase;
+      function get_CaseByName(const aName: UnicodeString): ITestCase;
       function get_CaseCount: Integer;
       function get_HasChildCases: Boolean;
       function get_IsAborted: Boolean;
       function get_MethodByIndex(const aIndex: Integer): ITestMethod;
-      function get_MethodByName(const aName: String): ITestMethod;
+      function get_MethodByName(const aName: UnicodeString): ITestMethod;
       function get_MethodCount: Integer;
       function get_StartTime: TDateTime;
 
       property CaseByIndex[const aIndex: Integer]: ITestCase read get_CaseByIndex;
-      property CaseByName[const aName: String]: ITestCase read get_CaseByName;
+      property CaseByName[const aName: UnicodeString]: ITestCase read get_CaseByName;
       property CaseCount: Integer read get_CaseCount;
       property HasChildCases: Boolean read get_HasChildCases;
       property IsAborted: Boolean read get_IsAborted;
       property MethodByIndex[const aIndex: Integer]: ITestMethod read get_MethodByIndex;
-      property MethodByName[const aName: String]: ITestMethod read get_MethodByName;
+      property MethodByName[const aName: UnicodeString]: ITestMethod read get_MethodByName;
       property MethodCount: Integer read get_MethodCount;
       property StartTime: TDateTime read get_StartTime;
     end;
@@ -410,14 +410,14 @@ interface
     IPerformanceCase = interface(ITestArticle)
     ['{4D1618BC-2B9F-4AF8-965B-27CDAA1206FA}']
       function get_MethodByIndex(const aIndex: Integer): IPerformanceMethod;
-      function get_MethodByName(const aName: String): IPerformanceMethod;
+      function get_MethodByName(const aName: UnicodeString): IPerformanceMethod;
       function get_MethodCount: Integer;
       function get_Samples: Integer;
       function get_Sampling: Integer;
       function get_StartTime: TDateTime;
 
       property MethodByIndex[const aIndex: Integer]: IPerformanceMethod read get_MethodByIndex;
-      property MethodByName[const aName: String]: IPerformanceMethod read get_MethodByName;
+      property MethodByName[const aName: UnicodeString]: IPerformanceMethod read get_MethodByName;
       property MethodCount: Integer read get_MethodCount;
       property Samples: Integer read get_Samples;
       property Sampling: Integer read get_Sampling;
@@ -488,59 +488,59 @@ interface
 
     IAlert = interface
     ['{A1A6A0EB-5205-4F05-B303-303F2821EE90}']
-      function get_Text: String;
+      function get_Text: UnicodeString;
 
-      property Text: String read get_Text;
+      property Text: UnicodeString read get_Text;
     end;
 
 
     IInformation = interface
     ['{076F14E4-B90B-4236-9598-91A82DB857D0}']
-      function get_Text: String;
+      function get_Text: UnicodeString;
 
-      property Text: String read get_Text;
+      property Text: UnicodeString read get_Text;
     end;
 
 
     IInspection = interface
     ['{B1A70FDC-A88E-4436-B2FA-98272990656F}']
       function get_ItemCount: Integer;
-      function get_ItemLabel(const aIndex: Integer): WideString;
-      function get_ItemValue(const aIndex: Integer): WideString;
+      function get_ItemLabel(const aIndex: Integer): UnicodeString;
+      function get_ItemValue(const aIndex: Integer): UnicodeString;
       function get_MonoSpaced: Boolean;
-      function get_Subject: WideString;
-      function get_Value: WideString;
+      function get_Subject: UnicodeString;
+      function get_Value: UnicodeString;
 
       property ItemCount: Integer read get_ItemCount;
-      property ItemLabels[const aIndex: Integer]: WideString read get_ItemLabel;
-      property ItemValues[const aIndex: Integer]: WideString read get_ItemValue;
+      property ItemLabels[const aIndex: Integer]: UnicodeString read get_ItemLabel;
+      property ItemValues[const aIndex: Integer]: UnicodeString read get_ItemValue;
       property MonoSpaced: Boolean read get_MonoSpaced;
-      property Subject: WideString read get_Subject;
-      property Value: WideString read get_Value;
+      property Subject: UnicodeString read get_Subject;
+      property Value: UnicodeString read get_Value;
     end;
 
 
     IResult = interface
     ['{CDB0BA13-B460-4065-97FA-82EC2F2B64E9}']
-      function get_Actual: String;
-      function get_Description: String;
+      function get_Actual: UnicodeString;
+      function get_Description: UnicodeString;
       function get_Evaluated: Boolean;
-      function get_Expected: String;
+      function get_Expected: UnicodeString;
       function get_ExpectedToFail: Boolean;
-      function get_Explanation: String;
+      function get_Explanation: UnicodeString;
       function get_OK: Boolean;
-      function get_SubjectName: String;
+      function get_SubjectName: UnicodeString;
       function get_TestCase: ITestCase;
       function get_TestMethod: ITestMethod;
 
-      property Actual: String read get_Actual;
-      property Description: String read get_Description;
+      property Actual: UnicodeString read get_Actual;
+      property Description: UnicodeString read get_Description;
       property Evaluated: Boolean read get_Evaluated;
-      property Expected: String read get_Expected;
+      property Expected: UnicodeString read get_Expected;
       property ExpectedToFail: Boolean read get_ExpectedToFail;
-      property Explanation: String read get_Explanation;
+      property Explanation: UnicodeString read get_Explanation;
       property OK: Boolean read get_OK;
-      property SubjectName: String read get_SubjectName;
+      property SubjectName: UnicodeString read get_SubjectName;
       property TestCase: ITestCase read get_TestCase;
       property TestMethod: ITestMethod read get_TestMethod;
     end;
@@ -551,10 +551,10 @@ interface
                                             IOn_Destroy)
     private
       fArticleType: TTestArticleType;
-      fDisplayName: String;
+      fDisplayName: UnicodeString;
       fElapsed: Int64;
       fEnabled: Boolean;
-      fName: String;
+      fName: UnicodeString;
       fOwner: TTestArticle;
       fState: TStateList;
       fOn_Destroy: IOn_Destroy;
@@ -568,18 +568,18 @@ interface
       function get_Child(const aIndex: Integer): ITestArticle; virtual; abstract;
       procedure Add(const aObject: TTestArticle); overload; virtual;
       procedure AddElapsed(const aValue: Cardinal); virtual;
-      function NameForConsole: String;
-      function PlainReference: String;
-      function Find(const aPath: String): TTestArticle;
+      function NameForConsole: UnicodeString;
+      function PlainReference: UnicodeString;
+      function Find(const aPath: UnicodeString): TTestArticle;
       function IndexOf(const aChild: TTestArticle): Integer;
       procedure NotifyChange;
       procedure OnStateChanged(aSender: TObject; const aStateID: TStateID);
       procedure Remove(const aObject: TTestArticle); virtual; abstract;
-      function SetDisplayName: String; virtual;
+      function SetDisplayName: UnicodeString; virtual;
       constructor CreateEx; virtual;
-      constructor Create(const aName: String = ''); overload;
+      constructor Create(const aName: UnicodeString = ''); overload;
       constructor Create(const aOwner: TTestArticle;
-                         const aName: String = ''); overload;
+                         const aName: UnicodeString = ''); overload;
     public
       destructor Destroy; override;
     private
@@ -592,16 +592,16 @@ interface
 
     private // ITestArticle
       function get_ArticleType: TTestArticleType;
-      function get_DisplayName: String;
+      function get_DisplayName: UnicodeString;
       function get_Enabled: Boolean;
       function get_Elapsed: Int64; virtual;
       function get_EffectivelyEnabled: Boolean;
       function get_HasErrors: Boolean;
       function get_HasFailures: Boolean;
       function get_IsRunning: Boolean;
-      function get_Name: String;
+      function get_Name: UnicodeString;
       function get_Parent: ITestArticle;
-      function get_Reference: String;
+      function get_Reference: UnicodeString;
       procedure set_Enabled(const aValue: Boolean);
     public
       function AsObject(var aRef; const aClass: TClass = NIL): Boolean;
@@ -609,7 +609,7 @@ interface
       property Child[const aIndex: Integer]: ITestArticle read get_Child; default;
       property ArticleType: TTestArticleType read get_ArticleType;
       property Count: Integer read get_Count;
-      property DisplayName: String read get_DisplayName;
+      property DisplayName: UnicodeString read get_DisplayName;
       property EffectivelyEnabled: Boolean read get_EffectivelyEnabled;
       property Elapsed: Int64 read get_Elapsed;
       property Enabled: Boolean read get_Enabled write set_Enabled;
@@ -617,9 +617,9 @@ interface
       property HasFailures: Boolean read get_HasFailures;
       property ID: Int64 read get_ID;
       property IsRunning: Boolean read get_IsRunning;
-      property Name: String read get_Name;
+      property Name: UnicodeString read get_Name;
       property Parent: ITestArticle read get_Parent;
-      property Reference: String read get_Reference;
+      property Reference: UnicodeString read get_Reference;
     end;
 
 
@@ -649,7 +649,7 @@ interface
       function get_DisableCases: Boolean;
       function get_DisablePerformanceCases: Boolean;
       function get_NoOutput: Boolean;
-      function get_OutputFilename: String;
+      function get_OutputFilename: UnicodeString;
       function get_OutputToConsole: Boolean;
       function get_OutputJSON: Boolean;
       function get_OutputPlainText: Boolean;
@@ -667,7 +667,7 @@ interface
       property DisableCases: Boolean read get_DisableCases;
       property DisablePerformanceCases: Boolean read get_DisablePerformanceCases;
       property NoOutput: Boolean read get_NoOutput;
-      property OutputFilename: String read get_OutputFilename;
+      property OutputFilename: UnicodeString read get_OutputFilename;
       property OutputToConsole: Boolean read get_OutputToConsole;
       property OutputJSON: Boolean read get_OutputJSON;
       property OutputPlainText: Boolean read get_OutputPlainText;
@@ -685,7 +685,7 @@ interface
       fActiveCase: TPerThreadObjectStack;
       fCases: TObjectList;
       fCmdLine: TSmoketestCommandLine;
-      fName: String;
+      fName: UnicodeString;
       fTestRun: TTestRun;
       fThread: TWorkerThread;
       fOn_Started: TMultiCastNotify;
@@ -719,19 +719,19 @@ interface
       destructor Destroy; override;
       procedure Initialize;
       function Find(const aCase: TCaseClass): TCase;
-      function FindArticle(const aPath: String): TTestArticle;
+      function FindArticle(const aPath: UnicodeString): TTestArticle;
       property IsInitialised: Boolean read get_IsInitialised;
 
     private // ITestArticle
-      function get_Name: String;
+      function get_Name: UnicodeString;
     public
-      property Name: String read get_Name;
+      property Name: UnicodeString read get_Name;
 
     private // ISmoketestMetadata
       function get_Case(const aIndex: Integer): TCase;
       function get_CaseCount: Integer;
-      function FindCase(const aNamePath: String): ITestCase;
-      function FindMethod(const aNamePath: String): ITestMethod;
+      function FindCase(const aNamePath: UnicodeString): ITestCase;
+      function FindMethod(const aNamePath: UnicodeString): ITestMethod;
       property Cases[const aIndex: Integer]: TCase read get_Case;
       property CaseCount: Integer read get_CaseCount;
 
@@ -777,7 +777,7 @@ interface
       procedure Initialise;
       procedure Shutdown;
       procedure Startup;
-      function SetDisplayName: String; override;
+      function SetDisplayName: UnicodeString; override;
     public
       property Delegate[const aIndex: Integer]: TDelegate read get_Delegate;
       property DelegateCount: Integer read get_DelegateCount;
@@ -796,7 +796,7 @@ interface
       fIncidents: TObjectList;
 //      function get_TestCount: Integer;
 //      function get_TestByIndex(const aIndex: Integer): TTestDelegate;
-//      function get_TestByName(const aName: String): TTestDelegate;
+//      function get_TestByName(const aName: UnicodeString): TTestDelegate;
       constructor Create(const aParent: TTestCase); reintroduce; overload;
       constructor CreateEx; override;
       function get_Child(const aIndex: Integer): ITestArticle; override;
@@ -809,24 +809,24 @@ interface
       procedure DoInitialise; override;
       procedure DoStartup; override;
       procedure DoShutdown; override;
-      procedure Error(const aMessage: String);
+      procedure Error(const aMessage: UnicodeString);
       function Passed: Boolean;
       procedure Remove(const aObject: TTestArticle); override;
       procedure ChildEnterState(aSender: TObject; const aStateID: TStateID);
       procedure ChildLeaveState(aSender: TObject; const aStateID: TStateID);
     protected
-      procedure Abort(const aMessage: String = ''); overload;
-      procedure Abort(const aMessage: String; const aArgs: array of const); overload;
-      procedure AbortCase(const aMessage: String = ''); overload;
-      procedure AbortCase(const aMessage: String; const aArgs: array of const); overload;
+      procedure Abort(const aMessage: UnicodeString = ''); overload;
+      procedure Abort(const aMessage: UnicodeString; const aArgs: array of const); overload;
+      procedure AbortCase(const aMessage: UnicodeString = ''); overload;
+      procedure AbortCase(const aMessage: UnicodeString; const aArgs: array of const); overload;
     public
       constructor Create; reintroduce; overload;
       procedure AfterConstruction; override;
       destructor Destroy; override;
     protected
-      procedure Alert(aMessage: String);
-      function Inspect(aName: String = ''): IInspector; overload;
-      function Inspect(aName: String; aArgs: array of const): IInspector; overload;
+      procedure Alert(aMessage: UnicodeString);
+      function Inspect(aName: UnicodeString = ''): IInspector; overload;
+      function Inspect(aName: UnicodeString; aArgs: array of const): IInspector; overload;
       function Test: ITest; overload;
       function Test(aName: ANSIString): ITest; overload;
       function Test(aName: ANSIString; const aArgs: array of const): ITest; overload;
@@ -836,10 +836,11 @@ interface
       function Test(aName: UTF8String): ITest; overload;
       function Test(aName: UTF8String; const aArgs: array of const): ITest; overload;
     {$endif}
-      function TestDatetime(aName: String = '{actual}'): DatetimeTest; overload;
-      function TestDatetime(aName: String; const aArgs: array of const): DatetimeTest; overload;
-      procedure Note(aMessage: WideString); overload;
-      procedure Note(aMessage: WideString; const aArgs: array of const); overload;
+
+      function TestDatetime(aName: UnicodeString = '{actual}'): DatetimeTest; overload;
+      function TestDatetime(aName: UnicodeString; const aArgs: array of const): DatetimeTest; overload;
+      procedure Note(aMessage: UnicodeString); overload;
+      procedure Note(aMessage: UnicodeString; const aArgs: array of const); overload;
       property Smoketest: ISmoketestMetadata read get_Smoketest;
 
     protected
@@ -852,18 +853,18 @@ interface
       function get_HasChildCases: Boolean;
     protected
       function get_CaseByIndex(const aIndex: Integer): ITestCase;
-      function get_CaseByName(const aName: String): ITestCase;
+      function get_CaseByName(const aName: UnicodeString): ITestCase;
       function get_CaseCount: Integer;
       function get_IsAborted: Boolean;
       function get_MethodByIndex(const aIndex: Integer): ITestMethod;
-      function get_MethodByName(const aName: String): ITestMethod;
+      function get_MethodByName(const aName: UnicodeString): ITestMethod;
       function get_MethodCount: Integer;
 
       property CaseByIndex[const aIndex: Integer]: ITestCase read get_CaseByIndex;
-      property CaseByName[const aName: String]: ITestCase read get_CaseByName;
+      property CaseByName[const aName: UnicodeString]: ITestCase read get_CaseByName;
       property CaseCount: Integer read get_CaseCount;
       property MethodByIndex[const aIndex: Integer]: ITestMethod read get_MethodByIndex;
-      property MethodByName[const aName: String]: ITestMethod read get_MethodByName;
+      property MethodByName[const aName: UnicodeString]: ITestMethod read get_MethodByName;
       property MethodCount: Integer read get_MethodCount;
     end;
 
@@ -875,7 +876,7 @@ interface
       fMode: TPerformanceMode;
       fSamples: Integer;
       fSampling: Integer;
-      function SetDisplayName: String; override;
+      function SetDisplayName: UnicodeString; override;
       function get_Count: Integer; override;
       function get_Child(const aIndex: Integer): ITestArticle; override;
       function get_Delegate(const aIndex: Integer): TDelegate; override;
@@ -894,7 +895,7 @@ interface
 
     private // IPerformanceCase
       function get_MethodByIndex(const aIndex: Integer): IPerformanceMethod;
-      function get_MethodByName(const aName: String): IPerformanceMethod;
+      function get_MethodByName(const aName: UnicodeString): IPerformanceMethod;
       function get_MethodCount: Integer;
       function get_Samples: Integer;
       function get_Sampling: Integer;
@@ -906,10 +907,10 @@ interface
       fMethod: TDelegateMethod;
       fRunCount: Integer;
       fStartTime: TDateTime;
-      function SetDisplayName: String; override;
+      function SetDisplayName: UnicodeString; override;
     protected
       constructor Create(const aCase: TCase;
-                         const aName: String;
+                         const aName: UnicodeString;
                          const aMethod: Pointer); reintroduce;
       function get_Count: Integer; override;
       function get_Child(const aIndex: Integer): ITestArticle; override;
@@ -937,7 +938,7 @@ interface
         function get_Failed: Boolean;
         function get_Passed: Boolean;
         function get_TestCase: ITestCase;
-        function SetDisplayName: String; override;
+        function SetDisplayName: UnicodeString; override;
       protected
         procedure DoExecute; override;
       protected
@@ -1026,15 +1027,15 @@ interface
                        in the test delegate that the incident occurs
     }
     private
-      fName: String;
+      fName: UnicodeString;
       fTest: TTestDelegate;
       fTestCase: TTestCase;
     protected
       constructor Create(const aCase: TTestCase;
-                         const aName: String = '');
+                         const aName: UnicodeString = '');
       property Test: TTestDelegate read fTest;
       property TestCase: TTestCase read fTestCase;
-      property Name: String read fName;
+      property Name: UnicodeString read fName;
     end;
 
 
@@ -1048,12 +1049,12 @@ interface
       private
         fInspection: TInspection;
         fMonospaced: Boolean;
-        fPartName: WideString;
-        procedure Output(const aString: WideString);
+        fPartName: UnicodeString;
+        procedure Output(const aString: UnicodeString);
       protected
-        class function GetInspector(const aCase: TTestCase; const aName: String = ''): TInspector;
-        procedure Emit(const aString: WideString); overload;
-        procedure Emit(const aString: WideString; const aArgs: array of const); overload;
+        class function GetInspector(const aCase: TTestCase; const aName: UnicodeString = ''): TInspector;
+        procedure Emit(const aString: UnicodeString); overload;
+        procedure Emit(const aString: UnicodeString; const aArgs: array of const); overload;
         procedure Emit(aBuffer: Pointer); overload;
         procedure Emit(aBuffer: Pointer; aSize: Integer); overload;
 
@@ -1119,7 +1120,7 @@ interface
         function Expect(aValue: Pointer): PointerExpectation; overload;
         function Expect(aValue: ANSIString): StringExpectation; overload;
         function Expect(aValue: UnicodeString): StringExpectation; overload;
-        function Expecting(aClass: TExceptionClass; aMessage: String = ''): ExceptionExpectation;
+        function Expecting(aClass: TExceptionClass; aMessage: UnicodeString = ''): ExceptionExpectation;
         function UnexpectedException: ExceptionExpectation;
       end;
 
@@ -1128,13 +1129,13 @@ interface
     TOutput = class(TInterfacedObject, IOutput)
     private
       fArticle: TTestArticle;
-      fText: WideString;
+      fText: UnicodeString;
       fTime: TDateTime;
     protected
-      constructor Create(const aDelegate: TTestDelegate; const aText: WideString);
+      constructor Create(const aDelegate: TTestDelegate; const aText: UnicodeString);
     public
       destructor Destroy; override;
-      property Text: WideString read fText;
+      property Text: UnicodeString read fText;
       property Time: TDateTime read fTime;
 
     private // IOutput
@@ -1163,43 +1164,43 @@ interface
 
     TAlert = class(TOutput, IAlert)
     private // IAlert
-      function get_Text: String;
+      function get_Text: UnicodeString;
     public
-      property Text: String read get_Text;
+      property Text: UnicodeString read get_Text;
     end;
 
 
     TInformation = class(TOutput, IInformation)
     private // IInformation
-      function get_Text: String;
+      function get_Text: UnicodeString;
     public
-      property Text: String read get_Text;
+      property Text: UnicodeString read get_Text;
     end;
 
 
     TInspection = class(TOutput, IInspection)
     private
       fMonoSpaced: Boolean;
-      fSubject: WideString;
-      fItemLabels: array of WideString;
-      fItemValues: array of WideString;
-      constructor Create(const aDelegate: TTestDelegate; const aSubject, aValue: WideString; const aMonoSpaced: Boolean = FALSE);
-      procedure AddItem(const aName, aValue: WideString);
+      fSubject: UnicodeString;
+      fItemLabels: array of UnicodeString;
+      fItemValues: array of UnicodeString;
+      constructor Create(const aDelegate: TTestDelegate; const aSubject, aValue: UnicodeString; const aMonoSpaced: Boolean = FALSE);
+      procedure AddItem(const aName, aValue: UnicodeString);
 
     private // IInspection
       function get_ItemCount: Integer;
-      function get_ItemLabel(const aIndex: Integer): WideString;
-      function get_ItemValue(const aIndex: Integer): WideString;
+      function get_ItemLabel(const aIndex: Integer): UnicodeString;
+      function get_ItemValue(const aIndex: Integer): UnicodeString;
       function get_MonoSpaced: Boolean;
-      function get_Subject: WideString;
-      function get_Value: WideString;
+      function get_Subject: UnicodeString;
+      function get_Value: UnicodeString;
     public
       property ItemCount: Integer read get_ItemCount;
-      property ItemLabels[const aIndex: Integer]: WideString read get_ItemLabel;
-      property ItemValues[const aIndex: Integer]: WideString read get_ItemValue;
+      property ItemLabels[const aIndex: Integer]: UnicodeString read get_ItemLabel;
+      property ItemValues[const aIndex: Integer]: UnicodeString read get_ItemValue;
       property MonoSpaced: Boolean read get_MonoSpaced;
-      property Subject: WideString read get_Subject;
-      property Value: WideString read get_Value;
+      property Subject: UnicodeString read get_Subject;
+      property Value: UnicodeString read get_Value;
     end;
 
 
@@ -1208,7 +1209,7 @@ interface
       fOK: Boolean;
     protected
       constructor Create(const aIncident: TIncident;
-                         const aMessage: String;
+                         const aMessage: UnicodeString;
                          const aOK: Boolean = TRUE);
       function get_OK: Boolean; virtual;
       procedure set_OK(const aValue: Boolean); virtual;
@@ -1223,56 +1224,56 @@ interface
                                       IReason,
                                       IResult)
     private
-      fActual: String;
-      fDescription: String;
+      fActual: UnicodeString;
+      fDescription: UnicodeString;
       fEvaluated: Boolean;
-      fExpected: String;
-      fExplanation: String;
-      fInterfaceName: String;
+      fExpected: UnicodeString;
+      fExplanation: UnicodeString;
+      fInterfaceName: UnicodeString;
       fExpectedToFail: Boolean;
       fSubject: TTest;        // NOTE: Only valid during execution of the test case
-      fSubjectName: String;
-      function get_SubjectName: String;
+      fSubjectName: UnicodeString;
+      function get_SubjectName: UnicodeString;
     protected
       constructor Create(const aSubject: TTest);
       procedure set_OK(const aValue: Boolean); override;
-      function DoReplaceTokens(var aString: String): Boolean; virtual;
-      function DoReplaceToken(var aString: String; const aToken, aValue: String): Boolean;
+      function DoReplaceTokens(var aString: UnicodeString): Boolean; virtual;
+      function DoReplaceToken(var aString: UnicodeString; const aToken, aValue: UnicodeString): Boolean;
       procedure ReplaceInSubject(const aNew: TExpectation);
-      function ReplaceToken(const aString: String; const aToken, aValue: String): String;
-      function ReplaceTokens(const aString: String): String;
+      function ReplaceToken(const aString: UnicodeString; const aToken, aValue: UnicodeString): UnicodeString;
+      function ReplaceTokens(const aString: UnicodeString): UnicodeString;
 
     protected // Evaluation
       function get_OK: Boolean; override;
-      procedure Because(const aExplanation: String);
+      procedure Because(const aExplanation: UnicodeString);
       function IsCritical: IReason;
       function IsRequired: IReason;
       procedure IsShowStopper;
       property OK: Boolean read get_OK write set_OK;
     protected // IExpectation
-      function Supports(const aIID: TGUID; const aName: String = ''): Evaluation;
+      function Supports(const aIID: TGUID; const aName: UnicodeString = ''): Evaluation;
     protected // IReason
-      // procedure Because(const aExplanation: String); // <-- already declared as part of Evaluation above
+      // procedure Because(const aExplanation: UnicodeString); // <-- already declared as part of Evaluation above
     protected // ISelfTest
       function IsExpectedToFail: IReason;
 
     private // IResult
-      function get_Actual: String;
-      function get_Description: String;
+      function get_Actual: UnicodeString;
+      function get_Description: UnicodeString;
       function get_Evaluated: Boolean;
-      function get_Expected: String;
+      function get_Expected: UnicodeString;
       function get_ExpectedToFail: Boolean;
-      function get_Explanation: String;
+      function get_Explanation: UnicodeString;
       function get_TestCase: ITestCase;
       function get_TestMethod: ITestMethod;
     protected
-      property Actual: String read get_Actual write fActual;
-      property Description: String read fDescription write fDescription;
-      property Expected: String read get_Expected write fExpected;
+      property Actual: UnicodeString read get_Actual write fActual;
+      property Description: UnicodeString read fDescription write fDescription;
+      property Expected: UnicodeString read get_Expected write fExpected;
       property Subject: TTest read fSubject;
-      property SubjectName: String read get_SubjectName write fSubjectName;
+      property SubjectName: UnicodeString read get_SubjectName write fSubjectName;
     public
-      property Explanation: String read fExplanation;
+      property Explanation: UnicodeString read fExplanation;
       property Evaluated: Boolean read fEvaluated;
       property ExpectedToFail: Boolean read fExpectedToFail;
     end;
@@ -1281,18 +1282,18 @@ interface
 
     TTestRun = class
     private
-      fName: String;
+      fName: UnicodeString;
       fStartTime: TDateTime;
       fEndTime: TDateTime;
       fOutput: TOutputList;
-      function get_Name: String;
+      function get_Name: UnicodeString;
       procedure set_EndTime(const aValue: TDateTime);
-      procedure set_Name(const aValue: String);
+      procedure set_Name(const aValue: UnicodeString);
     public
       constructor Create;
       destructor Destroy; override;
       procedure Clear;
-      property Name: String read get_Name write set_Name;
+      property Name: UnicodeString read get_Name write set_Name;
       property StartTime: TDateTime read fStartTime;
       property EndTime: TDateTime read fEndTime write set_EndTime;
       property Output: TOutputList read fOutput;
@@ -1489,7 +1490,7 @@ interface
       function Equals(const aExpected: IInterface): Evaluation;
       function IsAssigned: Evaluation;
       function IsNIL: Evaluation;
-      function Supports(const aIID: TGUID; const aName: String = ''): Evaluation;
+      function Supports(const aIID: TGUID; const aName: UnicodeString = ''): Evaluation;
     end;
 
     ObjectExpectation = interface
@@ -1498,7 +1499,7 @@ interface
       function IsAssigned: Evaluation;
       function IsNIL: Evaluation;
       function IsInstanceOf(const aClass: TClass): Evaluation;
-      function Supports(const aIID: TGUID; const aName: String = ''): Evaluation;
+      function Supports(const aIID: TGUID; const aName: UnicodeString = ''): Evaluation;
     end;
 
     PointerExpectation = interface
@@ -1530,12 +1531,6 @@ interface
       function EndsWith(const aString: UnicodeString): Evaluation; overload;
       function Equals(const aExpected: ANSIString): Evaluation; overload;
       function Equals(const aExpected: UnicodeString): Evaluation; overload;
-    {$ifdef EnhancedOverloads}
-      function BeginsWith(const aString: UTF8String): Evaluation; overload;
-      function Contains(const aSubString: UTF8String): Evaluation; overload;
-      function EndsWith(const aString: UTF8String): Evaluation; overload;
-      function Equals(const aExpected: UTF8String): Evaluation; overload;
-    {$endif}
     end;
 
     TextExpectation = interface
@@ -1970,7 +1965,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TTestArticle.Create(const aName: String = '');
+  constructor TTestArticle.Create(const aName: UnicodeString = '');
   begin
     Create(TTestArticle(NIL), aName);
   end;
@@ -1978,7 +1973,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TTestArticle.Create(const aOwner: TTestArticle;
-                                  const aName: String);
+                                  const aName: UnicodeString);
   begin
     CreateEx;
 
@@ -2004,13 +1999,13 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestArticle.Find(const aPath: String): TTestArticle;
+  function TTestArticle.Find(const aPath: UnicodeString): TTestArticle;
   var
     i: Integer;
     delimPos: Integer;
-    name: String;
-    childName: String;
-    remainingName: String;
+    name: UnicodeString;
+    childName: UnicodeString;
+    remainingName: UnicodeString;
     candidate: TTestArticle;
   begin
     result := NIL;
@@ -2057,7 +2052,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestArticle.get_DisplayName: String;
+  function TTestArticle.get_DisplayName: UnicodeString;
   begin
     if (fDisplayName = '') then
       fDisplayName := SetDisplayName;
@@ -2110,7 +2105,7 @@ implementation
     result := Int64(self);
   end;
 (*
-  function TTestArticle.get_ID: String;
+  function TTestArticle.get_ID: UnicodeString;
   begin
     if Assigned(Owner) then
       result := Owner.ID + '.' + Name
@@ -2127,7 +2122,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestArticle.get_Name: String;
+  function TTestArticle.get_Name: UnicodeString;
   begin
     if (fName = '') then
     begin
@@ -2150,7 +2145,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestArticle.get_Reference: String;
+  function TTestArticle.get_Reference: UnicodeString;
   begin
     result := '';
     if NOT Assigned(self) or NOT Assigned(Owner) then
@@ -2176,7 +2171,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestArticle.NameForConsole: String;
+  function TTestArticle.NameForConsole: UnicodeString;
   var
     i: Integer;
     o: TTestArticle;
@@ -2246,7 +2241,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestArticle.PlainReference: String;
+  function TTestArticle.PlainReference: UnicodeString;
   begin
     result := '';
     if NOT Assigned(self) or NOT Assigned(Owner) then
@@ -2263,7 +2258,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestArticle.SetDisplayName: String;
+  function TTestArticle.SetDisplayName: UnicodeString;
   begin
     result := fName;
   end;
@@ -2371,13 +2366,19 @@ implementation
   function TSmoketestCommandLine.get_NoOutput: Boolean;
   begin
     result := Switch[CMDLINE_NoOutput].Specified;
+
+    result := result
+           or (IsConsole and (NOT OutputToConsole) and (OutputFilename = ''));
+
+    result := result
+           or (NOT IsConsole and (OutputFilename = ''));
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSmoketestCommandLine.get_OutputFilename: String;
+  function TSmoketestCommandLine.get_OutputFilename: UnicodeString;
   var
-    ext: String;
+    ext: UnicodeString;
   begin
     result := '';
 
@@ -2587,7 +2588,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSmoketest.get_Name: String;
+  function TSmoketest.get_Name: UnicodeString;
   begin
     result := fName;
   end;
@@ -2716,9 +2717,9 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSmoketest.FindArticle(const aPath: String): TTestArticle;
+  function TSmoketest.FindArticle(const aPath: UnicodeString): TTestArticle;
   var
-    name: String;
+    name: UnicodeString;
     context: TTestArticle;
   begin
     result := NIL;
@@ -2738,7 +2739,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSmoketest.FindCase(const aNamePath: String): ITestCase;
+  function TSmoketest.FindCase(const aNamePath: UnicodeString): ITestCase;
   var
     target: TTestArticle;
   begin
@@ -2750,7 +2751,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSmoketest.FindMethod(const aNamePath: String): ITestMethod;
+  function TSmoketest.FindMethod(const aNamePath: UnicodeString): ITestMethod;
   var
     target: TTestArticle;
   begin
@@ -2885,6 +2886,9 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketest.OutputResults;
   begin
+    if CommandLine.NoOutput then
+      EXIT;
+
     Deltics.Smoketest.FileWriter.OutputResults;
   end;
 
@@ -3077,7 +3081,7 @@ implementation
   var
     i: Integer;
     methods: TMethodList;
-    methodName: String;
+    methodName: UnicodeString;
     methodAddr: Pointer;
     autorun: Boolean;
     run: TStringList;
@@ -3146,7 +3150,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TCase.SetDisplayName: String;
+  function TCase.SetDisplayName: UnicodeString;
   var
     util: INameCase;
   begin
@@ -3373,7 +3377,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestCase.get_CaseByName(const aName: String): ITestCase;
+  function TTestCase.get_CaseByName(const aName: UnicodeString): ITestCase;
   var
     i: Integer;
   begin
@@ -3447,7 +3451,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestCase.get_MethodByName(const aName: String): ITestMethod;
+  function TTestCase.get_MethodByName(const aName: UnicodeString): ITestMethod;
   var
     i: Integer;
   begin
@@ -3643,14 +3647,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestCase.Inspect(aName: String): IInspector;
+  function TTestCase.Inspect(aName: UnicodeString): IInspector;
   begin
     result := TInspector.GetInspector(self, Trim(aName));
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestCase.Inspect(aName: String;
+  function TTestCase.Inspect(aName: UnicodeString;
                              aArgs: array of const): IInspector;
   begin
     result := Inspect(Format(aName, aArgs));
@@ -3665,28 +3669,28 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestCase.Alert(aMessage: String);
+  procedure TTestCase.Alert(aMessage: UnicodeString);
   begin
     TAlert.Create(fActiveDelegate, aMessage);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestCase.Note(aMessage: WideString);
+  procedure TTestCase.Note(aMessage: UnicodeString);
   begin
     TInformation.Create(fActiveDelegate, aMessage);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestCase.Note(aMessage: WideString; const aArgs: array of const);
+  procedure TTestCase.Note(aMessage: UnicodeString; const aArgs: array of const);
   begin
     Note(WideFormat(aMessage, aArgs));
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestCase.Abort(const aMessage: String);
+  procedure TTestCase.Abort(const aMessage: UnicodeString);
   begin
     if (aMessage = '') then
       Alert('ABORTED')
@@ -3701,7 +3705,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestCase.Abort(const aMessage: String;
+  procedure TTestCase.Abort(const aMessage: UnicodeString;
                             const aArgs: array of const);
   begin
     Abort(Format(aMessage, aArgs));
@@ -3709,7 +3713,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestCase.AbortCase(const aMessage: String);
+  procedure TTestCase.AbortCase(const aMessage: UnicodeString);
   begin
     if (aMessage = '') then
       Alert('ABORTED')
@@ -3726,7 +3730,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestCase.AbortCase(const aMessage: String;
+  procedure TTestCase.AbortCase(const aMessage: UnicodeString;
                                 const aArgs: array of const);
   begin
     AbortCase(Format(aMessage, aArgs));
@@ -3734,7 +3738,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestCase.Error(const aMessage: String);
+  procedure TTestCase.Error(const aMessage: UnicodeString);
   begin
     if aMessage <> '' then
       Alert('ERROR: ' + aMessage)
@@ -3858,14 +3862,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestCase.TestDatetime(aName: String = '{actual}'): DatetimeTest;
+  function TTestCase.TestDatetime(aName: UnicodeString = '{actual}'): DatetimeTest;
   begin
     result := Test(aName) as DatetimeTest;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestCase.TestDatetime(aName: String;
+  function TTestCase.TestDatetime(aName: UnicodeString;
                                   const aArgs: array of const): DatetimeTest;
   begin
     result := TestDatetime(Format(aName, aArgs));
@@ -3886,7 +3890,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TDelegate.Create(const aCase: TCase;
-                               const aName: String;
+                               const aName: UnicodeString;
                                const aMethod: Pointer);
   begin
     inherited Create(aCase, aName);
@@ -3906,7 +3910,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TDelegate.SetDisplayName: String;
+  function TDelegate.SetDisplayName: UnicodeString;
   begin
     result := inherited SetDisplayName;
 
@@ -3976,7 +3980,7 @@ implementation
 { TTestDelegate ---------------------------------------------------------------------------------- }
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestDelegate.SetDisplayName: String;
+  function TTestDelegate.SetDisplayName: UnicodeString;
   begin
     result := inherited SetDisplayName;
 
@@ -4165,7 +4169,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TPerformanceCase.SetDisplayName: String;
+  function TPerformanceCase.SetDisplayName: UnicodeString;
   begin
     result := inherited SetDisplayName;
 
@@ -4205,7 +4209,7 @@ implementation
 
 
   {  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TPerformanceCase.get_MethodByName(const aName: String): IPerformanceMethod;
+  function TPerformanceCase.get_MethodByName(const aName: UnicodeString): IPerformanceMethod;
   var
     i: Integer;
   begin
@@ -4666,7 +4670,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TOutput.Create(const aDelegate: TTestDelegate;
-                             const aText: WideString);
+                             const aText: UnicodeString);
   begin
     inherited Create;
 
@@ -4703,7 +4707,7 @@ implementation
 { TInformation ----------------------------------------------------------------------------------- }
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TInformation.get_Text: String;
+  function TInformation.get_Text: UnicodeString;
   begin
     result := fText;
   end;
@@ -4717,7 +4721,7 @@ implementation
 { TAlert ----------------------------------------------------------------------------------------- }
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TAlert.get_Text: String;
+  function TAlert.get_Text: UnicodeString;
   begin
     result := fText;
   end;
@@ -4732,7 +4736,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TInspection.Create(const aDelegate: TTestDelegate;
-                                 const aSubject, aValue: WideString;
+                                 const aSubject, aValue: UnicodeString;
                                  const aMonoSpaced: Boolean);
   begin
     inherited Create(aDelegate, aValue);
@@ -4743,7 +4747,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TInspection.AddItem(const aName, aValue: WideString);
+  procedure TInspection.AddItem(const aName, aValue: UnicodeString);
   var
     idx: Integer;
   begin
@@ -4764,14 +4768,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TInspection.get_ItemLabel(const aIndex: Integer): WideString;
+  function TInspection.get_ItemLabel(const aIndex: Integer): UnicodeString;
   begin
     result := fItemLabels[aIndex];
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TInspection.get_ItemValue(const aIndex: Integer): WideString;
+  function TInspection.get_ItemValue(const aIndex: Integer): UnicodeString;
   begin
     result := fItemValues[aIndex];
   end;
@@ -4785,14 +4789,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TInspection.get_Subject: WideString;
+  function TInspection.get_Subject: UnicodeString;
   begin
     result := fSubject;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TInspection.get_Value: WideString;
+  function TInspection.get_Value: UnicodeString;
   begin
     result := self.Text;
   end;
@@ -4809,7 +4813,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TTestResult.Create(const aIncident: TIncident;
-                                 const aMessage: String;
+                                 const aMessage: UnicodeString;
                                  const aOK: Boolean);
   begin
     inherited Create(aIncident.Test, aMessage);
@@ -4845,7 +4849,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TIncident.Create(const aCase: TTestCase;
-                               const aName: String);
+                               const aName: UnicodeString);
   begin
     inherited Create;
 
@@ -4868,7 +4872,7 @@ implementation
 { TInspector ------------------------------------------------------------------------------------ }
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function TInspector.GetInspector(const aCase: TTestCase; const aName: String): TInspector;
+  class function TInspector.GetInspector(const aCase: TTestCase; const aName: UnicodeString): TInspector;
   begin
     if NOT Assigned(aCase.fInspector)
      or (aCase.fInspector.Name <> aName) then
@@ -4932,7 +4936,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TInspector.Output(const aString: WideString);
+  procedure TInspector.Output(const aString: UnicodeString);
   begin
     if (fPartName <> '') and Assigned(fInspection) then
     begin
@@ -4947,14 +4951,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TInspector.Emit(const aString: WideString);
+  procedure TInspector.Emit(const aString: UnicodeString);
   begin
     Output(aString);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TInspector.Emit(const aString: WideString;
+  procedure TInspector.Emit(const aString: UnicodeString;
                             const aArgs: array of const);
   begin
     Output(WideFormat(aString, aArgs));
@@ -4972,7 +4976,7 @@ implementation
   procedure TInspector.Emit(aBuffer: Pointer; aSize: Integer);
   var
     i: Integer;
-    s: String;
+    s: UnicodeString;
     p: PChar;
   begin
     p := aBuffer;
@@ -5054,7 +5058,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TInspector.Value(aValue: Boolean);
   const
-    SBOOL: array[FALSE..TRUE] of String = ('FALSE', 'TRUE');
+    SBOOL: array[FALSE..TRUE] of UnicodeString = ('FALSE', 'TRUE');
   begin
     Emit(SBOOL[aValue]);
   end;
@@ -5117,7 +5121,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TInspector.Values(const aArgs: array of const);
   var
-    s: String;
+    s: UnicodeString;
   begin
     s := Name;
     fName := '';
@@ -5294,7 +5298,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTest.Expecting(aClass: TExceptionClass;
-                           aMessage: String): ExceptionExpectation;
+                           aMessage: UnicodeString): ExceptionExpectation;
   begin
     result := TTestException.CreateExpecting(self, aClass);
   end;
@@ -5331,16 +5335,16 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TExpectation.get_Actual: String;
+  function TExpectation.get_Actual: UnicodeString;
   begin
     result := ReplaceTokens(fActual);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TExpectation.get_Description: String;
+  function TExpectation.get_Description: UnicodeString;
   var
-    desc: String;
+    desc: UnicodeString;
   begin
     result  := Trim(ReplaceTokens('{subject}'));
     desc    := Trim(ReplaceTokens(fDescription));
@@ -5367,7 +5371,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TExpectation.get_Expected: String;
+  function TExpectation.get_Expected: UnicodeString;
   begin
     result := ReplaceTokens(fExpected);
   end;
@@ -5381,7 +5385,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TExpectation.get_Explanation: String;
+  function TExpectation.get_Explanation: UnicodeString;
   begin
     result := fExplanation;
   end;
@@ -5415,7 +5419,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TExpectation.get_SubjectName: String;
+  function TExpectation.get_SubjectName: UnicodeString;
   begin
     result := ReplaceTokens(fSubjectName);
   end;
@@ -5436,7 +5440,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TExpectation.Because(const aExplanation: String);
+  procedure TExpectation.Because(const aExplanation: UnicodeString);
   begin
     fExplanation := ReplaceTokens(aExplanation);
   end;
@@ -5480,10 +5484,10 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TExpectation.DoReplaceToken(var aString: String;
-                                       const aToken, aValue: String): Boolean;
+  function TExpectation.DoReplaceToken(var aString: UnicodeString;
+                                       const aToken, aValue: UnicodeString): Boolean;
   var
-    original: String;
+    original: UnicodeString;
   begin
     original  := aString;
     aString   := StringReplace(original, aToken,  aValue, [rfIgnoreCase, rfReplaceAll]);
@@ -5499,8 +5503,8 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TExpectation.ReplaceToken(const aString: String;
-                                     const aToken, aValue: String): String;
+  function TExpectation.ReplaceToken(const aString: UnicodeString;
+                                     const aToken, aValue: UnicodeString): UnicodeString;
   begin
     result := aString;
     while DoReplaceToken(result, aToken, aValue) do;
@@ -5508,7 +5512,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TExpectation.ReplaceTokens(const aString: String): String;
+  function TExpectation.ReplaceTokens(const aString: UnicodeString): UnicodeString;
   begin
     result := aString;
     while DoReplaceTokens(result) do;
@@ -5516,7 +5520,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TExpectation.DoReplaceTokens(var aString: String): Boolean;
+  function TExpectation.DoReplaceTokens(var aString: UnicodeString): Boolean;
   begin
     result := DoReplaceToken(aString, '{actual}',       fActual);
     result := DoReplaceToken(aString, '{expected}',     fExpected) or result;
@@ -5558,7 +5562,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TExpectation.Supports(const aIID: TGUID;
-                                 const aName: String): Evaluation;
+                                 const aName: UnicodeString): Evaluation;
   begin
     result := self;
 
@@ -5607,7 +5611,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestRun.get_Name: String;
+  function TTestRun.get_Name: UnicodeString;
   begin
     result := Trim(fName);
     if (result = '') then
@@ -5623,7 +5627,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestRun.set_Name(const aValue: String);
+  procedure TTestRun.set_Name(const aValue: UnicodeString);
   begin
     fName := aValue;
   end;
