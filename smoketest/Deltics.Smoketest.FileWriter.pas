@@ -103,7 +103,7 @@ interface
     private
       function XMLEncode(const aValue: String): String;
       procedure Write(const aTag: String; const aList: TInterfaceList); overload;
-      procedure WriteTimings;
+//      procedure WriteTimings;
     protected
       procedure Write; override;
     end;
@@ -423,7 +423,7 @@ implementation
   procedure TXMLFileWriter.Write;
   begin
     Write('<?xml version="1.0" encoding="utf-8" ?>');
-    Write('<smoketest>');
+    Write('<smoketest project="' + ChangeFileExt(ExtractFileName(ParamStr(0)), '') + '">');
     try
       Indent(1);
       Write('<summary>');
@@ -454,6 +454,7 @@ implementation
   end;
 
 
+(*
   procedure TXMLFileWriter.WriteTimings;
   var
     i, j: Integer;
@@ -518,7 +519,7 @@ implementation
       times.Free;
     end;
   end;
-
+*)
 
 
 
