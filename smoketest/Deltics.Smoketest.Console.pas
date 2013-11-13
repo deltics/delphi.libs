@@ -164,10 +164,12 @@ interface
       function IsExpandable(const aArticle: ITestArticle): Boolean; overload;
       function IsExpanded(const aArticle: ITestArticle): Boolean; overload;
       function ItemArticle(const aListItem: TListItem): ITestArticle;
-      procedure ExpandCollapseAll(const aItem: TListItem; const aExpand: Boolean);
+      procedure ExpandCollapseAll(const aExpand: Boolean); overload;
+      procedure ExpandCollapseAll(const aItem: TListItem; const aExpand: Boolean); overload;
       procedure ExpandCollapseItem(const aItem: TListItem; const aExpand: Boolean);
       procedure ExpandCollapseChildren(const aItem: TListItem; const aExpand: Boolean);
       procedure ExpandCollapseSiblings(const aItem: TListItem; const aExpand: Boolean);
+      procedure ExpandEnabled(const aItem: TListItem);
       procedure SetupCanvasForArticle(const aArticle: ITestArticle);
     private
       fListIcons: IImageList;
@@ -330,6 +332,11 @@ implementation
     lvHierarchy.Columns[0].Caption := Smoketest.Name;
 
     AddChildren(NIL);
+
+    if Smoketest.CommandLine.ExpandAll then
+      ExpandCollapseAll(TRUE)
+    else if Smoketest.CommandLine.ExpandEnabled then
+      ExpandEnabled(NIL);
   end;
 
 
@@ -479,22 +486,31 @@ implementation
   end;
 
 
+  procedure TSmoketestConsole.ExpandCollapseAll(const aExpand: Boolean);
+  var
+    i: Integer;
+  begin
+    for i := 0 to Pred(Smoketest.CaseCount) do
+      ExpandCollapseAll(ArticleItem(Smoketest.Cases[i]), aExpand);
+  end;
+
+
   procedure TSmoketestConsole.ExpandCollapseAll(const aItem: TListItem;
                                                 const aExpand: Boolean);
   var
     i: Integer;
-    test: ITestCase;
+    test: ITestArticle;
   begin
     if NOT Assigned(aItem) then
       EXIT;
 
-    test := ItemArticle(aItem) as ITestCase;
+    test := ItemArticle(aItem);
 
     if aExpand then
       ExpandCollapseItem(aItem, aExpand);
 
-    for i := Pred(test.CaseCount) downto 0 do
-      ExpandCollapseAll(ArticleItem(test.CaseByIndex[i]), aExpand);
+    for i := Pred(test.Count) downto 0 do
+      ExpandCollapseAll(ArticleItem(test.Child[i]), aExpand);
 
     if NOT aExpand then
       ExpandCollapseItem(aItem, aExpand);
@@ -572,6 +588,31 @@ implementation
           ExpandCollapseItem(item, aExpand);
       end;
     end;
+  end;
+
+
+  procedure TSmoketestConsole.ExpandEnabled(const aItem: TListItem);
+  var
+    i: Integer;
+    test: ITestArticle;
+  begin
+    if NOT Assigned(aItem) then
+    begin
+      for i := 0 to Pred(Smoketest.CaseCount) do
+        ExpandEnabled(ArticleItem(Smoketest.Cases[i]));
+
+      EXIT;
+    end;
+
+    test := ItemArticle(aItem);
+
+    if NOT test.EffectivelyEnabled then
+      EXIT;
+
+    ExpandCollapseItem(aItem, TRUE);
+
+    for i := Pred(test.Count) downto 0 do
+      ExpandEnabled(ArticleItem(test.Child[i]));
   end;
 
 
@@ -1079,7 +1120,7 @@ implementation
 
 
   procedure TSmoketestConsole.SetupCanvasForArticle(const aArticle: ITestArticle);
-  const
+  const
     TEXTCOLOR : array[FALSE..TRUE] of TColor = (clSilver, clWindowText);
   begin
     if (aArticle.ArticleType in [atPerformanceCase, atTestCase])
@@ -1371,4 +1412,4 @@ implementation
 
 
 
-end.
+end.

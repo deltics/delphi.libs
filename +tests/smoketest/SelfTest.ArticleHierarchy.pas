@@ -140,7 +140,7 @@ implementation
     Test('Method display name').Expect(method.DisplayName).Equals('Case Param');
     Test('Method reference').Expect(method.Reference).Equals('1.1.1.2.1');
 
-    method := MethodByName['Parameter Values'];
+    method := TestCase.MethodByName['Parameter Values'];
     Test('''Parameter Values'' method found!').Expect(method).IsAssigned.IsRequired.Because('If we fail to find the method we cannot test it''s meta data');
     Test('Method name').Expect(method.Name).Equals('ParameterValues');
     Test('Method display name').Expect(method.DisplayName).Equals('Parameter Values');

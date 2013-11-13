@@ -360,13 +360,13 @@ interface
 
     ISmoketestMetadata = interface(ITestArticle)
     ['{F56A2057-CC31-4A0A-914B-0169EBDC1B82}']
-      function get_Case(const aIndex: Integer): TCase;
+      function get_Case(const aIndex: Integer): ITestArticle;
       function get_CaseCount: Integer;
 
       function FindCase(const aNamePath: UnicodeString): ITestCase;
       function FindMethod(const aNamePath: UnicodeString): ITestMethod;
 
-      property Cases[const aIndex: Integer]: TCase read get_Case;
+      property Cases[const aIndex: Integer]: ITestArticle read get_Case;
       property CaseCount: Integer read get_CaseCount;
     end;
 
@@ -647,16 +647,19 @@ interface
     TSmoketestCommandLine = class(TCommandLine)
     private
       fDisableList: TStringList;
-      fRunList: TStringList;
+      fEnableList: TStringList;
     protected
       procedure Define; override;
     private
       function get_DisableList: TStringList;
-      function get_RunList: TStringList;
+      function get_EnableList: TStringList;
 
       function get_AutoRun: Boolean;
       function get_DisableCases: Boolean;
       function get_DisablePerformanceCases: Boolean;
+      function get_EnableCases: Boolean;
+      function get_ExpandAll: Boolean;
+      function get_ExpandEnabled: Boolean;
       function get_NoOutput: Boolean;
       function get_OutputFilename: UnicodeString;
       function get_OutputToConsole: Boolean;
@@ -670,11 +673,14 @@ interface
       destructor Destroy; override;
 
       property DisableList: TStringList read get_DisableList;
-      property RunList: TStringList read get_RunList;
+      property EnableList: TStringList read get_EnableList;
 
       property AutoRun: Boolean read get_AutoRun;
       property DisableCases: Boolean read get_DisableCases;
       property DisablePerformanceCases: Boolean read get_DisablePerformanceCases;
+      property EnableCases: Boolean read get_EnableCases;
+      property ExpandAll: Boolean read get_ExpandAll;
+      property ExpandEnabled: Boolean read get_ExpandEnabled;
       property NoOutput: Boolean read get_NoOutput;
       property OutputFilename: UnicodeString read get_OutputFilename;
       property OutputToConsole: Boolean read get_OutputToConsole;
@@ -737,11 +743,11 @@ interface
       property Name: UnicodeString read get_Name;
 
     private // ISmoketestMetadata
-      function get_Case(const aIndex: Integer): TCase;
+      function get_Case(const aIndex: Integer): ITestArticle;
       function get_CaseCount: Integer;
       function FindCase(const aNamePath: UnicodeString): ITestCase;
       function FindMethod(const aNamePath: UnicodeString): ITestMethod;
-      property Cases[const aIndex: Integer]: TCase read get_Case;
+      property Cases[const aIndex: Integer]: ITestArticle read get_Case;
       property CaseCount: Integer read get_CaseCount;
 
     private // ISmoketestRuntime
@@ -877,7 +883,7 @@ interface
       property Smoketest: ISmoketestMetadata read get_Smoketest;
 
     protected
-      function Metadata: ITestCase;
+      function TestCase: ITestCase;
       function TheseTests: ITheseTests;
       function TheNextTest: INextTest;
       function TheNext(const aNumber: Integer): INextNTests;
@@ -1349,45 +1355,46 @@ interface
       function Expect(aValue: Currency): CurrencyExpectation;
     end;
 
-    ColorTest = interface
-    ['{4D7E5C81-BF25-44D7-91F8-A412B50D7C60}']
+    ColorTest = interface
+    ['{4D7E5C81-BF25-44D7-91F8-A412B50D7C60}']
       function Expect(aValue: TColor): ColorExpectation;
     end;
 
 
-    ColorExpectation = interface
-    ['{94A59F39-8BAE-4078-9BCE-30F60FED9816}']
+
+    ColorExpectation = interface
+    ['{94A59F39-8BAE-4078-9BCE-30F60FED9816}']
       function Equals(aExpected: TColor): Evaluation;
     end;
 
     DateExpectation = interface
-    ['{106167D2-9197-4EA8-9577-E7D3C12FC74C}']
-      function Year: CardinalExpectation;
-      function Month: CardinalExpectation;
-      function Day: CardinalExpectation;
-      function DayOfMonth: CardinalExpectation;
-      function DayOfWeek: CardinalExpectation;
-      function DayOfYear: CardinalExpectation;
-      function WeekOfMonth: CardinalExpectation;
-      function WeekOfYear: CardinalExpectation;
-      function Equals(const aValue: TDate): Evaluation; overload;
-      function Equals(const aYear, aMonth: Word; const aDay: Word = NO_DAYS): Evaluation; overload;
+    ['{106167D2-9197-4EA8-9577-E7D3C12FC74C}']
+      function Year: CardinalExpectation;
+      function Month: CardinalExpectation;
+      function Day: CardinalExpectation;
+      function DayOfMonth: CardinalExpectation;
+      function DayOfWeek: CardinalExpectation;
+      function DayOfYear: CardinalExpectation;
+      function WeekOfMonth: CardinalExpectation;
+      function WeekOfYear: CardinalExpectation;
+      function Equals(const aValue: TDate): Evaluation; overload;
+      function Equals(const aYear, aMonth: Word; const aDay: Word = NO_DAYS): Evaluation; overload;
       function IsBetween(const aEarliest, aLatest: TDate): Evaluation;
-      function IsInRange(const aEarliest, aLatest: TDate): Evaluation;
+      function IsInRange(const aEarliest, aLatest: TDate): Evaluation;
       function IsAfter(const aValue: TDate): Evaluation;
       function IsBefore(const aValue: TDate): Evaluation;
       function IsNotAfter(const aValue: TDate): Evaluation;
       function IsNotBefore(const aValue: TDate): Evaluation;
     end;
 
-    TimeExpectation = interface
-    ['{A6B5E44F-04BE-4687-A7DC-19E133F1A690}']
-      function Hour: CardinalExpectation;
-      function Minute: CardinalExpectation;
-      function Second: CardinalExpectation;
-      function Millisecond: CardinalExpectation;
-      function Equals(const aValue: TTime): Evaluation; overload;
-      function Equals(const aHour, aMinute: Word; const aSecond: Word = NO_SECONDS; const aMillisecond: Word = NO_MILLISECONDS): Evaluation; overload;
+    TimeExpectation = interface
+    ['{A6B5E44F-04BE-4687-A7DC-19E133F1A690}']
+      function Hour: CardinalExpectation;
+      function Minute: CardinalExpectation;
+      function Second: CardinalExpectation;
+      function Millisecond: CardinalExpectation;
+      function Equals(const aValue: TTime): Evaluation; overload;
+      function Equals(const aHour, aMinute: Word; const aSecond: Word = NO_SECONDS; const aMillisecond: Word = NO_MILLISECONDS): Evaluation; overload;
       function IsBetween(const aEarliest, aLatest: TTime): Evaluation;
       function IsInRange(const aEarliest, aLatest: TTime): Evaluation;
       function IsAfter(const aValue: TTime): Evaluation;
@@ -1396,24 +1403,24 @@ interface
       function IsNotBefore(const aValue: TTime): Evaluation;
     end;
 
-    DateTimeExpectation = interface
-    ['{64A0E575-95CE-40CE-8DE4-52071F37B897}']
-      function Year: CardinalExpectation;
-      function Month: CardinalExpectation;
-      function Day: CardinalExpectation;
-      function DayOfMonth: CardinalExpectation;
-      function DayOfWeek: CardinalExpectation;
-      function DayOfYear: CardinalExpectation;
-      function WeekOfMonth: CardinalExpectation;
-      function WeekOfYear: CardinalExpectation;
-      function Hour: CardinalExpectation;
-      function Minute: CardinalExpectation;
-      function Second: CardinalExpectation;
-      function Millisecond: CardinalExpectation;
-      function LocalTime: DateTimeExpectation;
-      function UTC: DateTimeExpectation;
-      function Equals(const aValue: TDateTime): Evaluation;
-      function HasDate(const aYear, aMonth, aDay: Word): Evaluation;
+    DateTimeExpectation = interface
+    ['{64A0E575-95CE-40CE-8DE4-52071F37B897}']
+      function Year: CardinalExpectation;
+      function Month: CardinalExpectation;
+      function Day: CardinalExpectation;
+      function DayOfMonth: CardinalExpectation;
+      function DayOfWeek: CardinalExpectation;
+      function DayOfYear: CardinalExpectation;
+      function WeekOfMonth: CardinalExpectation;
+      function WeekOfYear: CardinalExpectation;
+      function Hour: CardinalExpectation;
+      function Minute: CardinalExpectation;
+      function Second: CardinalExpectation;
+      function Millisecond: CardinalExpectation;
+      function LocalTime: DateTimeExpectation;
+      function UTC: DateTimeExpectation;
+      function Equals(const aValue: TDateTime): Evaluation;
+      function HasDate(const aYear, aMonth, aDay: Word): Evaluation;
       function HasTime(const aHour, aMinute, aSecond: Word; const aMillisecond: Word = NO_MILLISECONDS): Evaluation;
       function IsBetween(const aEarliest, aLatest: TDateTime): Evaluation;
       function IsInRange(const aEarliest, aLatest: TDateTime): Evaluation;
@@ -1423,14 +1430,15 @@ interface
       function IsNotBefore(const aValue: TDateTime): Evaluation;
     end;
 
-    BooleanExpectation = interface
-    ['{7994B0AD-E585-4E6B-B553-45BF68FC9673}']
-      function Equals(const aExpected: Boolean): Evaluation;
-      function IsFALSE: Evaluation;
+    BooleanExpectation = interface
+    ['{7994B0AD-E585-4E6B-B553-45BF68FC9673}']
+      function Equals(const aExpected: Boolean): Evaluation;
+      function IsFALSE: Evaluation;
       function IsTRUE: Evaluation;
     end;
 
-    SingleExpectation = interface
+
+    SingleExpectation = interface
     ['{59431CA7-74C0-4CC5-AF55-C6993E01B404}']
       function ToDPs(const aDPs: Integer): ApproximateExpectation;
       function Between(const aMin, aMax: Single): Evaluation;
@@ -1601,26 +1609,30 @@ interface
     end;
 
     DateTest = interface
-    ['{908BBD0F-E493-4468-BABD-2D09C2DB9218}']
-      function Expect(aValue: TDate): DateExpectation;
-    end;
+    ['{908BBD0F-E493-4468-BABD-2D09C2DB9218}']
+      function Expect(aValue: TDate): DateExpectation;
+    end;
 
-    TimeTest = interface
-    ['{6672B519-52AB-46BE-A1CA-1ADAE233D3EE}']
-      function Expect(aValue: TTime): TimeExpectation;
-    end;
 
-    DateTimeTest = interface
-    ['{2CE43D88-5A59-4996-BFF3-A8CA46921C65}']
-      function Expect(aValue: TDateTime): DateTimeExpectation;
-    end;
+    TimeTest = interface
+    ['{6672B519-52AB-46BE-A1CA-1ADAE233D3EE}']
+      function Expect(aValue: TTime): TimeExpectation;
+    end;
 
-    UTF8Test = interface
+
+    DateTimeTest = interface
+    ['{2CE43D88-5A59-4996-BFF3-A8CA46921C65}']
+      function Expect(aValue: TDateTime): DateTimeExpectation;
+    end;
+
+
+    UTF8Test = interface
     ['{9E03FACF-CF44-472D-91E6-103123B3BE65}']
       function Expect(aValue: UTF8String): UTF8Expectation;
-    end;
+    end;
 
-    EnumExpectations = interface
+
+    EnumExpectations = interface
     ['{48C6B934-DFED-46F3-8217-76B60E9C8487}']
 //      function Equals(const aValue): Evaluation; overload;
       function Equals(aValue: Cardinal): Evaluation; overload;
@@ -1692,6 +1704,7 @@ implementation
     CMDLINE_AutoRun                 = '-r';
     CMDLINE_DisableCases            = '-d';
     CMDLINE_DisablePerformanceCases = '-dp';
+    CMDLINE_EnableCases             = '-e';
     CMDLINE_NoOutput                = '-no';
     CMDLINE_OutputToFile            = '-f';
     CMDLINE_OutputJSON              = '-json';
@@ -1700,6 +1713,9 @@ implementation
     CMDLINE_SilentRunning           = '-s';
     CMDLINE_ThreadIsolation         = '-ti';
     CMDLINE_VerboseOutput           = '-v';
+    CMDLINE_ExpandCases             = '-x';
+    CMDLINE_ExpandAll               = '-xa';
+    CMDLINE_ExpandEnabled           = '-xe';
 
   const
     ALL_TESTS = -1;
@@ -2355,7 +2371,7 @@ implementation
   destructor TSmoketestCommandLine.Destroy;
   begin
     FreeAndNIL(fDisableList);
-    FreeAndNIL(fRunList);
+    FreeAndNIL(fEnableList);
 
     inherited;
   end;
@@ -2367,6 +2383,7 @@ implementation
     // These have (optional) lists of case names/references
     DefineSwitch(CMDLINE_AutoRun);
     DefineSwitch(CMDLINE_DisableCases);
+    DefineSwitch(CMDLINE_EnableCases);
 
     // This is a switch having an optional value with a default
     DefineSwitch(CMDLINE_OutputToFile, ChangeFileExt(ExtractFilename(ParamStr(0)), ''));
@@ -2380,6 +2397,8 @@ implementation
     DefineSwitch(CMDLINE_OutputPlainText);
     DefineSwitch(CMDLINE_SilentRunning);
     DefineSwitch(CMDLINE_ThreadIsolation);
+    DefineSwitch(CMDLINE_ExpandAll);
+    DefineSwitch(CMDLINE_ExpandEnabled);
 
     DefineSwitch(CMDLINE_NoOutput); // Overrides any/all other output settings to disable any output
   end;
@@ -2403,6 +2422,45 @@ implementation
   function TSmoketestCommandLine.get_DisablePerformanceCases: Boolean;
   begin
     result := Switch[CMDLINE_DisablePerformanceCases].Specified;
+  end;
+
+
+  {- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TSmoketestCommandLine.get_EnableCases: Boolean;
+  begin
+    result := Switch[CMDLINE_EnableCases].Specified;
+  end;
+
+
+  {- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TSmoketestCommandLine.get_EnableList: TStringList;
+  var
+    sw: TCommandLineSwitch;
+  begin
+    if NOT Assigned(fEnableList) then
+    begin
+      fEnableList := TStringList.Create;
+
+      sw := Switch[CMDLINE_EnableCases];
+      if Assigned(sw.Values) then
+        fEnableList.Assign(sw.Values);
+    end;
+
+    result := fEnableList;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TSmoketestCommandLine.get_ExpandAll: Boolean;
+  begin
+    result := Switch[CMDLINE_ExpandAll].Specified;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TSmoketestCommandLine.get_ExpandEnabled: Boolean;
+  begin
+    result := Switch[CMDLINE_ExpandEnabled].Specified;
   end;
 
 
@@ -2502,24 +2560,6 @@ implementation
     end;
 
     result := fDisableList;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSmoketestCommandLine.get_RunList: TStringList;
-  var
-    sw: TCommandLineSwitch;
-  begin
-    if NOT Assigned(fRunList) then
-    begin
-      fRunList := TStringList.Create;
-
-      sw := Switch[CMDLINE_AutoRun];
-      if Assigned(sw.Values) then
-        fRunList.Assign(sw.Values);
-    end;
-
-    result := fRunList;
   end;
 
 
@@ -2839,7 +2879,7 @@ implementation
     State.Enter(tsRunning);
     try
       for i := 0 to Pred(CaseCount) do
-        Cases[i].Execute;
+        TCase(fCases[i]).Execute;
 
     finally
       State.Leave(tsRunning);
@@ -2880,7 +2920,7 @@ implementation
     i: Integer;
   begin
     for i := 0 to Pred(CaseCount) do
-      Cases[i].Initialise;
+      TCase(fCases[i]).Initialise;
   end;
 
 
@@ -2900,9 +2940,9 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSmoketest.get_Case(const aIndex: Integer): TCase;
+  function TSmoketest.get_Case(const aIndex: Integer): ITestArticle;
   begin
-    result := TCase(fCases[aIndex]);
+    fCases[aIndex].GetInterface(ITestArticle, result);
   end;
 
 
@@ -3081,7 +3121,7 @@ implementation
     i: Integer;
   begin
     for i := 0 to Pred(CaseCount) do
-      Cases[i].Shutdown;
+      TCase(fCases[i]).Shutdown;
   end;
 
 
@@ -3127,14 +3167,19 @@ implementation
     methods: TMethodList;
     methodName: UnicodeString;
     methodAddr: Pointer;
-    autorun: Boolean;
-    run: TStringList;
+    filterEnable: Boolean;
+    filterDisable: Boolean;
+    filter: TStringList;
     delegate: TDelegate;
   begin
     methods := TMethodList.Create(aCase);
     try
-      run     := _Suite.CommandLine.RunList;
-      autorun := _Suite.CommandLine.AutoRun and (run.Count > 0);
+      filterEnable  := _Suite.CommandLine.EnableCases;
+      filterDisable := NOT filterEnable and _Suite.CommandLine.DisableCases;
+
+      if filterEnable then filter := _Suite.CommandLine.EnableList
+      else if filterDisable then filter := _Suite.CommandLine.DisableList
+      else filter := NIL;
 
       for i := 0 to Pred(methods.Count) do
       begin
@@ -3143,17 +3188,27 @@ implementation
 
         delegate := aDelegateClass.Create(aCase, methodName, methodAddr);
 
-        if autorun then
+        if Assigned(filter) then
         begin
-          delegate.Enabled := run.Contains(delegate.DisplayName)
-                           or run.Contains(delegate.Reference);
+          if filterEnable then
+            delegate.Enabled := (filter.Count = 0)
+                             or filter.Contains(delegate.DisplayName)
+                             or filter.Contains(delegate.Reference)
+          else
+            delegate.Enabled := (filter.Count > 0)
+                            and NOT (filter.Contains(delegate.DisplayName)
+                                  or filter.Contains(delegate.Reference));
+        end;
 
-          if delegate.Enabled and NOT aCase.Enabled then
-            aCase.Enabled := TRUE;
-        end;
-      end;
 
-    finally
+        if (aDelegateClass <> TPerformanceDelegate)
+         or NOT _Suite.CommandLine.DisablePerformanceCases then
+          if delegate.Enabled then
+            aCase.Enabled := TRUE;
+      end;
+
+
+    finally
       methods.Free;
     end;
   end;
@@ -3168,29 +3223,37 @@ implementation
 { TCase ------------------------------------------------------------------------------------------ }
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TCase.Create(const aParentCase: TCase);
-  var
-    disabled: TStringList;
-    run: TStringList;
-  begin
+  constructor TCase.Create(const aParentCase: TCase);
+  var
+    filterEnable: Boolean;
+    filterDisable: Boolean;
+    filter: TStringList;
+  begin
     inherited Create(aParentCase, ClassName);
 
     State.Add([tsDisabled, tsNotImplemented]);
 
-    run       := _Suite.CommandLine.RunList;
-    disabled  := _Suite.CommandLine.DisableList;
+    filterEnable  := _Suite.CommandLine.EnableCases;
+    filterDisable := NOT filterEnable and _Suite.CommandLine.DisableCases;
 
-    Enabled := TRUE;
+    if filterEnable then filter := _Suite.CommandLine.EnableList
+    else if filterDisable then filter := _Suite.CommandLine.DisableList
+    else filter := NIL;
 
-    if _Suite.CommandLine.AutoRun and (run.Count > 0) then
-      Enabled := run.Contains(self.DisplayName)
-              or run.Contains(self.Reference);
-
-    if _Suite.CommandLine.DisableCases then
-      Enabled := (disabled.Count > 0)
-              and NOT (disabled.Contains(self.DisplayName))
-              and NOT (disabled.Contains(self.Reference));
-  end;
+    if Assigned(filter) then
+    begin
+      if filterEnable then
+        Enabled := (filter.Count = 0)
+                or filter.Contains(self.DisplayName)
+                or filter.Contains(self.Reference)
+      else
+        Enabled := (filter.Count > 0)
+               and NOT (filter.Contains(self.DisplayName)
+                     or filter.Contains(self.Reference));
+    end
+    else
+      Enabled := TRUE;
+  end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
@@ -3393,8 +3456,8 @@ implementation
   procedure TTestCase.AfterConstruction;
   var
     init: IHaveChildCases;
-    prevInit: TTestCase;
-  begin
+    prevInit: TTestCase;
+  begin
     inherited;
 
     _CreateDelegates(self, TTestDelegate);
@@ -3738,7 +3801,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestCase.Metadata: ITestCase;
+  function TTestCase.TestCase: ITestCase;
   begin
     result := self as ITestCase;
   end;
@@ -3960,7 +4023,7 @@ implementation
   begin
     result := TestDatetime(Format(aName, aArgs));
   end;
-
+
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTestCase.TestUTF8: UTF8Test;
@@ -4116,7 +4179,8 @@ implementation
     if IsConsole and NOT _Suite.CommandLine.SilentRunning then
       Write(NameForConsole + '...');
 
-    try
+
+    try
       TTestCase(Owner).fActiveDelegate := self;
 
       if TestCase.GetInterface(ISetupTest, setup) then
@@ -4163,15 +4227,16 @@ implementation
             WriteLn('aborted')
           else if HasPasses and NOT HasErrors and NOT HasFailures then
             WriteLn('ok')
-          else if HasErrors then
-            WriteLn('error')
-          else if HasFailures then
-            WriteLn('failed')
-          else
-            WriteLn('no tests performed');
-        end;
+          else if HasErrors then
+            WriteLn('error')
+          else if HasFailures then
+            WriteLn('failed')
+          else
+            WriteLn('no tests performed');
+        end;
 
-        try
+
+        try
           if TestCase.GetInterface(ICleanupTest, cleanup) then
             cleanup.CleanupTest(self);
 
@@ -4255,6 +4320,10 @@ implementation
   constructor TPerformanceCase.Create(const N: Integer;
                                       const aMode: TPerformanceMode;
                                       const aSamples: Integer);
+  var
+    filterEnable: Boolean;
+    filterDisable: Boolean;
+    filter: TStringList;
   begin
     inherited Create;
 
@@ -4265,6 +4334,28 @@ implementation
     fDelegates := TObjectList.Create(TRUE);
 
     Enabled := NOT _Suite.CommandLine.DisablePerformanceCases;
+
+    if Enabled then
+    begin
+      filterEnable  := _Suite.CommandLine.EnableCases;
+      filterDisable := NOT filterEnable and _Suite.CommandLine.DisableCases;
+
+      if filterEnable then filter := _Suite.CommandLine.EnableList
+      else if filterDisable then filter := _Suite.CommandLine.DisableList
+      else filter := NIL;
+
+      if Assigned(filter) then
+      begin
+        if filterEnable then
+          Enabled := (filter.Count = 0)
+                  or filter.Contains(self.DisplayName)
+                  or filter.Contains(self.Reference)
+        else
+          Enabled := (filter.Count > 0)
+                 and NOT (filter.Contains(self.DisplayName)
+                       or filter.Contains(self.Reference));
+      end;
+    end;
   end;
 
 

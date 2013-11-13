@@ -164,7 +164,7 @@ implementation
   var
     method: ITestMethod;
   begin
-    method := Metadata.MethodByName['DeliberateFailures'];
+    method := TestCase.MethodByName['DeliberateFailures'];
 
     Test('Located ''DeliberateFailures'' method!').Expect(method).IsAssigned
       .IsRequired.Because('If we can''t find the method then we can''t test it''s state');
@@ -172,7 +172,7 @@ implementation
     Test('DeliberateFailures : {expected} Failures!').Expect(method.Failures).Equals(2);
     Test('DeliberateFailures : {expected} Passes!').Expect(method.Passes).Equals(0);
 
-    method := Metadata.MethodByName['MixedResults'];
+    method := TestCase.MethodByName['MixedResults'];
 
     Test('Located ''MixedResults'' method!').Expect(method).IsAssigned
       .IsRequired.Because('If we can''t find the method then we can''t test it''s state');
@@ -206,7 +206,7 @@ implementation
   var
     method: ITestMethod;
   begin
-    method := Metadata.MethodByName['disabledtests'];
+    method := TestCase.MethodByName['disabledtests'];
     method.Enabled := FALSE;
 
     Test('DisabledTest.EffectivelyEnabled').Expect(method.EffectivelyEnabled).IsFALSE;
@@ -367,7 +367,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTestCounters.TestCaseMetaData;
   begin
-    Test('TestCount').Expect(Metadata.MethodCount).Equals(2);
+    Test('TestCount').Expect(TestCase.MethodCount).Equals(2);
   end;
 
 
@@ -378,8 +378,8 @@ implementation
 
     Test('SetupTestRun').Expect(fSetupTestRun).Equals(RunCount);
     Test('Setup (case)').Expect(fSetupCase).Equals(RunCount);
-    Test('Setup (per test)').Expect(fSetupTest).Equals(Metadata.MethodCount * RunCount);
-    Test('Cleanup (per test)').Expect(fCleanupTest).Equals((Metadata.MethodCount * RunCount) - 1);
+    Test('Setup (per test)').Expect(fSetupTest).Equals(TestCase.MethodCount * RunCount);
+    Test('Cleanup (per test)').Expect(fCleanupTest).Equals((TestCase.MethodCount * RunCount) - 1);
     Test('Cleanup (case)').Expect(fCleanupCase).Equals(RunCount - 1);
     Test('CleanupTestRun').Expect(fCleanupTestRun).Equals(RunCount - 1);
 
