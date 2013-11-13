@@ -75,6 +75,14 @@ interface
 
 
   type
+  {$ifNdef UNICODE}
+    // UnicodeString alias for convenience when implement INameCase and other
+    //  TestCase interfaces involving UnicodeString (to avoid having to use Deltics.Strings
+    //  as well as Deltics.Smoketest)
+
+    UnicodeString = Deltics.Strings.UnicodeString;
+  {$endif}
+
     TTestArticleType = (
                         atSmoketest,
                         atTestCase,
