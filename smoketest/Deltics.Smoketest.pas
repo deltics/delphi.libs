@@ -124,6 +124,7 @@ interface
     DateTest      = interface;
     TimeTest      = interface;
     DoubleTest    = interface;
+    UTF8Test      = interface;
 
     ApproximateExpectation  = interface;
     BooleanExpectation      = interface;
@@ -143,6 +144,8 @@ interface
     SingleExpectation       = interface;
     StringExpectation       = interface;
     TextExpectation         = interface;
+    UTF8Expectation         = interface;
+    UTF8TextExpectation     = interface;
     TimeExpectation         = interface;
 
     TTestArticle = class;
@@ -221,16 +224,14 @@ interface
     ITest = interface
     ['{902B3635-AABF-48F2-9E9F-EAD884C78D57}']
       function get_Part(aPart: Variant): ITest;
-
     {$ifdef EnhancedOverloads}
       function Expect(aValue: Currency): CurrencyExpectation; overload;
       function Expect(aValue: Double): DoubleExpectation; overload;
       function Expect(aValue: TDatetime): DatetimeExpectation; overload;
       function Expect(aValue: TDate): DateExpectation; overload;
       function Expect(aValue: TTime): TimeExpectation; overload;
-      function Expect(aValue: UTF8String): StringExpectation; overload;
+      function Expect(aValue: UTF8String): UTF8Expectation; overload;
     {$endif}
-
       function Expect(aValue: Boolean): BooleanExpectation; overload;
       function Expect(aValue: Single): SingleExpectation; overload;
       function Expect(aValue: Extended): ExtendedExpectation; overload;
@@ -824,23 +825,47 @@ interface
       procedure AfterConstruction; override;
       destructor Destroy; override;
     protected
-      procedure Alert(aMessage: UnicodeString);
-      function Inspect(aName: UnicodeString = ''): IInspector; overload;
-      function Inspect(aName: UnicodeString; aArgs: array of const): IInspector; overload;
-      function Test: ITest; overload;
+      // NOTE: String methods are not explicitly implemented - the compiler will map such
+      //        declarations onto either the ANSIString or UnicodeString declared implementations
+      //        according to whether the built-in 'String' type in the compiler version is
+      //        ANSI or Unicode
+      function Inspect(aName: String): IInspector; overload;
+      function Inspect(aName: String; aArgs: array of const): IInspector; overload;
+      function Test(aName: String): ITest; overload;
+      function Test(aName: String; aArgs: array of const): ITest; overload;
+    {$ifdef UNICODE}
+      function Inspect(aName: ANSIString): IInspector; overload;
+      function Inspect(aName: ANSIString; aArgs: array of const): IInspector; overload;
+      function Inspect(aName: UTF8String): IInspector; overload;
+      function Inspect(aName: UTF8String; aArgs: array of const): IInspector; overload;
       function Test(aName: ANSIString): ITest; overload;
-      function Test(aName: ANSIString; const aArgs: array of const): ITest; overload;
-      function Test(aName: UnicodeString): ITest; overload;
-      function Test(aName: UnicodeString; const aArgs: array of const): ITest; overload;
-    {$ifdef EnhancedOverloads}
+      function Test(aName: ANSIString; aArgs: array of const): ITest; overload;
       function Test(aName: UTF8String): ITest; overload;
-      function Test(aName: UTF8String; const aArgs: array of const): ITest; overload;
+      function Test(aName: UTF8String; aArgs: array of const): ITest; overload;
+    {$else}
+      function Inspect(aName: UnicodeString): IInspector; overload;
+      function Inspect(aName: UnicodeString; aArgs: array of const): IInspector; overload;
+      function Test(aName: UnicodeString): ITest; overload;
+      function Test(aName: UnicodeString; aArgs: array of const): ITest; overload;
     {$endif}
+      function TestDatetime: DatetimeTest; overload;
+      function TestDatetime(aName: UnicodeString): DatetimeTest; overload;
+      function TestDatetime(aName: UnicodeString; aArgs: array of const): DatetimeTest; overload;
+      function TestUTF8: UTF8Test; overload;
+      function TestUTF8(aName: UnicodeString): UTF8Test; overload;
+      function TestUTF8(aName: UnicodeString; aArgs: array of const): UTF8Test; overload;
 
-      function TestDatetime(aName: UnicodeString = '{actual}'): DatetimeTest; overload;
-      function TestDatetime(aName: UnicodeString; const aArgs: array of const): DatetimeTest; overload;
+      procedure Alert(aMessage: UnicodeString);
       procedure Note(aMessage: UnicodeString); overload;
       procedure Note(aMessage: UnicodeString; const aArgs: array of const); overload;
+      function Test: ITest; overload;
+
+      // The Deltics.Smoketest unit has a Smoketest reference which provides access
+      //  to the SmoketestSetup interface.  In the context of a TestCase method, a
+      //  reference ot the SmoketestMetaData is more appropriate so we introducing a
+      //  property with the same name as the unit variable so as to hide it and replace
+      //  it with the more appropriate interface reference.  The setup interface can still
+      //  be obtained using a unit name qualification if necessary.
       property Smoketest: ISmoketestMetadata read get_Smoketest;
 
     protected
@@ -849,9 +874,9 @@ interface
       function TheNextTest: INextTest;
       function TheNext(const aNumber: Integer): INextNTests;
 
-    private // ITestCase
+    private // ITestCase ------------------------------------------------------
       function get_HasChildCases: Boolean;
-    protected
+    private
       function get_CaseByIndex(const aIndex: Integer): ITestCase;
       function get_CaseByName(const aName: UnicodeString): ITestCase;
       function get_CaseCount: Integer;
@@ -859,13 +884,6 @@ interface
       function get_MethodByIndex(const aIndex: Integer): ITestMethod;
       function get_MethodByName(const aName: UnicodeString): ITestMethod;
       function get_MethodCount: Integer;
-
-      property CaseByIndex[const aIndex: Integer]: ITestCase read get_CaseByIndex;
-      property CaseByName[const aName: UnicodeString]: ITestCase read get_CaseByName;
-      property CaseCount: Integer read get_CaseCount;
-      property MethodByIndex[const aIndex: Integer]: ITestMethod read get_MethodByIndex;
-      property MethodByName[const aName: UnicodeString]: ITestMethod read get_MethodByName;
-      property MethodCount: Integer read get_MethodCount;
     end;
 
 
@@ -1107,7 +1125,7 @@ interface
         function Expect(aValue: TDatetime): DatetimeExpectation; overload;
         function Expect(aValue: TDate): DateExpectation; overload;
         function Expect(aValue: TTime): TimeExpectation; overload;
-        function Expect(aValue: UTF8String): StringExpectation; overload;
+        function Expect(aValue: UTF8String): UTF8Expectation; overload;
     {$endif}
         function Expect(aValue: Boolean): BooleanExpectation; overload;
         function Expect(aValue: Single): SingleExpectation; overload;
@@ -1516,33 +1534,54 @@ interface
       function IsNull: Evaluation;
     end;
 
-    StringExpectation = interface
+    TextExpectation = interface
+    ['{71DA4178-A71B-451B-B5EE-5D5B29C92FA7}']
+      function BeginsWith(const aString: String): Evaluation; overload;
+      function Contains(const aSubString: String): Evaluation; overload;
+      function EndsWith(const aString: String): Evaluation; overload;
+      function Equals(const aExpected: String): Evaluation; overload;
+    {$ifdef UNICODE}
+      function BeginsWith(const aString: ANSIString): Evaluation; overload;
+      function Contains(const aSubString: ANSIString): Evaluation; overload;
+      function EndsWith(const aString: ANSIString): Evaluation; overload;
+      function Equals(const aExpected: ANSIString): Evaluation; overload;
+    {$else}
+      function BeginsWith(const aString: UnicodeString): Evaluation; overload;
+      function Contains(const aSubString: UnicodeString): Evaluation; overload;
+      function EndsWith(const aString: UnicodeString): Evaluation; overload;
+      function Equals(const aExpected: UnicodeString): Evaluation; overload;
+    {$endif}
+    end;
+
+    StringExpectation = interface(TextExpectation)
     ['{6BDDE890-3AB1-4364-BB66-57711107F7B7}']
       function CaseInsensitive: TextExpectation;
       function IsEmpty: Evaluation;
       function IsLowercase: Evaluation;
       function IsUppercase: Evaluation;
       function Length: IntegerExpectation;
-      function BeginsWith(const aString: ANSIString): Evaluation; overload;
+    end;
+
+    UTF8TextExpectation = interface
+    ['{EF242137-A5C7-4209-85C1-153BCCDC3D3F}']
+      function BeginsWith(const aString: UTF8String): Evaluation; overload;
+      function Contains(const aSubString: UTF8String): Evaluation; overload;
+      function EndsWith(const aString: UTF8String): Evaluation; overload;
+      function Equals(const aExpected: UTF8String): Evaluation; overload;
+
       function BeginsWith(const aString: UnicodeString): Evaluation; overload;
-      function Contains(const aSubString: ANSIString): Evaluation; overload;
       function Contains(const aSubString: UnicodeString): Evaluation; overload;
-      function EndsWith(const aString: ANSIString): Evaluation; overload;
       function EndsWith(const aString: UnicodeString): Evaluation; overload;
-      function Equals(const aExpected: ANSIString): Evaluation; overload;
       function Equals(const aExpected: UnicodeString): Evaluation; overload;
     end;
 
-    TextExpectation = interface
-    ['{71DA4178-A71B-451B-B5EE-5D5B29C92FA7}']
-      function BeginsWith(const aString: ANSIString): Evaluation; overload;
-      function BeginsWith(const aString: UnicodeString): Evaluation; overload;
-      function Contains(const aSubString: ANSIString): Evaluation; overload;
-      function Contains(const aSubString: UnicodeString): Evaluation; overload;
-      function EndsWith(const aString: ANSIString): Evaluation; overload;
-      function EndsWith(const aString: UnicodeString): Evaluation; overload;
-      function Equals(const aExpected: ANSIString): Evaluation; overload;
-      function Equals(const aExpected: UnicodeString): Evaluation; overload;
+    UTF8Expectation = interface(UTF8TextExpectation)
+    ['{3556D2CE-D49A-41C4-96FC-E4BA209CB10E}']
+      function CaseInsensitive: UTF8TextExpectation;
+      function IsEmpty: Evaluation;
+      function IsLowercase: Evaluation;
+      function IsUppercase: Evaluation;
+      function Length: IntegerExpectation;
     end;
 
     ExceptionExpectation = interface
@@ -1566,6 +1605,11 @@ interface
     DateTimeTest = interface
     ['{2CE43D88-5A59-4996-BFF3-A8CA46921C65}']
       function Expect(aValue: TDateTime): DateTimeExpectation;
+    end;
+
+    UTF8Test = interface
+    ['{9E03FACF-CF44-472D-91E6-103123B3BE65}']
+      function Expect(aValue: UTF8String): UTF8Expectation;
     end;
 
     EnumExpectations = interface
@@ -2104,16 +2148,8 @@ implementation
   begin
     result := Int64(self);
   end;
-(*
-  function TTestArticle.get_ID: UnicodeString;
-  begin
-    if Assigned(Owner) then
-      result := Owner.ID + '.' + Name
-    else
-      result := Name;
-  end;
-*)
 
+  
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTestArticle.get_IsRunning: Boolean;
   begin
@@ -2127,7 +2163,7 @@ implementation
     if (fName = '') then
     begin
       fName := ClassName;
-      if (fName[1] = 'T') and IsUpper(fName[2]) then
+      if (fName[1] = 'T') and WIDE.IsUppercase(fName[2]) then
         Delete(fName, 1, 1);
 
       fName := CamelCapsToWords(fName);
@@ -2423,14 +2459,14 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketestCommandLine.get_OutputJSON: Boolean;
   begin
-    result := NOT NoOutput and Switch[CMDLINE_OutputJSON].Specified;
+    result := Switch[CMDLINE_OutputJSON].Specified;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketestCommandLine.get_OutputPlainText: Boolean;
   begin
-    result := NOT NoOutput and Switch[CMDLINE_OutputPlainText].Specified;
+    result := Switch[CMDLINE_OutputPlainText].Specified;
   end;
 
 
@@ -3162,13 +3198,13 @@ implementation
 
     result := inherited SetDisplayName;
 
-    if StrBeginsWithText(result, 'TUnitTest_') then
+    if WIDE.BeginsWithText(result, 'TUnitTest_') then
     begin
       Delete(result, 1, 10);
     end
     else
     begin
-      if (result[1] = 'T') and IsUpper(result[2]) then
+      if (result[1] = 'T') and WIDE.IsUppercase(result[2]) then
           Delete(result, 1, 1);
 
       result := CamelCapsToWords(result);
@@ -3383,7 +3419,7 @@ implementation
   begin
     for i := 0 to Pred(fCases.Count) do
     begin
-      result := CaseByIndex[i];
+      result := get_CaseByIndex(i);
       if ANSISameText(result.Name, aName)
        or ANSISameText(result.DisplayName, aName) then
         EXIT;
@@ -3432,7 +3468,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTestCase.get_HasChildCases: Boolean;
   begin
-    result := (CaseCount > 0);
+    result := (get_CaseCount > 0);
   end;
 
 
@@ -3457,7 +3493,7 @@ implementation
   begin
     for i := 0 to Pred(DelegateCount) do
     begin
-      result := MethodByIndex[i];
+      result := get_MethodByIndex(i);
       if ANSISameText(result.Name, aName)
        or ANSISameText(result.DisplayName, aName) then
         EXIT;
@@ -3647,6 +3683,21 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.Inspect(aName: ANSIString): IInspector;
+  begin
+    result := Inspect(WIDE.FromANSI(aName));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.Inspect(aName: ANSIString;
+                             aArgs: array of const): IInspector;
+  begin
+    result := Inspect(WideFormat(WIDE.FromANSI(aName), aArgs));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTestCase.Inspect(aName: UnicodeString): IInspector;
   begin
     result := TInspector.GetInspector(self, Trim(aName));
@@ -3657,8 +3708,25 @@ implementation
   function TTestCase.Inspect(aName: UnicodeString;
                              aArgs: array of const): IInspector;
   begin
-    result := Inspect(Format(aName, aArgs));
+    result := Inspect(WideFormat(aName, aArgs));
   end;
+
+
+{$ifdef UNICODE}
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.Inspect(aName: UTF8String): IInspector;
+  begin
+    result := Inspect(WIDE.FromUTF8(aName));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.Inspect(aName: UTF8String;
+                             aArgs: array of const): IInspector;
+  begin
+    result := Inspect(WideFormat(WIDE.FromUTF8(aName), aArgs));
+  end;
+{$endif}
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
@@ -3820,6 +3888,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.Test(aName: ANSIString;
+                          aArgs: array of const): ITest;
+  begin
+    result := Test(WIDE.FromANSI(aName), aArgs);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTestCase.Test(aName: UnicodeString): ITest;
   begin
     aName := Trim(aName);
@@ -3832,20 +3908,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestCase.Test(aName: ANSIString; const aArgs: array of const): ITest;
-  begin
-    result := Test(WIDE.FromANSI(aName), aArgs);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestCase.Test(aName: UnicodeString; const aArgs: array of const): ITest;
+  function TTestCase.Test(aName: UnicodeString;
+                          aArgs: array of const): ITest;
   begin
     result := Test(WideFormat(aName, aArgs));
   end;
 
 
-{$ifdef EnhancedOverloads}
+{$ifdef UNICODE}
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTestCase.Test(aName: UTF8String): ITest;
   begin
@@ -3854,7 +3924,8 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestCase.Test(aName: UTF8String; const aArgs: array of const): ITest;
+  function TTestCase.Test(aName: UTF8String;
+                          aArgs: array of const): ITest;
   begin
     result := Test(WIDE.FromUTF8(aName), aArgs);
   end;
@@ -3862,7 +3933,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTestCase.TestDatetime(aName: UnicodeString = '{actual}'): DatetimeTest;
+  function TTestCase.TestDatetime: DatetimeTest;
+  begin
+    result := Test('{actual}') as DatetimeTest;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.TestDatetime(aName: UnicodeString): DatetimeTest;
   begin
     result := Test(aName) as DatetimeTest;
   end;
@@ -3870,10 +3948,33 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTestCase.TestDatetime(aName: UnicodeString;
-                                  const aArgs: array of const): DatetimeTest;
+                                  aArgs: array of const): DatetimeTest;
   begin
     result := TestDatetime(Format(aName, aArgs));
   end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.TestUTF8: UTF8Test;
+  begin
+    result := Test as UTF8Test;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.TestUTF8(aName: UnicodeString): UTF8Test;
+  begin
+    result := Test(aName) as UTF8Test;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.TestUTF8(aName: UnicodeString; aArgs: array of const): UTF8Test;
+  begin
+    result := Test(aName, aArgs) as UTF8Test;
+  end;
+
+
 
 
 
@@ -5212,7 +5313,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTest.Expect(aValue: UTF8String): StringExpectation;
+  function TTest.Expect(aValue: UTF8String): UTF8Expectation;
   begin
     result := TStringExpectation.Create(self, WIDE.FromUTF8(aValue));
   end;

@@ -45,7 +45,6 @@
   {$debuginfo OFF}
 {$endif}
 
-
   unit Deltics.Smoketest.Expectations;
 
 
@@ -88,10 +87,10 @@ interface
                          const aValue: Currency;
                          const aDPs: Integer);
       function ToRequiredDPs(const aValue: Currency): Currency;
-      function ToString(const aValue: Currency): String; reintroduce;
+      function ToString(const aValue: Currency): UnicodeString; reintroduce;
       property Value: Currency read fValue;
     protected
-      function DoReplaceTokens(var aString: String): Boolean; override;
+      function DoReplaceTokens(var aString: UnicodeString): Boolean; override;
     public // ApproximateExpectation
       function Between(const aMin, aMax: Currency): Evaluation;
       function Equals(const aExpected: Currency): Evaluation; reintroduce;
@@ -113,7 +112,7 @@ interface
                          const aValue: Single);
       property Value: Single read fValue;
     protected
-      function DoReplaceTokens(var aString: String): Boolean; override;
+      function DoReplaceTokens(var aString: UnicodeString): Boolean; override;
     public // SingleExpectation
       function ToDPs(const aDPs: Integer): ApproximateExpectation;
       function Between(const aMin, aMax: Single): Evaluation;
@@ -137,7 +136,7 @@ interface
                          const aValue: Double);
       property Value: Double read fValue;
     protected
-      function DoReplaceTokens(var aString: String): Boolean; override;
+      function DoReplaceTokens(var aString: UnicodeString): Boolean; override;
     public // DoubleTest
       function Expect(aValue: Double): DoubleExpectation;
     public // DoubleExpectation
@@ -158,7 +157,7 @@ interface
       fMaximum: Extended;
       fValue: Extended;
     protected
-      function DoReplaceTokens(var aString: String): Boolean; override;
+      function DoReplaceTokens(var aString: UnicodeString): Boolean; override;
     public
       constructor Create(const aSubject: TTest;
                          const aValue: Extended);
@@ -182,7 +181,7 @@ interface
       fMaximum: Currency;
       fValue: Currency;
     protected
-      function DoReplaceTokens(var aString: String): Boolean; override;
+      function DoReplaceTokens(var aString: UnicodeString): Boolean; override;
     public
       constructor Create(const aSubject: TTest;
                          const aValue: Currency);
@@ -207,7 +206,7 @@ interface
       fMinimum: Cardinal;
       fValue: Cardinal;
     protected
-      function DoReplaceTokens(var aString: String): Boolean; override;
+      function DoReplaceTokens(var aString: UnicodeString): Boolean; override;
     public
       property Value: Cardinal read fValue;
       constructor Create(const aSubject: TTest;
@@ -229,7 +228,7 @@ interface
       fMinimum: Int64;
       fValue: Int64;
     protected
-      function DoReplaceTokens(var aString: String): Boolean; override;
+      function DoReplaceTokens(var aString: UnicodeString): Boolean; override;
     public
       property Value: Int64 read fValue;
       constructor Create(const aSubject: TTest;
@@ -275,7 +274,7 @@ interface
       function Equals(const aExpected: IInterface): Evaluation; reintroduce;
       function IsAssigned: Evaluation;
       function IsNIL: Evaluation;
-      function Supports(const aIID: TGUID; const aName: String = ''): Evaluation;
+      function Supports(const aIID: TGUID; const aName: UnicodeString = ''): Evaluation;
     end;
 
 
@@ -319,14 +318,16 @@ interface
         function IsAssigned: Evaluation;
         function IsNIL: Evaluation;
         function IsInstanceOf(const aClass: TClass): Evaluation;
-        function Supports(const aIID: TGUID; const aName: String = ''): Evaluation;
+        function Supports(const aIID: TGUID; const aName: UnicodeString = ''): Evaluation;
       end;
 
 
 
-    TStringExpectation = class(TExpectation, StringExpectation)
+    TStringExpectation = class(TExpectation, UTF8Test,
+                                             StringExpectation,
+                                             UTF8Expectation)
     {
-      Implements case-sensitive (and case-irrelevant) string tests.
+      Implements case-sensitive (and case-irrelevant) UnicodeString tests.
     }
     private
       fValue: UnicodeString;
@@ -334,41 +335,65 @@ interface
       property Value: UnicodeString read fValue;
     public
       constructor Create(const aSubject: TTest; const aValue: UnicodeString);
-    public // IStringExpectation
-      function CaseInsensitive: TextExpectation;
+
+    public // UTF8Test
+      function Expect(aValue: UTF8String): UTF8Expectation;
+
+    public // StringExpectation + UTF8Expectation
       function IsEmpty: Evaluation;
       function IsLowercase: Evaluation;
       function IsUppercase: Evaluation;
       function Length: IntegerExpectation;
+
+    public // StringExpectation
+      function CaseInsensitive: TextExpectation;
       function BeginsWith(const aString: ANSIString): Evaluation; overload;
-      function BeginsWith(const aString: UnicodeString): Evaluation; overload;
       function Contains(const aSubString: ANSIString): Evaluation; overload;
-      function Contains(const aSubString: UnicodeString): Evaluation; overload;
       function EndsWith(const aString: ANSIString): Evaluation; overload;
-      function EndsWith(const aString: UnicodeString): Evaluation; overload;
       function Equals(const aExpected: ANSIString): Evaluation; reintroduce; overload;
+
+      function BeginsWith(const aString: UnicodeString): Evaluation; overload;
+      function Contains(const aSubString: UnicodeString): Evaluation; overload;
+      function EndsWith(const aString: UnicodeString): Evaluation; overload;
       function Equals(const aExpected: UnicodeString): Evaluation; reintroduce; overload;
+
+    public // UTF8Expectation
+      function UTF8Expectation.CaseInsensitive = UTF8CaseInsensitive;
+      function UTF8CaseInsensitive: UTF8TextExpectation;
+      function BeginsWith(const aString: UTF8String): Evaluation; overload;
+      function Contains(const aSubString: UTF8String): Evaluation; overload;
+      function EndsWith(const aString: UTF8String): Evaluation; overload;
+      function Equals(const aExpected: UTF8String): Evaluation; reintroduce; overload;
     end;
 
 
-    TTextExpectation = class(TExpectation, TextExpectation)
+    TTextExpectation = class(TExpectation, TextExpectation,
+                                           UTF8TextExpectation)
     {
-      Implements case-insensitive string tests.
+      Implements case-insensitive UnicodeString tests.
     }
     private
       fValue: UnicodeString;
     public
       constructor Create(const aSubject: TTest; const aValue: UnicodeString);
       property Value: UnicodeString read fValue;
+
     public // TextExpectation
       function BeginsWith(const aString: ANSIString): Evaluation; overload;
-      function BeginsWith(const aString: UnicodeString): Evaluation; overload;
       function Contains(const aSubString: ANSIString): Evaluation; overload;
-      function Contains(const aSubString: UnicodeString): Evaluation; overload;
       function EndsWith(const aString: ANSIString): Evaluation; overload;
-      function EndsWith(const aString: UnicodeString): Evaluation; overload;
       function Equals(const aExpected: ANSIString): Evaluation; reintroduce; overload;
+
+      function BeginsWith(const aString: UnicodeString): Evaluation; overload;
+      function Contains(const aSubString: UnicodeString): Evaluation; overload;
+      function EndsWith(const aString: UnicodeString): Evaluation; overload;
       function Equals(const aExpected: UnicodeString): Evaluation; reintroduce; overload;
+
+    public // UTF8Expectation
+      function BeginsWith(const aString: UTF8String): Evaluation; overload;
+      function Contains(const aSubString: UTF8String): Evaluation; overload;
+      function EndsWith(const aString: UTF8String): Evaluation; overload;
+      function Equals(const aExpected: UTF8String): Evaluation; reintroduce; overload;
     end;
 
 
@@ -481,7 +506,7 @@ implementation
 
 
 
-  function AddrToStr(const aPointer: Pointer): String;
+  function AddrToStr(const aPointer: Pointer): UnicodeString;
   begin
     result := IfThen(Assigned(aPointer), '$' + IntToHex(NativeInt(aPointer), sizeof(Pointer) * 2),
                                          'NIL');
@@ -541,7 +566,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TDatetimeExpectation.PartTest(const aSelector: TDateTimeUnit): TCardinalExpectation;
   const
-    PART: array[TDateTimeUnit] of String = ('year', 'month', 'NOT USED (week)', 'day',
+    PART: array[TDateTimeUnit] of UnicodeString = ('year', 'month', 'NOT USED (week)', 'day',
                                             'hour', 'minute', 'second', 'millisecond');
   var
     y, m, d: Word;
@@ -1204,7 +1229,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TApproximateExpectation.ToString(const aValue: Currency): String;
+  function TApproximateExpectation.ToString(const aValue: Currency): UnicodeString;
   begin
     result := FloatToStrF(ToRequiredDPs(aValue), ffFixed, MaxInt, fDPs);
   end;
@@ -1311,7 +1336,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TApproximateExpectation.DoReplaceTokens(var aString: String): Boolean;
+  function TApproximateExpectation.DoReplaceTokens(var aString: UnicodeString): Boolean;
   begin
     result := inherited DoReplaceTokens(aString);
     result := DoReplaceToken(aString, '{minimum}', ToString(fMinimum)) or result;
@@ -1431,7 +1456,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSingleExpectation.DoReplaceTokens(var aString: String): Boolean;
+  function TSingleExpectation.DoReplaceTokens(var aString: UnicodeString): Boolean;
   begin
     result := inherited DoReplaceTokens(aString);
     result := DoReplaceToken(aString, '{minimum}', FloatToStr(fMinimum)) or result;
@@ -1569,7 +1594,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TDoubleExpectation.DoReplaceTokens(var aString: String): Boolean;
+  function TDoubleExpectation.DoReplaceTokens(var aString: UnicodeString): Boolean;
   begin
     result := inherited DoReplaceTokens(aString);
     result := DoReplaceToken(aString, '{minimum}', FloatToStr(fMinimum)) or result;
@@ -1701,7 +1726,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TExtendedExpectation.DoReplaceTokens(var aString: String): Boolean;
+  function TExtendedExpectation.DoReplaceTokens(var aString: UnicodeString): Boolean;
   begin
     result := inherited DoReplaceTokens(aString);
     result := DoReplaceToken(aString, '{minimum}', FloatToStr(fMinimum)) or result;
@@ -1844,7 +1869,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TCurrencyExpectation.DoReplaceTokens(var aString: String): Boolean;
+  function TCurrencyExpectation.DoReplaceTokens(var aString: UnicodeString): Boolean;
   begin
     result := inherited DoReplaceTokens(aString);
     result := DoReplaceToken(aString, '{minimum}', FloatToStr(fMinimum)) or result;
@@ -1889,7 +1914,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TCardinalExpectation.DoReplaceTokens(var aString: String): Boolean;
+  function TCardinalExpectation.DoReplaceTokens(var aString: UnicodeString): Boolean;
   begin
     result := inherited DoReplaceTokens(aString);
     result := DoReplaceToken(aString, '{minimum}', IntToStr(fMinimum)) or result;
@@ -2010,7 +2035,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TIntegerExpectation.DoReplaceTokens(var aString: String): Boolean;
+  function TIntegerExpectation.DoReplaceTokens(var aString: UnicodeString): Boolean;
   begin
     result := inherited DoReplaceTokens(aString);
     result := DoReplaceToken(aString, '{minimum}', IntToStr(fMinimum)) or result;
@@ -2187,7 +2212,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TInterfaceExpectation.Supports(const aIID: TGUID;
-                                          const aName: String): Evaluation;
+                                          const aName: UnicodeString): Evaluation;
   begin
     result := self;
 
@@ -2349,7 +2374,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TObjectExpectation.Supports(const aIID: TGUID;
-                                       const aName: String): Evaluation;
+                                       const aName: UnicodeString): Evaluation;
   begin
     result := self;
 
@@ -2424,6 +2449,16 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TStringExpectation.Expect(aValue: UTF8String): UTF8Expectation;
+  begin
+    fValue := WIDE.FromUTF8(aValue);
+    Actual := '''' + Value + '''';
+    result := self;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TStringExpectation.CaseInsensitive: TextExpectation;
   {
     Replaces the current StringExpectation (case sensitive) with a
@@ -2525,6 +2560,27 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TStringExpectation.Contains(const aSubString: ANSIString): Evaluation;
+  begin
+    result := Contains(WIDE.FromANSI(aSubString));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TStringExpectation.EndsWith(const aString: ANSIString): Evaluation;
+  begin
+    result := EndsWith(WIDE.FromANSI(aString));
+  end;
+
+
+  {- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TStringExpectation.Equals(const aExpected: ANSIString): Evaluation;
+  begin
+    result := Equals(WIDE.FromANSI(aExpected));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TStringExpectation.BeginsWith(const aString: UnicodeString): Evaluation;
   var
     lead: UnicodeString;
@@ -2549,13 +2605,6 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TStringExpectation.Contains(const aSubString: ANSIString): Evaluation;
-  begin
-    result := Contains(WIDE.FromANSI(aSubString));
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TStringExpectation.Contains(const aSubString: UnicodeString): Evaluation;
   begin
     result := self;
@@ -2564,13 +2613,6 @@ implementation
     Expected    := '''...' + aSubString + '...''' ;
 
     OK := (Pos(aSubString, Value) > 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TStringExpectation.EndsWith(const aString: ANSIString): Evaluation;
-  begin
-    result := EndsWith(WIDE.FromANSI(aString));
   end;
 
 
@@ -2599,13 +2641,6 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TStringExpectation.Equals(const aExpected: ANSIString): Evaluation;
-  begin
-    result := Equals(WIDE.FromANSI(aExpected));
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TStringExpectation.Equals(const aExpected: UnicodeString): Evaluation;
   begin
     result := self;
@@ -2615,6 +2650,42 @@ implementation
 
     OK := (Value = aExpected);
   end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TStringExpectation.UTF8CaseInsensitive: UTF8TextExpectation;
+  begin
+    result := CaseInsensitive as UTF8TextExpectation;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TStringExpectation.BeginsWith(const aString: UTF8String): Evaluation;
+  begin
+    result := BeginsWith(WIDE.FromUTF8(aString));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TStringExpectation.Contains(const aSubString: UTF8String): Evaluation;
+  begin
+    result := Contains(WIDE.FromUTF8(aSubString));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TStringExpectation.EndsWith(const aString: UTF8String): Evaluation;
+  begin
+    result := EndsWith(WIDE.FromUTF8(aString));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TStringExpectation.Equals(const aExpected: UTF8String): Evaluation;
+  begin
+    result := Equals(WIDE.FromUTF8(aExpected));
+  end;
+
 
 
 
@@ -2669,27 +2740,17 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTextExpectation.BeginsWith(const aString: UnicodeString): Evaluation;
-  var
-    lead: UnicodeString;
+  const
+    ELIDE: array[FALSE..TRUE] of String = ('', '...');
   begin
     result := self;
 
     Description := 'begins with text {expected}';
     Expected    := '''' + aString + '...''';
 
-    if Length(Value) > Length(aString) then
-      Actual := '''' + Copy(Value, 1, Length(aString)) + '...'''
-    else
-      Actual := '''' + Copy(Value, 1, Length(aString)) + '''';
+    Actual := '''' + Copy(Value, 1, Length(aString)) + ELIDE[Length(Value) > Length(aString)] + '''';
 
-    if (Length(Value) >= Length(aString)) then
-    begin
-      lead  := Copy(Value, 1, Length(aString));
-
-      OK := ANSISameText(lead, aString);
-    end
-    else
-      OK := FALSE;
+    OK := WIDE.BeginsWithText(Value, aString);
   end;
 
 
@@ -2741,6 +2802,45 @@ implementation
 
     OK := ANSISameText(Value, aExpected);
   end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTextExpectation.BeginsWith(const aString: UTF8String): Evaluation;
+  begin
+    result := BeginsWith(WIDE.FromUTF8(aString));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTextExpectation.Contains(const aSubString: UTF8String): Evaluation;
+  begin
+    result := Contains(WIDE.FromUTF8(aSubString));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTextExpectation.EndsWith(const aString: UTF8String): Evaluation;
+  begin
+    result := EndsWith(WIDE.FromUTF8(aString));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTextExpectation.Equals(const aExpected: UTF8String): Evaluation;
+  begin
+    result := Equals(WIDE.FromUTF8(aExpected));
+  end;
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2840,6 +2940,7 @@ initialization
   Smoketest.RegisterExtension(DateTest,     TDateExpectation);
   Smoketest.RegisterExtension(TimeTest,     TTimeExpectation);
   Smoketest.RegisterExtension(DateTimeTest, TDatetimeExpectation);
+  Smoketest.RegisterExtension(UTF8Test,     TStringExpectation);
   Smoketest.RegisterExtension(EnumTest,     TEnumTest);
 
   Smoketest.RegisterExtension(DoubleInspector,   TDoubleInspector);
