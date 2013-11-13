@@ -747,8 +747,6 @@ interface
       function get_CaseCount: Integer;
       function FindCase(const aNamePath: UnicodeString): ITestCase;
       function FindMethod(const aNamePath: UnicodeString): ITestMethod;
-      property Cases[const aIndex: Integer]: ITestArticle read get_Case;
-      property CaseCount: Integer read get_CaseCount;
 
     private // ISmoketestRuntime
       function get_CommandLine: TSmoketestCommandLine;
@@ -2681,7 +2679,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketest.get_Child(const aIndex: Integer): ITestArticle;
   begin
-    result := TTestArticle(fCases[aIndex]);
+    fCases[aIndex].GetInterface(ITestArticle, result);
   end;
 
 
@@ -2742,7 +2740,7 @@ implementation
       //  insert the test case there and bug out
 
       for idx := 0 to Pred(Count) do
-        if (Cases[idx] is TPerformanceCase) then
+        if (fCases[idx] is TPerformanceCase) then
         begin
           fCases.Insert(idx, aArticle);
           EXIT;
@@ -2878,7 +2876,7 @@ implementation
   begin
     State.Enter(tsRunning);
     try
-      for i := 0 to Pred(CaseCount) do
+      for i := 0 to Pred(fCases.Count) do
         TCase(fCases[i]).Execute;
 
     finally
@@ -2919,7 +2917,7 @@ implementation
   var
     i: Integer;
   begin
-    for i := 0 to Pred(CaseCount) do
+    for i := 0 to Pred(fCases.Count) do
       TCase(fCases[i]).Initialise;
   end;
 
@@ -3120,7 +3118,7 @@ implementation
   var
     i: Integer;
   begin
-    for i := 0 to Pred(CaseCount) do
+    for i := 0 to Pred(fCases.Count) do
       TCase(fCases[i]).Shutdown;
   end;
 
@@ -3479,7 +3477,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTestCase.get_CaseByIndex(const aIndex: Integer): ITestCase;
   begin
-    result := TTestCase(fCases[aIndex]);
+    fCases[aIndex].GetInterface(ITestCase, result);
   end;
 
 
@@ -3593,7 +3591,7 @@ implementation
     if (aIndex < beforeCount) then
       result := TDelegate(fInitialDelegates[aIndex])
     else if (aIndex < (beforeCount + caseCount)) then
-      result := TTestArticle(fCases[aIndex - beforeCount])
+      fCases[aIndex - beforeCount].GetInterface(ITestArticle, result)
     else
       result := TDelegate(fFinalDelegates[aIndex - (beforeCount + caseCount)]);
   end;
