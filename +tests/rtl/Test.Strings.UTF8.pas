@@ -53,11 +53,11 @@ implementation
     Test('UTF8 -> ANSI').Expect(ANSI.FromUTF8(UTF8.Encode('™'))).Equals('™');
     Test('UTF8 -> WIDE').Expect(WIDE.FromUTF8(UTF8.Encode('™'))).Equals('™');
 
-    Test('UTF8.Encode!').Expect(UTF8.Encode(SRCS)).Equals(WIDE.FromUTF8(SRCU));
+    TestUTF8('UTF8.Encode!').Expect(UTF8.Encode(SRCS)).Equals(SRCU);
     Test('UTF8.Decode!').Expect(UTF8.Decode(SRCU)).Equals(SRCS);
 
-    Test('FromANSI!').Expect(UTF8.FromANSI(SRCA)).Equals(WIDE.FromUTF8(SRCU));
-    Test('FromWide!').Expect(UTF8.FromWide(SRCW)).Equals(WIDE.FromUTF8(SRCU));
+    TestUTF8('FromANSI!').Expect(UTF8.FromANSI(SRCA)).Equals(SRCU);
+    TestUTF8('FromWide!').Expect(UTF8.FromWide(SRCW)).Equals(SRCU);
   end;
 
 
@@ -112,10 +112,10 @@ implementation
     Test('Empty String is NOT considered lowercase!').Expect(UTF8.IsLowercase('')).IsFALSE;
 
     for i := 0 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].A).Expect(UTF8.IsLowercase(VECTOR[i].A)).IsFALSE;
+      Test(WIDE.FromUTF8(VECTOR[i].A)).Expect(UTF8.IsLowercase(VECTOR[i].A)).IsFALSE;
 
     for i := 0 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].B).Expect(UTF8.IsLowercase(VECTOR[i].B)).IsTRUE;
+      Test(WIDE.FromUTF8(VECTOR[i].B)).Expect(UTF8.IsLowercase(VECTOR[i].B)).IsTRUE;
   end;
 
 
@@ -135,10 +135,10 @@ implementation
     Test('Empty String is NOT considered uppercase!').Expect(UTF8.IsLowercase('')).IsFALSE;
 
     for i := 0 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].A).Expect(UTF8.IsUppercase(VECTOR[i].A)).IsFALSE;
+      Test(WIDE.FromUTF8(VECTOR[i].A)).Expect(UTF8.IsUppercase(VECTOR[i].A)).IsFALSE;
 
     for i := 1 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].B).Expect(UTF8.IsUppercase(VECTOR[i].B)).IsTRUE;
+      Test(WIDE.FromUTF8(VECTOR[i].B)).Expect(UTF8.IsUppercase(VECTOR[i].B)).IsTRUE;
   end;
 
 
@@ -157,7 +157,7 @@ implementation
     PrepareVectors(SRC, VECTOR);
 
     for i := 0 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].A + ' same text as ' + VECTOR[i].B + '!')
+      Test(WIDE.FromUTF8(VECTOR[i].A + ' same text as ' + VECTOR[i].B + '!'))
         .Expect(UTF8.SameText(VECTOR[i].A, VECTOR[i].B)).IsTRUE;
   end;
 
@@ -177,7 +177,7 @@ implementation
     PrepareVectors(SRC, VECTOR);
 
     for i := 0 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].A).Expect(UTF8.Lowercase(VECTOR[i].A)).Equals(WIDE.FromUTF8(VECTOR[i].B));
+      TestUTF8.Expect(UTF8.Lowercase(VECTOR[i].A)).Equals(VECTOR[i].B);
   end;
 
 
@@ -196,7 +196,7 @@ implementation
     PrepareVectors(SRC, VECTOR);
 
     for i := 0 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].A).Expect(UTF8.Uppercase(VECTOR[i].A)).Equals(WIDE.FromUTF8(VECTOR[i].B));
+      TestUTF8.Expect(UTF8.Uppercase(VECTOR[i].A)).Equals(VECTOR[i].B);
   end;
 
 
