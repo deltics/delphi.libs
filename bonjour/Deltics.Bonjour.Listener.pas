@@ -243,6 +243,7 @@ implementation
   { vcl: }
     SysUtils,
     Types,
+    WinSock,
   { bonjour: }
     Deltics.Bonjour.Thread;
 
@@ -400,7 +401,7 @@ implementation
     theService.TXT := txt;
     theService.fFullName    := sFullName;
     theService.fHostName    := sHostName;
-    theService.fPort        := ReverseBytes(aPort);
+    theService.fPort        := ntohs(aPort);
     theService.fInterfaceID := aInterfaceIndex;
 
     TBonjourThread.RemoveService(aHandle);

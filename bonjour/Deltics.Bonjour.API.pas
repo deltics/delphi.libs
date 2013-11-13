@@ -91,8 +91,6 @@ interface
     Deltics.Strings;  // For ASCII / UTF8 string and char types
 
 
-  function ReverseBytes(const aValue: Word): Word;
-
   const
     BONJOUR_NOT_INSTALLED = 0;
     DNSSD_DLL             = 'dnssd.dll';
@@ -1721,13 +1719,6 @@ implementation
   var
     DLL: HMODULE = 0;
     Initialised: Boolean = FALSE;
-
-
-  function ReverseBytes(const aValue: Word): Word;
-  begin
-    result :=  (((aValue and $ff00) shr 8)
-             or ((aValue and $00ff) shl 8));
-  end;
 
 
   procedure InitAPI;

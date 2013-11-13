@@ -69,7 +69,7 @@ interface
       fPreAnnouncedServiceName: UnicodeString;
       fDomain: UnicodeString;
       fInterfaceID: Integer;
-      fPort: Integer;
+      fPort: Word;
       fServiceName: UnicodeString;
       fServiceType: UnicodeString;
       fTXT: TTXTRecord;
@@ -89,7 +89,7 @@ interface
     published
       property AutoRename: Boolean read fAutoRename write fAutoRename;
       property InterfaceID: Integer read fInterfaceID write fInterfaceID;
-      property Port: Integer read fPort write fPort;
+      property Port: Word read fPort write fPort;
       property ServiceName: UnicodeString read fServiceName write fServiceName;
       property ServiceType: UnicodeString read fServiceType write fServiceType;
     end;
@@ -102,6 +102,7 @@ implementation
   { vcl: }
     SysUtils,
     Windows,
+    WinSock,
   { bonjour: }
     Deltics.Bonjour.Thread;
 
@@ -217,7 +218,7 @@ implementation
                                    PUTF8Char(sType),
                                    NIL { domain - register in all available },
                                    NIL { hostname - use default },
-                                   ReverseBytes(Port),  {Port # is in network byte order (big endian, Windows is little endian) }
+                                   htons(fPort),
                                    fTXT.Len   { txtLen },
                                    fTXT.Data  { txtRecord },
                                    DNSServiceRegisterReply,
