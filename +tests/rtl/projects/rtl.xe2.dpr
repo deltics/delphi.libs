@@ -4,6 +4,7 @@
 uses
   FastMM4,
   Deltics.Smoketest,
+  Test.JSON in '..\Test.JSON.pas',
   Test.Strings in '..\Test.Strings.pas',
   Test.Strings.ANSI in '..\Test.Strings.ANSI.pas',
   Test.Strings.UTF8 in '..\Test.Strings.UTF8.pas',

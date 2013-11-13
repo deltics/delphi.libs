@@ -20,19 +20,17 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_UnitSearchPath>$(deltics)\bonjour;$(deltics)\rtl;$(deltics)\smoketest;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_DependencyCheckOutputName>bonjour.d2009.exe</DCC_DependencyCheckOutputName>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
-			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
-			<DCC_Define>deltics_bonjour;$(DCC_Define)</DCC_Define>
+			<DCC_UnitSearchPath>$(deltics)\bonjour;$(deltics)\rtl;$(deltics)\smoketest;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_BplOutput>$(bpl)</DCC_BplOutput>
 			<DCC_Platform>x86</DCC_Platform>
-			<DCC_SymbolReferenceInfo>1</DCC_SymbolReferenceInfo>
-			<DCC_K>false</DCC_K>
-			<DCC_N>true</DCC_N>
-			<DCC_S>false</DCC_S>
-			<DCC_DcuOutput>$(dcu)</DCC_DcuOutput>
-			<DCC_E>false</DCC_E>
+			<DCC_N>false</DCC_N>
 			<DCC_F>false</DCC_F>
+			<DCC_DcpOutput>$(bpl)</DCC_DcpOutput>
+			<DCC_E>false</DCC_E>
+			<DCC_S>false</DCC_S>
+			<DCC_K>false</DCC_K>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
 			<DCC_ExeOutput>$(bin)\Win32Release</DCC_ExeOutput>
@@ -53,6 +51,7 @@
 			<DelphiCompile Include="bonjour.d2009.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
+			<DCCReference Include="..\Bonjour.Tests.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

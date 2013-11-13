@@ -25,7 +25,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_Define>FullDebugMode;deltics_smoketest;$(DCC_Define)</DCC_Define>
+			<DCC_Define>FullDebugMode;deltics_smoketest;deltics_strings;$(DCC_Define)</DCC_Define>
 			<DCC_ExeOutput>$(bin)</DCC_ExeOutput>
 			<DCC_UNIT_PLATFORM>false</DCC_UNIT_PLATFORM>
 			<DCC_SYMBOL_PLATFORM>false</DCC_SYMBOL_PLATFORM>
@@ -63,6 +63,14 @@
 			<DelphiCompile Include="selftest.d2010.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
+			<DCCReference Include="..\SelfTest.ArticleHierarchy.pas"/>
+			<DCCReference Include="..\SelfTest.TestControl.pas"/>
+			<DCCReference Include="..\SelfTest.Consts.pas"/>
+			<DCCReference Include="..\SelfTest.Passes.pas"/>
+			<DCCReference Include="..\SelfTest.Failures.pas"/>
+			<DCCReference Include="..\SelfTest.Extensions.pas"/>
+			<DCCReference Include="..\SelfTest.Inspections.pas"/>
+			<DCCReference Include="..\SelfTest.Benchmarking.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
@@ -88,7 +96,7 @@
 						<Parameters Name="UseLauncher">False</Parameters>
 						<Parameters Name="LoadAllSymbols">True</Parameters>
 						<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
-						<Parameters Name="RunParams">-r:4.1 -dp -f -v</Parameters>
+						<Parameters Name="RunParams">-dp -d:3</Parameters>
 					</Parameters>
 					<VersionInfo>
 						<VersionInfo Name="IncludeVerInfo">False</VersionInfo>

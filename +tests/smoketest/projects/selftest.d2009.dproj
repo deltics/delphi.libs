@@ -25,20 +25,17 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-			<VerInfo_Locale>1033</VerInfo_Locale>
-			<DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Winapi;$(DCC_Namespace)</DCC_Namespace>
-			<DCC_Define>FullDebugMode;deltics_smoketest;$(DCC_Define)</DCC_Define>
 			<DCC_DependencyCheckOutputName>selftest.d2009.exe</DCC_DependencyCheckOutputName>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
-			<DCC_SymbolReferenceInfo>1</DCC_SymbolReferenceInfo>
+			<DCC_UnitSearchPath>$(deltics)\rtl;$(deltics)\smoketest;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_BplOutput>$(bpl)</DCC_BplOutput>
 			<DCC_Platform>x86</DCC_Platform>
-			<DCC_UnitSearchPath>$(fastmm);$(deltics)\rtl;$(deltics)\smoketest;$(deltics)\vcl;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
-			<DCC_K>false</DCC_K>
-			<DCC_N>true</DCC_N>
-			<DCC_S>false</DCC_S>
-			<DCC_E>false</DCC_E>
+			<DCC_N>false</DCC_N>
 			<DCC_F>false</DCC_F>
+			<DCC_DcpOutput>$(bpl)</DCC_DcpOutput>
+			<DCC_E>false</DCC_E>
+			<DCC_S>false</DCC_S>
+			<DCC_K>false</DCC_K>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
 			<DCC_DcuOutput>$(dcu)\release</DCC_DcuOutput>
@@ -59,6 +56,14 @@
 			<DelphiCompile Include="selftest.d2009.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
+			<DCCReference Include="..\SelfTest.ArticleHierarchy.pas"/>
+			<DCCReference Include="..\SelfTest.TestControl.pas"/>
+			<DCCReference Include="..\SelfTest.Consts.pas"/>
+			<DCCReference Include="..\SelfTest.Passes.pas"/>
+			<DCCReference Include="..\SelfTest.Failures.pas"/>
+			<DCCReference Include="..\SelfTest.Extensions.pas"/>
+			<DCCReference Include="..\SelfTest.Inspections.pas"/>
+			<DCCReference Include="..\SelfTest.Benchmarking.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

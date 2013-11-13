@@ -5,6 +5,7 @@ uses
   FastMM4,
   Deltics.Smoketest,
 >..
+  Test.JSON,
   Test.Strings,
   Test.Strings.ANSI,
   Test.Strings.UTF8,

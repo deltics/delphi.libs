@@ -20,9 +20,11 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_Define>deltics_smoketest;deltics_strings;$(DCC_Define)</DCC_Define>
+			<DCC_BplOutput>$(bpl)</DCC_BplOutput>
+			<DCC_DcpOutput>$(bpl)</DCC_DcpOutput>
 			<DCC_DcuOutput>$(dcu)\$(config)</DCC_DcuOutput>
-			<DCC_ExeOutput>$(bin)\Win32$(config)</DCC_ExeOutput>
-			<DCC_DependencyCheckOutputName>c:\dev\bin\Win32%config%\rtl.d2010.exe</DCC_DependencyCheckOutputName>
+			<DCC_DependencyCheckOutputName>rtl.d2010.exe</DCC_DependencyCheckOutputName>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
 			<DCC_UnitSearchPath>$(deltics)\rtl;$(deltics)\smoketest;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;$(DCC_UnitAlias)</DCC_UnitAlias>
@@ -34,18 +36,23 @@
 			<DCC_F>false</DCC_F>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
+			<DCC_DependencyCheckOutputName>c:\dev\bin\Win32Release\rtl.d2010.exe</DCC_DependencyCheckOutputName>
+			<DCC_ExeOutput>$(bin)\Win32Release</DCC_ExeOutput>
 			<DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
 			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
 			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
 			<DCC_DebugInformation>false</DCC_DebugInformation>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_2)'!=''">
+			<DCC_ExeOutput>$(bin)\Win32Debug</DCC_ExeOutput>
+			<DCC_DependencyCheckOutputName>c:\dev\bin\Win32Debug\rtl.d2010.exe</DCC_DependencyCheckOutputName>
 			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
 		</PropertyGroup>
 		<ItemGroup>
 			<DelphiCompile Include="rtl.d2010.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
+			<DCCReference Include="..\Test.JSON.pas"/>
 			<DCCReference Include="..\Test.Strings.pas"/>
 			<DCCReference Include="..\Test.Strings.ANSI.pas"/>
 			<DCCReference Include="..\Test.Strings.UTF8.pas"/>

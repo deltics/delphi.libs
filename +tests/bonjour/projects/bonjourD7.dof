@@ -146,3 +146,9 @@ Item0=$(dcu)
 [HistoryLists\hlOutputDirectorry]
 Count=1
 Item0=$(bin)
+[HistoryLists\hlBPLOutput]
+Count=1
+Item0=$(bpl)
+[HistoryLists\hlDCPOutput]
+Count=1
+Item0=$(bpl)
