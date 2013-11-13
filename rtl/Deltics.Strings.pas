@@ -131,6 +131,8 @@ interface
       class function FromUTF8(const aString: UTF8String): UnicodeString; overload;
       class function FromUTF8(const aBuffer: PUTF8Char; const aMaxLen: Integer = -1): UnicodeString; overload;
       // Evaluations
+      class function BeginsWith(const aString, aLead: UnicodeString): Boolean;
+      class function BeginsWithText(const aString, aLead: UnicodeString): Boolean;
       class function Compare(const S1, S2: UnicodeString): Integer;
       class function CompareText(const S1, S2: UnicodeString): Integer;
       class function IsLowercase(const aChar: WideChar): Boolean; overload;
@@ -608,6 +610,26 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDE.BeginsWith(const aString, aLead: UnicodeString): Boolean;
+  begin
+    result := (Length(aLead) <= Length(aString))
+          and (CompareStringW(LOCALE_USER_DEFAULT, 0,
+                              PWideChar(aString), Length(aLead),
+                              PWideChar(aLead), Length(aLead)) = CSTR_EQUAL);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDE.BeginsWithText(const aString, aLead: UnicodeString): Boolean;
+  begin
+    result := (Length(aLead) <= Length(aString))
+          and (CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                              PWideChar(aString), Length(aLead),
+                              PWideChar(aLead), Length(aLead)) = CSTR_EQUAL);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function WIDE.Compare(const S1, S2: UnicodeString): Integer;
   begin
     result := CompareStringW(LOCALE_USER_DEFAULT, 0,
@@ -832,6 +854,7 @@ implementation
     result := ANSI.Uppercase(aString);
   {$endif}
   end;
+
 
 
 
