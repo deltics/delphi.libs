@@ -11,7 +11,7 @@ interface
   type
     TTestStrings = class(TTestCase, INameCase)
     private
-      function NameForCase: String;
+      function NameForCase: UnicodeString;
     published
       procedure SizeOfChar;
     end;
@@ -59,7 +59,7 @@ implementation
 
 { TTestStrings ----------------------------------------------------------------------------------- }
 
-  function TTestStrings.NameForCase: String;
+  function TTestStrings.NameForCase: UnicodeString;
   begin
     result := 'Deltics.Strings';
   end;
