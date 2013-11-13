@@ -19,7 +19,7 @@ interface
     private
       fJSON: TJSONObject;
     protected
-      function NameForCase: String;
+      function NameForCase: UnicodeString;
       procedure Setup;
       procedure Cleanup;
       procedure CleanupTest(const aTest: TDelegate);
@@ -64,7 +64,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TUnitTest_JSON.NameForCase: String;
+  function TUnitTest_JSON.NameForCase: UnicodeString;
   begin
     result := 'Deltics.JSON';
   end;
