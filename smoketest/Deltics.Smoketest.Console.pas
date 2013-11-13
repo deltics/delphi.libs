@@ -944,6 +944,9 @@ implementation
     newCaption: String;
     forcePaint: Boolean;
   begin
+    if NOT Assigned(aItem) then
+      EXIT;
+
     forcePaint := FALSE;
 
     article := ItemArticle(aItem);
