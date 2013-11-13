@@ -352,6 +352,7 @@ interface
 implementation
 
   uses
+    Types,
     Windows,
   { deltics: }
     Deltics.StrUtils;

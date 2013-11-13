@@ -57,6 +57,7 @@ interface
     Windows,
   { deltics: }
     Deltics.MultiCast,
+    Deltics.Strings,
   { bonjour: }
     Deltics.Bonjour,
     Deltics.Bonjour.API,
@@ -242,8 +243,6 @@ implementation
   { vcl: }
     SysUtils,
     Types,
-  { deltics: }
-    Deltics.Strings,
   { bonjour: }
     Deltics.Bonjour.Thread;
 

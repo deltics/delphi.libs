@@ -53,6 +53,8 @@ interface
   uses
   { VCL: }
     Classes,
+  { deltics: }
+    Deltics.Strings,
   { bonjour: }
     Deltics.Bonjour,
     Deltics.Bonjour.API,
@@ -100,8 +102,6 @@ implementation
   { vcl: }
     SysUtils,
     Windows,
-  { deltics: }
-    Deltics.Strings,
   { bonjour: }
     Deltics.Bonjour.Thread;
 

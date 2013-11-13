@@ -56,6 +56,8 @@ interface
     SyncObjs,
     Windows,
   { deltics: }
+    Deltics.Strings,
+  { bonjour: }
     Deltics.Bonjour,
     Deltics.Bonjour.API,
     Deltics.Bonjour.Thread;
@@ -124,9 +126,7 @@ implementation
   { vcl: }
     Classes,
     SysUtils,
-    Types,
-  { deltics: }
-    Deltics.Strings;
+    Types;
 
 
 
