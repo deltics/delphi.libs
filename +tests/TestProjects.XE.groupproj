@@ -3,13 +3,13 @@
 			<ProjectGuid>{C64EDD3B-9BC7-48C9-A95F-036D769A9C75}</ProjectGuid>
 		</PropertyGroup>
 		<ItemGroup>
+			<Projects Include="rtl\projects\rtl.xe.dproj">
+				<Dependencies/>
+			</Projects>
 			<Projects Include="smoketest\projects\selftest.xe.dproj">
 				<Dependencies/>
 			</Projects>
 			<Projects Include="bonjour\projects\bonjour.xe.dproj">
-				<Dependencies/>
-			</Projects>
-			<Projects Include="rtl\projects\rtl.xe.dproj">
 				<Dependencies/>
 			</Projects>
 		</ItemGroup>
@@ -20,6 +20,15 @@
 				<Default.Personality/>
 			</BorlandProject>
 		</ProjectExtensions>
+		<Target Name="rtl_xe">
+			<MSBuild Projects="rtl\projects\rtl.xe.dproj"/>
+		</Target>
+		<Target Name="rtl_xe:Clean">
+			<MSBuild Projects="rtl\projects\rtl.xe.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="rtl_xe:Make">
+			<MSBuild Projects="rtl\projects\rtl.xe.dproj" Targets="Make"/>
+		</Target>
 		<Target Name="selftest_xe">
 			<MSBuild Projects="smoketest\projects\selftest.xe.dproj"/>
 		</Target>
@@ -38,23 +47,14 @@
 		<Target Name="bonjour_xe:Make">
 			<MSBuild Projects="bonjour\projects\bonjour.xe.dproj" Targets="Make"/>
 		</Target>
-		<Target Name="rtl_xe">
-			<MSBuild Projects="rtl\projects\rtl.xe.dproj"/>
-		</Target>
-		<Target Name="rtl_xe:Clean">
-			<MSBuild Projects="rtl\projects\rtl.xe.dproj" Targets="Clean"/>
-		</Target>
-		<Target Name="rtl_xe:Make">
-			<MSBuild Projects="rtl\projects\rtl.xe.dproj" Targets="Make"/>
-		</Target>
 		<Target Name="Build">
-			<CallTarget Targets="selftest_xe;bonjour_xe;rtl_xe"/>
+			<CallTarget Targets="rtl_xe;selftest_xe;bonjour_xe"/>
 		</Target>
 		<Target Name="Clean">
-			<CallTarget Targets="selftest_xe:Clean;bonjour_xe:Clean;rtl_xe:Clean"/>
+			<CallTarget Targets="rtl_xe:Clean;selftest_xe:Clean;bonjour_xe:Clean"/>
 		</Target>
 		<Target Name="Make">
-			<CallTarget Targets="selftest_xe:Make;bonjour_xe:Make;rtl_xe:Make"/>
+			<CallTarget Targets="rtl_xe:Make;selftest_xe:Make;bonjour_xe:Make"/>
 		</Target>
 		<Import Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')" Project="$(BDS)\Bin\CodeGear.Group.Targets"/>
 	</Project>

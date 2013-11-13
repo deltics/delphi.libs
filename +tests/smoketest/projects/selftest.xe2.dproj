@@ -46,12 +46,13 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_BplOutput>$(bpl)</DCC_BplOutput>
+			<DCC_DcpOutput>$(bpl)</DCC_DcpOutput>
 			<DCC_ExeOutput>$(bin)\$(platform)$(config)</DCC_ExeOutput>
 			<Manifest_File>None</Manifest_File>
 			<VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
 			<VerInfo_Locale>1033</VerInfo_Locale>
 			<DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Winapi;$(DCC_Namespace)</DCC_Namespace>
-			<DCC_Define>FullDebugMode;deltics_smoketest;$(DCC_Define)</DCC_Define>
 			<DCC_DependencyCheckOutputName>Selftest.D2009.exe</DCC_DependencyCheckOutputName>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
 			<DCC_SymbolReferenceInfo>1</DCC_SymbolReferenceInfo>
@@ -90,6 +91,14 @@
 			<DelphiCompile Include="$(MainSource)">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
+			<DCCReference Include="..\SelfTest.ArticleHierarchy.pas"/>
+			<DCCReference Include="..\SelfTest.TestControl.pas"/>
+			<DCCReference Include="..\SelfTest.Consts.pas"/>
+			<DCCReference Include="..\SelfTest.Passes.pas"/>
+			<DCCReference Include="..\SelfTest.Failures.pas"/>
+			<DCCReference Include="..\SelfTest.Extensions.pas"/>
+			<DCCReference Include="..\SelfTest.Inspections.pas"/>
+			<DCCReference Include="..\SelfTest.Benchmarking.pas"/>
 			<BuildConfiguration Include="Debug">
 				<Key>Cfg_2</Key>
 				<CfgParent>Base</CfgParent>

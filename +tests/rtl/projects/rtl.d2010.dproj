@@ -20,7 +20,6 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_Define>deltics_smoketest;deltics_strings;$(DCC_Define)</DCC_Define>
 			<DCC_BplOutput>$(bpl)</DCC_BplOutput>
 			<DCC_DcpOutput>$(bpl)</DCC_DcpOutput>
 			<DCC_DcuOutput>$(dcu)\$(config)</DCC_DcuOutput>

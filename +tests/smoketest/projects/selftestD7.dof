@@ -92,11 +92,11 @@ ExeDescription=
 [Directories]
 OutputDir=$(bin)
 UnitOutputDir=$(dcu)
-PackageDLLOutputDir=
-PackageDCPOutputDir=
-SearchPath=$(fastmm);$(deltics)\rtl;$(deltics)\smoketest;$(deltics)\vcl
+PackageDLLOutputDir=$(bpl)
+PackageDCPOutputDir=$(bpl)
+SearchPath=$(deltics)\rtl;$(deltics)\smoketest
 Packages=vcl;rtl;vclx;indy;vclie;xmlrtl;inetdbbde;inet;inetdbxpress;dbrtl;soaprtl;dsnap;VclSmp;dbexpress;vcldb;dbxcds;inetdb;bdertl;vcldbx;adortl;teeui;teedb;tee;ibxpress;visualclx;visualdbclx;vclactnband;vclshlctrls;IntrawebDB_50_70;Intraweb_50_70;Rave50CLX;Rave50VCL;dclOfficeXP
-Conditionals=FullDebugMode;deltics_smoketest
+Conditionals=
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
@@ -138,8 +138,9 @@ Comments=
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=1
-Item0=$(deltics)\rtl;$(deltics)\smoketest
+Count=2
+Item0=$(deltics)\bonjour;$(deltics)\rtl;$(deltics)\smoketest
+Item1=$(deltics)\rtl;$(deltics)\smoketest
 [HistoryLists\hlUnitOutputDirectory]
 Count=1
 Item0=$(dcu)

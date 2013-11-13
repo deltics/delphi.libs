@@ -9,7 +9,7 @@
         <Config Condition="'$(Config)'==''">Debug</Config>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
-        <Platform Condition="'$(Platform)'==''">Win64</Platform>
+        <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Console</AppType>
         <Platform>Win32</Platform>
@@ -56,10 +56,11 @@
         <Base>true</Base>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
+        <DCC_DcpOutput>$(bpl)</DCC_DcpOutput>
+        <DCC_BplOutput>$(bpl)</DCC_BplOutput>
         <DCC_ExeOutput>$(bin)\$(platform)$(config)</DCC_ExeOutput>
         <DCC_DcuOutput>$(dcu)\$(platform)$(config)</DCC_DcuOutput>
         <Manifest_File>None</Manifest_File>
-        <DCC_Define>deltics_bonjour;$(DCC_Define)</DCC_Define>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <DCC_Namespace>Data;Datasnap;Soap;System;System.Win;Vcl;Xml;Web;Winapi;$(DCC_Namespace)</DCC_Namespace>
         <VerInfo_Locale>5129</VerInfo_Locale>
@@ -107,6 +108,7 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="..\Bonjour.Tests.pas"/>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

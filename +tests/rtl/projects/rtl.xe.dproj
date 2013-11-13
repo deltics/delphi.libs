@@ -50,6 +50,7 @@
 			<DelphiCompile Include="rtl.xe.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
+			<DCCReference Include="..\Test.JSON.pas"/>
 			<DCCReference Include="..\Test.Strings.pas"/>
 			<DCCReference Include="..\Test.Strings.ANSI.pas"/>
 			<DCCReference Include="..\Test.Strings.UTF8.pas"/>

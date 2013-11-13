@@ -27,6 +27,9 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_DcuOutput>$(dcu)\$(config)</DCC_DcuOutput>
+			<DCC_BplOutput>$(bpl)</DCC_BplOutput>
+			<DCC_DcpOutput>$(bpl)</DCC_DcpOutput>
 			<DCC_Define>deltics_bonjour;$(DCC_Define)</DCC_Define>
 			<VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
 			<DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Winapi;$(DCC_Namespace)</DCC_Namespace>
@@ -38,7 +41,6 @@
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
 			<DCC_ExeOutput>$(bin)\Win32Release</DCC_ExeOutput>
 			<DCC_DependencyCheckOutputName>c:\dev\bin\Win32Release\bonjour.d2010.exe</DCC_DependencyCheckOutputName>
-			<DCC_DcuOutput>$(dcu)\release</DCC_DcuOutput>
 			<Version>7.0</Version>
 			<DCC_DebugInformation>False</DCC_DebugInformation>
 			<DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
@@ -50,7 +52,6 @@
 			<DCC_DependencyCheckOutputName>c:\dev\bin\Win32Debug\bonjour.d2010.exe</DCC_DependencyCheckOutputName>
 			<DCC_ExeOutput>$(bin)\Win32Debug</DCC_ExeOutput>
 			<DCC_DebugDCUs>true</DCC_DebugDCUs>
-			<DCC_DcuOutput>$(dcu)\debug</DCC_DcuOutput>
 			<Version>7.0</Version>
 			<DCC_MapFile>3</DCC_MapFile>
 			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
@@ -64,6 +65,7 @@
 			<DelphiCompile Include="bonjour.d2010.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
+			<DCCReference Include="..\Bonjour.Tests.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

@@ -25,7 +25,8 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_Define>FullDebugMode;deltics_smoketest;deltics_strings;$(DCC_Define)</DCC_Define>
+			<DCC_BplOutput>$(bpl)</DCC_BplOutput>
+			<DCC_DcpOutput>$(bpl)</DCC_DcpOutput>
 			<DCC_ExeOutput>$(bin)</DCC_ExeOutput>
 			<DCC_UNIT_PLATFORM>false</DCC_UNIT_PLATFORM>
 			<DCC_SYMBOL_PLATFORM>false</DCC_SYMBOL_PLATFORM>
@@ -96,7 +97,6 @@
 						<Parameters Name="UseLauncher">False</Parameters>
 						<Parameters Name="LoadAllSymbols">True</Parameters>
 						<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
-						<Parameters Name="RunParams"></Parameters>
 					</Parameters>
 					<VersionInfo>
 						<VersionInfo Name="IncludeVerInfo">False</VersionInfo>

@@ -103,16 +103,17 @@
 			<Compiler Name="UnitInitSeq">True</Compiler>
 			<Compiler Name="LocalPInvoke">True</Compiler>
 			<Compiler Name="MessageDirective">True</Compiler>
-			<Compiler Name="CodePage"></Compiler>  <Compiler Name="TypeInfoImplicitlyAdded">True</Compiler>
-      <Compiler Name="XMLWhitespaceNotAllowed">True</Compiler>
-      <Compiler Name="XMLUnknownEntity">True</Compiler>
-      <Compiler Name="XMLInvalidNameStart">True</Compiler>
-      <Compiler Name="XMLInvalidName">True</Compiler>
-      <Compiler Name="XMLExpectedCharacter">True</Compiler>
-      <Compiler Name="XMLCRefNoResolve">True</Compiler>
-      <Compiler Name="XMLNoParm">True</Compiler>
-      <Compiler Name="XMLNoMatchingParm">True</Compiler>
-    </Compiler>
+			<Compiler Name="CodePage"></Compiler>
+			<Compiler Name="TypeInfoImplicitlyAdded">True</Compiler>
+			<Compiler Name="XMLWhitespaceNotAllowed">True</Compiler>
+			<Compiler Name="XMLUnknownEntity">True</Compiler>
+			<Compiler Name="XMLInvalidNameStart">True</Compiler>
+			<Compiler Name="XMLInvalidName">True</Compiler>
+			<Compiler Name="XMLExpectedCharacter">True</Compiler>
+			<Compiler Name="XMLCRefNoResolve">True</Compiler>
+			<Compiler Name="XMLNoParm">True</Compiler>
+			<Compiler Name="XMLNoMatchingParm">True</Compiler>
+		</Compiler>
 		<Linker>
 			<Linker Name="MapFile">0</Linker>
 			<Linker Name="OutputObjs">0</Linker>
@@ -129,11 +130,11 @@
 		<Directories>
 			<Directories Name="OutputDir">$(bin)</Directories>
 			<Directories Name="UnitOutputDir">$(dcu)</Directories>
-			<Directories Name="PackageDLLOutputDir"></Directories>
-			<Directories Name="PackageDCPOutputDir"></Directories>
+			<Directories Name="PackageDLLOutputDir">$(bpl)</Directories>
+			<Directories Name="PackageDCPOutputDir">$(bpl)</Directories>
 			<Directories Name="SearchPath">$(deltics)\bonjour;$(deltics)\rtl;$(deltics)\smoketest</Directories>
 			<Directories Name="Packages"></Directories>
-			<Directories Name="Conditionals">deltics_bonjour</Directories>
+			<Directories Name="Conditionals"></Directories>
 			<Directories Name="DebugSourceDirs"></Directories>
 			<Directories Name="UsePackages">False</Directories>
 		</Directories>
@@ -175,17 +176,14 @@
 			<VersionInfoKeys Name="Comments"></VersionInfoKeys>
 		</VersionInfoKeys>
 		<Excluded_Packages>
-      
-      
-      
-      
       <Excluded_Packages Name="c:\program files (x86)\borland\bds\4.0\Bin\dclIntraweb_80_100.bpl">Intraweb 8.0 Design Package for Borland Development Studio 2006</Excluded_Packages>
       <Excluded_Packages Name="c:\program files (x86)\borland\bds\4.0\Bin\dclofficexp100.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
       <Excluded_Packages Name="c:\program files (x86)\borland\bds\4.0\Bin\dcltee100.bpl">TeeChart Components</Excluded_Packages>
       <Excluded_Packages Name="c:\program files (x86)\borland\bds\4.0\bin\dclbde100.bpl">Borland BDE DB Components</Excluded_Packages>
-    </Excluded_Packages>  <Signing>
-      <Signing Name="SignAssembly">False</Signing>
-    </Signing>
-    <buildevents/>
-  </Delphi.Personality>
+    </Excluded_Packages>
+		<Signing>
+			<Signing Name="SignAssembly">False</Signing>
+		</Signing>
+		<buildevents/>
+	</Delphi.Personality>
 </BorlandProject>
