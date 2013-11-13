@@ -794,6 +794,12 @@ implementation
       i: Integer;
       item: TJSONValue;
     begin
+      if (aArray.Count = 0) then
+      begin
+        result := '[]';
+        EXIT;
+      end;
+
       result := '['#13#10;
 
       if aArray.Count > 0 then
@@ -830,6 +836,12 @@ implementation
       i: Integer;
       value: TJSONValue;
     begin
+      if (aObject.ValueCount = 0) then
+      begin
+        result := '{}';
+        EXIT;
+      end;
+
       result := '{'#13#10;
 
       if aObject.ValueCount > 0 then
@@ -838,7 +850,7 @@ implementation
         begin
           value := aObject.ValueByIndex[i];
 
-          result := result + StringOfChar(' ', aIndent + 2) + '"' + value.Name + '":';
+          result := result + StringOfChar(' ', aIndent + 2) + '"' + TJSONString.Encode(value.Name) + '":';
 
           if value.IsNull then
             result := result + 'null'
@@ -1969,7 +1981,7 @@ implementation
       begin
         value := ValueByIndex[i];
 
-        result := result + '"' + value.Name + '":';
+        result := result + TJSONString.Encode(value.Name) + ':';
 
         if value.IsNull then
           result := result + 'null'
