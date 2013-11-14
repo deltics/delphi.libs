@@ -851,7 +851,7 @@ implementation
         begin
           value := aObject.ValueByIndex[i];
 
-          result := result + StringOfChar(' ', aIndent + 2) + '"' + TJSONString.Encode(value.Name) + '":';
+          result := result + StringOfChar(' ', aIndent + 2) + TJSONString.Encode(value.Name) + ':';
 
           if value.IsNull then
             result := result + 'null'
