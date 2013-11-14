@@ -539,7 +539,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TJSONValue.get_AsJSON: UnicodeString;
   begin
-    result := TJSONString.Encode(fName) + ':' + DoGetAsString;
+    result := DoGetAsString;
   end;
 
 
@@ -1793,7 +1793,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TJSONString.get_AsJSON: UnicodeString;
   begin
-    result := TJSONString.Encode(fName) + ':' + TJSONString.Encode(fValue);
+    result := TJSONString.Encode(fValue);
   end;
 
 

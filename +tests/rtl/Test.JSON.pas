@@ -28,7 +28,7 @@ interface
     published
       procedure StringDecoding;
       procedure StringEncoding;
-      procedure ValueEncoding;
+      procedure ValueAsJSON;
       procedure InitialiseSimpleObject;
       procedure InitialiseComplexObject;
       procedure SimpleObjectFromString;
@@ -98,88 +98,34 @@ implementation
     Test('String (ASCII)').     Expect(TJSONString.Decode('"windows"')).Equals('windows');
     Test('String (Unicode)').   Expect(TJSONString.Decode('Windows\u2122')).Equals('Windows™');
     Test('String (path)').      Expect(TJSONString.Decode('\\\\psf\\home')).Equals('\\psf\home');
-    Test('String (url)').       Expect(TJSONString.Decode('"www.deltics.co.nz\/blog"')).        Equals('www.deltics.co.nz/blog');;
+    Test('String (url)').       Expect(TJSONString.Decode('"www.deltics.co.nz\/blog"')).Equals('www.deltics.co.nz/blog');;
+    Test('String (quotes)').    Expect(TJSONString.Decode('\"Come here\", he said')).Equals('"Come here", he said');
     Test('String (ctrl chars)').Expect(TJSONString.Decode('\ttabbed\r\nnew lines\b\fnew page')).Equals(#9'tabbed'#13#10'new lines'#8#12'new page');
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TUnitTest_JSON.StringEncoding;
-  const
-    GUID = '{F2B65EEF-E45C-4F3C-B65E-C0CE208C44D7}';
-  var
-    d: TDate;
-    t: TTime;
-    dt: TDateTime;
-    dn: Double;
-    dr: Double;
   begin
-    d   := DateTimeFromISO8601('19631122', [dtDate]);
-    t   := DateTimeFromISO8601('123456.7890', [dtTime]);
-    dt  := DateTimeFromISO8601('19631122 123456.7890');
-
-    dn := 42;
-    dr := 3.14159;
-
-    JSON.Add('bool true',   TRUE);
-    JSON.Add('bool false',  FALSE);
-    JSON.AddNull('null');
-
-    JSON.Add('integer',           42);
-  {$ifdef EnhancedOverloads}
-    JSON.Add('natural double',    dn);
-    JSON.Add('real double',       dr);
-  {$else}
-    JSON.AddDouble('natural double',  dn);
-    JSON.AddDouble('real double',     dr);
-  {$endif}
-
-    JSON.Add('ascii string',      'windows');
-    JSON.Add('unicode string',    'Windows™');
-    JSON.Add('path',              '\\psf\home');
-    JSON.Add('url',               'www.deltics.co.nz/blog');
-    JSON.Add('ctrl chars',        #9'tabbed'#13#10'new lines'#8#12'new page');
-
-  {$ifdef EnhancedOverloads}
-    JSON.Add('date',      d);
-    JSON.Add('time',      t);
-    JSON.Add('datetime',  dt);
-  {$else}
-    JSON.AddDate('date',  d);
-    JSON.AddTime('time',  t);
-    JSON.AddDateTime('datetime',  dt);
-  {$endif}
-    JSON.Add('guid', StringToGUID(GUID));
-
-    Test('Boolean (TRUE)').     Expect(JSON.Values['bool true'].AsJSON).      Equals('"bool true":true');
-    Test('Boolean (FALSE)').    Expect(JSON.Values['bool false'].AsJSON).     Equals('"bool false":false');
-    Test('Null').               Expect(JSON.Values['null'].AsJSON).           Equals('"null":null');
-
-    Test('Integer').            Expect(JSON.Values['integer'].AsJSON).        Equals('"integer":42');
-    Test('Double (natural)').   Expect(JSON.Values['natural double'].AsJSON). Equals('"natural double":42.0');
-    Test('Double (real)').      Expect(JSON.Values['real double'].AsJSON).    Equals('"real double":3.14159');
-
-    Test('String (ASCII)').     Expect(JSON.Values['ascii string'].AsJSON).   Equals('"ascii string":"windows"');
-    Test('String (Unicode)').   Expect(JSON.Values['unicode string'].AsJSON). Equals('"unicode string":"Windows\u2122"');
-    Test('String (path)').      Expect(JSON.Values['path'].AsJSON).           Equals('"path":"\\\\psf\\home"');
-    Test('String (url)').       Expect(JSON.Values['url'].AsJSON).            Equals('"url":"www.deltics.co.nz\/blog"');
-    Test('String (ctrl chars)').Expect(JSON.Values['ctrl chars'].AsJSON).     Equals('"ctrl chars":"\ttabbed\r\nnew lines\b\fnew page"');
-
-    Test('Date').     Expect(JSON.Values['date'].AsJSON).     Equals('"date":"19631122"');
-    Test('Time').     Expect(JSON.Values['time'].AsJSON).     Equals('"time":"123456.7890"');
-    Test('DateTime'). Expect(JSON.Values['datetime'].AsJSON). Equals('"datetime":"19631122 123456.7890"');
-    Test('GUID').     Expect(JSON.Values['guid'].AsJSON).     Equals('"guid":"' + GUID + '"');
+    Test('String (ASCII)').     Expect(TJSONString.Encode('windows')).Equals('"windows"');
+    Test('String (Unicode)').   Expect(TJSONString.Encode('Windows™')).Equals('"Windows\u2122"');
+    Test('String (path)').      Expect(TJSONString.Encode('\\psf\home')).Equals('"\\\\psf\\home"');
+    Test('String (url)').       Expect(TJSONString.Encode('www.deltics.co.nz/blog')).Equals('"www.deltics.co.nz\/blog"');
+    Test('String (quotes)').    Expect(TJSONString.Encode('"Come here", he said')).Equals('"\"Come here\", he said"');
+    Test('String (ctrl chars)').Expect(TJSONString.Encode(#9'tabbed'#13#10'new lines'#8#12'new page')).Equals('"\ttabbed\r\nnew lines\b\fnew page"');
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TUnitTest_JSON.ValueEncoding;
+  procedure TUnitTest_JSON.ValueAsJSON;
   var
     d: TDate;
     t: TTime;
     dt: TDateTime;
     dn: Double;
     dr: Double;
+    obj: TJSONObject;
+    arr: TJSONArray;
   begin
     d   := DateTimeFromISO8601('19631122', [dtDate]);
     t   := DateTimeFromISO8601('123456.7890', [dtTime]);
@@ -218,24 +164,46 @@ implementation
   {$endif}
     JSON.Add('guid',      StringToGUID('{F2B65EEF-E45C-4F3C-B65E-C0CE208C44D7}'));
 
-    Test('Boolean (TRUE)').     Expect(JSON.Values['bool true'].AsJSON).      Equals('"bool true":true');
-    Test('Boolean (FALSE)').    Expect(JSON.Values['bool false'].AsJSON).     Equals('"bool false":false');
-    Test('Null').               Expect(JSON.Values['null'].AsJSON).           Equals('"null":null');
+    Test('Boolean (TRUE)').     Expect(JSON.Values['bool true'].AsJSON).      Equals('true');
+    Test('Boolean (FALSE)').    Expect(JSON.Values['bool false'].AsJSON).     Equals('false');
+    Test('Null').               Expect(JSON.Values['null'].AsJSON).           Equals('null');
 
-    Test('Integer').            Expect(JSON.Values['integer'].AsJSON).        Equals('"integer":42');
-    Test('Double (natural)').   Expect(JSON.Values['natural double'].AsJSON). Equals('"natural double":42.0');
-    Test('Double (real)').      Expect(JSON.Values['real double'].AsJSON).    Equals('"real double":3.14159');
+    Test('Integer').            Expect(JSON.Values['integer'].AsJSON).        Equals('42');
+    Test('Double (natural)').   Expect(JSON.Values['natural double'].AsJSON). Equals('42.0');
+    Test('Double (real)').      Expect(JSON.Values['real double'].AsJSON).    Equals('3.14159');
 
-    Test('String (ASCII)').     Expect(JSON.Values['ascii string'].AsJSON).   Equals('"ascii string":"windows"');
-    Test('String (Unicode)').   Expect(JSON.Values['unicode string'].AsJSON). Equals('"unicode string":"Windows\u2122"');
-    Test('String (path)').      Expect(JSON.Values['path'].AsJSON).           Equals('"path":"\\\\psf\\home"');
-    Test('String (url)').       Expect(JSON.Values['url'].AsJSON).            Equals('"url":"www.deltics.co.nz\/blog"');
-    Test('String (ctrl chars)').Expect(JSON.Values['ctrl chars'].AsJSON).     Equals('"ctrl chars":"\ttabbed\r\nnew lines\b\fnew page"');
+    Test('String (ASCII)').     Expect(JSON.Values['ascii string'].AsJSON).   Equals('"windows"');
+    Test('String (Unicode)').   Expect(JSON.Values['unicode string'].AsJSON). Equals('"Windows\u2122"');
+    Test('String (path)').      Expect(JSON.Values['path'].AsJSON).           Equals('"\\\\psf\\home"');
+    Test('String (url)').       Expect(JSON.Values['url'].AsJSON).            Equals('"www.deltics.co.nz\/blog"');
+    Test('String (ctrl chars)').Expect(JSON.Values['ctrl chars'].AsJSON).     Equals('"\ttabbed\r\nnew lines\b\fnew page"');
 
-    Test('Date').     Expect(JSON.Values['date'].AsJSON).     Equals('"date":"19631122"');
-    Test('Time').     Expect(JSON.Values['time'].AsJSON).     Equals('"time":"123456.7890"');
-    Test('DateTime'). Expect(JSON.Values['datetime'].AsJSON). Equals('"datetime":"19631122 123456.7890"');
-    Test('GUID').     Expect(JSON.Values['guid'].AsJSON).     Equals('"guid":"{F2B65EEF-E45C-4F3C-B65E-C0CE208C44D7}"');
+    Test('Date').     Expect(JSON.Values['date'].AsJSON).     Equals('"19631122"');
+    Test('Time').     Expect(JSON.Values['time'].AsJSON).     Equals('"123456.7890"');
+    Test('DateTime'). Expect(JSON.Values['datetime'].AsJSON). Equals('"19631122 123456.7890"');
+    Test('GUID').     Expect(JSON.Values['guid'].AsJSON).     Equals('"{F2B65EEF-E45C-4F3C-B65E-C0CE208C44D7}"');
+
+    obj := TJSONObject.Create;
+    try
+      obj.Add('1', 'first');
+      obj.Add('2', 'second');
+      obj.Add('3', '©2013');
+      Test('object').Expect(obj.AsJSON).Equals('{"1":"first","2":"second","3":"\u00A92013"}');
+
+    finally
+      obj.Free;
+    end;
+
+    arr := TJSONArray.Create;
+    try
+      arr.Add('first');
+      arr.Add('second');
+      arr.Add('©2013');
+      Test('array').Expect(arr.AsJSON).Equals('["first","second","\u00A92013"]');
+
+    finally
+      arr.Free;
+    end;
   end;
 
 
@@ -372,7 +340,7 @@ implementation
     JSON.AsString := DATA;
     Test('Unicode unescaped').Expect(JSON['name'].AsString).Contains('™');
 
-//    Test('Unicode escaped').Expect(JSON['name'].AsText).Contains('\u2122');
+    Test('Unicode escaped ({actual})').Expect(JSON['name'].AsJSON).Contains('\u2122');
   end;
 
 
