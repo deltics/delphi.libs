@@ -374,8 +374,8 @@ interface
     ISmoketestRuntime = interface(ISmoketestMetadata)
     ['{B58A6B94-B4C6-4C8F-8431-31D965B6A190}']
       function get_CommandLine: TSmoketestCommandLine;
+      function get_IsRunning: Boolean;
       function get_TestRun: TTestRun;
-      function get_Thread: TWorkerThread;
       function get_On_Finished: TMultiCastNotify;
       function get_On_Started: TMultiCastNotify;
       function get_On_Update: TMultiCastNotify;
@@ -384,8 +384,8 @@ interface
       procedure Run;
 
       property CommandLine: TSmoketestCommandLine read get_CommandLine;
+      property IsRunning: Boolean read get_IsRunning;
       property TestRun: TTestRun read get_TestRun;
-      property Thread: TWorkerThread read get_Thread;
       property On_Finished: TMultiCastNotify read get_On_Finished;
       property On_Started: TMultiCastNotify read get_On_Started;
       property On_Update: TMultiCastNotify read get_On_Update;
@@ -750,6 +750,7 @@ interface
 
     private // ISmoketestRuntime
       function get_CommandLine: TSmoketestCommandLine;
+      function get_IsRunning: Boolean;
       function get_TestRun: TTestRun;
       function get_Thread: TWorkerThread;
       function get_On_Finished: TMultiCastNotify;
@@ -1922,6 +1923,15 @@ implementation
 
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function IsTerminating: Boolean;
+  begin
+    result := _Suite.Thread.Terminating;
+  end;
+
+
+
+
 
 { ------------------------------------------------------------------------------------------------ }
 
@@ -2656,6 +2666,13 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TSmoketest.get_IsRunning: Boolean;
+  begin
+    result := Thread.State[Deltics.Threads.tsRunning];
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketest.get_Count;
   begin
     result := fCases.Count;
@@ -2877,7 +2894,12 @@ implementation
     State.Enter(tsRunning);
     try
       for i := 0 to Pred(fCases.Count) do
+      begin
+        if Thread.Terminating then
+          EXIT;
+
         TCase(fCases[i]).Execute;
+      end;
 
     finally
       State.Leave(tsRunning);
@@ -3330,7 +3352,7 @@ implementation
     setup: ISetupTestCase;
     cleanup: ICleanupTestCase;
   begin
-    if NOT EffectivelyEnabled then
+    if NOT EffectivelyEnabled or IsTerminating then
       EXIT;
 
     State.Enter(tsRunning);
@@ -3620,7 +3642,7 @@ implementation
     begin
       for i := 0 to Pred(aList.Count) do
       begin
-        if State.InState[tsAborted] then
+        if State.InState[tsAborted] or IsTerminating then
           EXIT;
 
         try
@@ -3638,9 +3660,12 @@ implementation
     try
       ExecuteDelegates(fInitialDelegates);
 
+      if IsTerminating then
+        EXIT;
+
       for i := 0 to Pred(fCases.Count) do
       begin
-        if State.InState[tsAborted] then
+        if State.InState[tsAborted] or IsTerminating then
           EXIT;
 
         TTestCase(fCases[i]).Execute;
@@ -4092,7 +4117,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TDelegate.Execute;
   begin
-    if NOT EffectivelyEnabled then
+    if NOT EffectivelyEnabled or IsTerminating then
       EXIT;
 
     State.Enter(tsRunning);
@@ -4481,18 +4506,24 @@ implementation
   var
     i, j: Integer;
   begin
+    if IsTerminating then
+      EXIT;
+
     try
       for i := 0 to Pred(DelegateCount) do
         TPerformanceDelegate(Delegate[i]).Prepare(fSamples);
 
       for i := 1 to fSamples do
       begin
+        if IsTerminating then
+          EXIT;
+
         fSampling := i;
         NotifyChange;
 
         for j := 0 to Pred(DelegateCount) do
         begin
-          if State.InState[tsAborted] then
+          if State.InState[tsAborted] or IsTerminating then
             EXIT;
 
           TPerformanceDelegate(Delegate[j]).Execute(i);
@@ -4614,6 +4645,9 @@ implementation
           pmIterations  : begin
                             terminalValue := TPerformanceCase(Owner).N;
                             repeat
+                              if IsTerminating then
+                                EXIT;
+
                               FlushInstructionCache(hProcess, NIL, 0);
 
                               if Assigned(setup) then
@@ -4641,6 +4675,9 @@ implementation
           pmSeconds     : begin
                             terminalValue := Cardinal(TPerformanceCase(Owner).N * HPC.Frequency);
                             repeat
+                              if IsTerminating then
+                                EXIT;
+
                               FlushInstructionCache(hProcess, NIL, 0);
 
                               if Assigned(setup) then

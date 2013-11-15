@@ -85,6 +85,7 @@ interface
   const
     STM_UpdateItem = WM_USER + 1;
     STM_AutoRun    = WM_USER + 2;
+    STM_CLOSE      = WM_USER + 3;
 
   type
     TWndProc = procedure(var aMessage: TMessage) of object;
@@ -152,6 +153,7 @@ interface
       procedure miCollapseSiblingsClick(Sender: TObject);
       procedure TestRunTabsResize(Sender: TObject);
     private
+      fClosing: Boolean;
       fCollapsedArticles: TStringList;
       fOn_Destroy: IOn_Destroy;
       fSmoketest: ISmoketestRuntime;
@@ -200,6 +202,7 @@ interface
       procedure UpdateStatusBar;
       procedure UpdateResults;
       procedure STMAutoRun(var Msg: TMessage); message STM_AutoRun;
+      procedure STMClose(var Msg: TMessage); message STM_CLOSE;
     public
       destructor Destroy; override;
       procedure Initialize;
@@ -761,6 +764,9 @@ implementation
 
     UpdateStatusBar;
     Screen.Cursor := crDefault;
+
+    if fClosing then
+      PostMessage(Handle, STM_CLOSE, 0, 0);
   end;
 
 
@@ -902,12 +908,26 @@ implementation
   procedure TSmoketestConsole.FormCloseQuery(Sender: TObject;
                                              var CanClose: Boolean);
   begin
-    CanClose := NOT Smoketest.Thread.State[Deltics.Threads.tsRunning];
+    CanClose := TRUE;
+
+    if Smoketest.IsRunning then
+    begin
+      CanClose := FALSE;
+
+      if MessageDlg('Tests are currently running.  Close anyway ?'#13#13
+                  + 'The test run will be aborted and the project'#13
+                  + 'will close once the current test method has completed.', mtConfirmation, mbYesNo, 0) = IDYES then
+      begin
+        fClosing := TRUE;
+        Smoketest.Abort;
+      end;
+    end;
 
     if CanClose then
+    begin
       lvHierarchy.Items.Clear;
-
-    FreeAndNIL(FPS);
+      FreeAndNIL(FPS);
+    end;
   end;
 
 
@@ -1038,9 +1058,9 @@ implementation
 
   procedure TSmoketestConsole.UpdateStatusBar;
   begin
-    ProgressBar.Visible := Smoketest.Thread.State[Deltics.Threads.tsRunning];
+    ProgressBar.Visible := Smoketest.IsRunning;
 
-    if Smoketest.Thread.State[Deltics.Threads.tsRunning] then
+    if Smoketest.IsRunning then
     begin
       StatusBar.Panels[0].Text := 'Running...';
       StatusBar.Panels[1].Text := ''; // TODO: Display name of active case(s)
@@ -1053,25 +1073,21 @@ implementation
   end;
 
 
-
-
   procedure TSmoketestConsole.actAbortRunExecute(Sender: TObject);
   begin
     Smoketest.Abort;
   end;
 
 
-
   procedure TSmoketestConsole.actRunSelectedUpdate(Sender: TObject);
   begin
-    actRunSelected.Enabled := NOT Smoketest.Thread.State[Deltics.Threads.tsRunning];
+    actRunSelected.Enabled := NOT Smoketest.IsRunning;
   end;
-
 
 
   procedure TSmoketestConsole.actAbortRunUpdate(Sender: TObject);
   begin
-    actAbortRun.Enabled := Smoketest.Thread.State[Deltics.Threads.tsRunning];
+    actAbortRun.Enabled := Smoketest.IsRunning;
   end;
 
 
@@ -1315,6 +1331,12 @@ implementation
   procedure TSmoketestConsole.STMAutoRun(var Msg: TMessage);
   begin
     actRunSelected.Execute;
+  end;
+
+
+  procedure TSmoketestConsole.STMClose(var Msg: TMessage);
+  begin
+    Close;
   end;
 
 
