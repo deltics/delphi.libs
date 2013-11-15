@@ -916,7 +916,8 @@ implementation
 
       if MessageDlg('Tests are currently running.  Close anyway ?'#13#13
                   + 'The test run will be aborted and the project'#13
-                  + 'will close once the current test method has completed.', mtConfirmation, mbYesNo, 0) = IDYES then
+                  + 'will close once the current test method has completed.',
+                    mtConfirmation, [mbYes, mbNo], 0) = IDYES then
       begin
         fClosing := TRUE;
         Smoketest.Abort;
@@ -1312,7 +1313,7 @@ implementation
         for i := 0 to Pred(list.Count) do
         begin
           item := TListItem(list[i]);
-          item.ImageIndex := IMG_Running + aFrame;
+          item.ImageIndex := IMG_Running + aFrame - 1;
 
           ListView_GetItemRect(item.ListView.Handle, item.Index, rc, LVIR_ICON);
           InvalidateRect(item.ListView.Handle, @rc, TRUE);
