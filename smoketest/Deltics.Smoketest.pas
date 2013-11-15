@@ -995,8 +995,8 @@ interface
       private
         fSample: Integer;
         fElapsed: array of Int64;
-        fFastest: array of Cardinal;
-        fSlowest: array of Cardinal;
+        fFastest: array of Int64;
+        fSlowest: array of Int64;
         fIteration: Cardinal;
       private
         function get_Elapsed: Int64; override;
@@ -1924,6 +1924,13 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function CommandLine: TSmoketestCommandLine;
+  begin
+    result := _Suite.CommandLine;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function IsTerminating: Boolean;
   begin
     result := _Suite.Thread.Terminating;
@@ -2621,7 +2628,7 @@ implementation
     if CommandLine.ThreadIsolation then
     begin
       SetThreadAffinityMask(GetCurrentThread, 1);
-      fThread.Affinity := 2;
+      fThread.Affinity := $fffffffe;
     end;
 
     TMultiCastNotify.CreateEvents(self, [@fOn_Finished,
@@ -3039,10 +3046,10 @@ implementation
     i: Integer;
     ext: TTestExtension;
   begin
-    if NOT Assigned(_Extensions) then
-      _Extensions := TObjectList.Create(TRUE);
-
     result := FALSE;
+
+    if NOT Assigned(_Extensions) then
+      EXIT;
 
     for i := 0 to Pred(_Extensions.Count) do
     begin
@@ -3065,10 +3072,10 @@ implementation
     i: Integer;
     ext: TTestExtension;
   begin
-    if NOT Assigned(_Extensions) then
-      _Extensions := TObjectList.Create(TRUE);
-
     result := FALSE;
+
+    if NOT Assigned(_Extensions) then
+      EXIT;
 
     for i := 0 to Pred(_Extensions.Count) do
     begin
@@ -3091,7 +3098,8 @@ implementation
     ext: TTestExtension;
     unused: TExpectationClass;
   begin
-    ASSERT(NOT FindExtension(aIID, unused), 'A test extension has already been registered with this Interface ID');
+    if FindExtension(aIID, unused) then
+      raise ESmoketest.Create('A test extension has already been registered with this Interface ID');
 
     if NOT Assigned(_Extensions) then
       _Extensions := TObjectList.Create(TRUE);
@@ -3111,7 +3119,8 @@ implementation
     ext: TTestExtension;
     unused: TInspectorClass;
   begin
-    ASSERT(NOT FindExtension(aIID, unused), 'An inspector has already been registered with this Interface ID');
+    if FindExtension(aIID, unused) then
+      raise ESmoketest.Create('An inspector has already been registered with this Interface ID');
 
     if NOT Assigned(_Extensions) then
       _Extensions := TObjectList.Create(TRUE);
@@ -3194,11 +3203,11 @@ implementation
   begin
     methods := TMethodList.Create(aCase);
     try
-      filterEnable  := _Suite.CommandLine.EnableCases;
-      filterDisable := NOT filterEnable and _Suite.CommandLine.DisableCases;
+      filterEnable  := CommandLine.EnableCases;
+      filterDisable := NOT filterEnable and CommandLine.DisableCases;
 
-      if filterEnable then filter := _Suite.CommandLine.EnableList
-      else if filterDisable then filter := _Suite.CommandLine.DisableList
+      if filterEnable then filter := CommandLine.EnableList
+      else if filterDisable then filter := CommandLine.DisableList
       else filter := NIL;
 
       for i := 0 to Pred(methods.Count) do
@@ -3221,9 +3230,14 @@ implementation
         end;
 
 
-        if (aDelegateClass <> TPerformanceDelegate)
-         or NOT _Suite.CommandLine.DisablePerformanceCases then
-          if delegate.Enabled then
+        // If applying an ENABLE list then any enabled delegate demands that
+        //  the parent case also be enabled (except where the delegate is
+        //  for a performance test and we have specifically disabled all
+        //  performance cases).
+
+        if filterEnable and delegate.Enabled then
+          if (aDelegateClass <> TPerformanceDelegate)
+           or NOT CommandLine.DisablePerformanceCases then
             aCase.Enabled := TRUE;
       end;
 
@@ -3253,11 +3267,11 @@ implementation
 
     State.Add([tsDisabled, tsNotImplemented]);
 
-    filterEnable  := _Suite.CommandLine.EnableCases;
-    filterDisable := NOT filterEnable and _Suite.CommandLine.DisableCases;
+    filterEnable  := CommandLine.EnableCases;
+    filterDisable := NOT filterEnable and CommandLine.DisableCases;
 
-    if filterEnable then filter := _Suite.CommandLine.EnableList
-    else if filterDisable then filter := _Suite.CommandLine.DisableList
+    if filterEnable then filter := CommandLine.EnableList
+    else if filterDisable then filter := CommandLine.DisableList
     else filter := NIL;
 
     if Assigned(filter) then
@@ -3365,7 +3379,7 @@ implementation
           setup.Setup;
 
         try
-          if IsConsole and NOT _Suite.CommandLine.SilentRunning then
+          if IsConsole and NOT CommandLine.SilentRunning then
           begin
             WriteLn('');
             WriteLn(NameForConsole);
@@ -4199,7 +4213,7 @@ implementation
     cleanup: ICleanupTest;
     output: Integer;
   begin
-    if IsConsole and NOT _Suite.CommandLine.SilentRunning then
+    if IsConsole and NOT CommandLine.SilentRunning then
       Write(NameForConsole + '...');
 
 
@@ -4244,7 +4258,7 @@ implementation
         end;
 
       finally
-        if IsConsole and NOT _Suite.CommandLine.SilentRunning then
+        if IsConsole and NOT CommandLine.SilentRunning then
         begin
           if Aborted then
             WriteLn('aborted')
@@ -4356,15 +4370,15 @@ implementation
 
     fDelegates := TObjectList.Create(TRUE);
 
-    Enabled := NOT _Suite.CommandLine.DisablePerformanceCases;
+    Enabled := NOT CommandLine.DisablePerformanceCases;
 
     if Enabled then
     begin
-      filterEnable  := _Suite.CommandLine.EnableCases;
-      filterDisable := NOT filterEnable and _Suite.CommandLine.DisableCases;
+      filterEnable  := CommandLine.EnableCases;
+      filterDisable := NOT filterEnable and CommandLine.DisableCases;
 
-      if filterEnable then filter := _Suite.CommandLine.EnableList
-      else if filterDisable then filter := _Suite.CommandLine.DisableList
+      if filterEnable then filter := CommandLine.EnableList
+      else if filterDisable then filter := CommandLine.DisableList
       else filter := NIL;
 
       if Assigned(filter) then
@@ -4596,6 +4610,13 @@ implementation
     fIteration  := 0;
     fSample     := 0;
 
+    // Set arrays to zero length first so that they are initialized when
+    //  we resize them for the specified number of samples
+
+    SetLength(fElapsed, 0);
+    SetLength(fFastest, 0);
+    SetLength(fSlowest, 0);
+
     SetLength(fElapsed, aSamples + 1);
     SetLength(fFastest, aSamples + 1);
     SetLength(fSlowest, aSamples + 1);
@@ -4630,7 +4651,7 @@ implementation
     TestCase.GetInterface(ISetupTest, setup);
     TestCase.GetInterface(ICleanupTest, cleanup);
 
-    if IsConsole and NOT _Suite.CommandLine.SilentRunning then
+    if IsConsole and NOT CommandLine.SilentRunning then
       Write(NameForConsole + '...');
 
     try
@@ -4648,7 +4669,7 @@ implementation
                               if IsTerminating then
                                 EXIT;
 
-                              FlushInstructionCache(hProcess, NIL, 0);
+                              // FlushInstructionCache(hProcess, NIL, 0);
 
                               if Assigned(setup) then
                                 setup.SetupTest(self);
@@ -4660,7 +4681,7 @@ implementation
                               Method;
                               AddElapsed(HPC.Value - Start);
 
-                              if IsConsole and NOT _Suite.CommandLine.SilentRunning then
+                              if IsConsole and NOT CommandLine.SilentRunning then
                                 Write('.');
 
                               if Assigned(cleanup) then
@@ -4690,7 +4711,7 @@ implementation
                               Method;
                               AddElapsed(HPC.Value - Start);
 
-                              if IsConsole and NOT _Suite.CommandLine.SilentRunning then
+                              if IsConsole and NOT CommandLine.SilentRunning then
                                 Write('.');
 
                               if Assigned(cleanup) then
@@ -4704,7 +4725,7 @@ implementation
         end;
 
       finally
-        if IsConsole and NOT _Suite.CommandLine.SilentRunning then
+        if IsConsole and NOT CommandLine.SilentRunning then
           WriteLn;
       end;
 
