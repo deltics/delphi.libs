@@ -471,7 +471,8 @@ implementation
     notUsedDef: PSwitchDef;
     notUsedStr: String;
   begin
-    ASSERT(NOT IsSwitch(aSwitch, notUsedDef, notUsedStr), 'Command line switch ''' + aSwitch + ''' already defined');
+    if IsSwitch(aSwitch, notUsedDef, notUsedStr) then
+      raise Exception.CreateFmt('Command line switch ''%s'' already defined', [aSwitch]);
 
     BeginSetup;
     try
