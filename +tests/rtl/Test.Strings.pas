@@ -47,7 +47,6 @@ interface
 
 
 
-
 implementation
 
   uses
@@ -85,4 +84,7 @@ initialization
   SRCU := UTF8.Encode('Unicode™');
 
   Smoketest.Add(TTestStrings, [TANSITests, TWIDETests, TSTRTests, TUTF8Tests]);
+  Smoketest.AverageTime([TANSIPerformance], 5).RunningFor(200).Iterations;
+  Smoketest.AverageTime([TWIDEPerformance], 5).RunningFor(200).Iterations;
+//  Smoketest.AverageTime([TUTF8Performance], 5).RunningFor(200).Iterations;
 end.

@@ -10,7 +10,11 @@ interface
   type
     TUTF8Tests = class(TTestCase)
       procedure Transcoding;
+      procedure fn_Pos;
+      procedure fn_NPos;
+      procedure fn_RPos;
       procedure fn_Compare;
+      procedure fn_Contains;
       procedure fn_IsLowercase;
       procedure fn_IsUppercase;
       procedure fn_SameText;
@@ -26,6 +30,17 @@ implementation
     Deltics.Strings,
     Test.Strings;
 
+
+  var
+    STR: UTF8String;
+    SUB_THE: UTF8String;
+    SUB_FOX: UTF8String;
+    SUB_QUICK: UTF8String;
+    SUB_BROWN: UTF8String;
+    CHAR_T: UTF8Char;
+    CHAR_BANG: UTF8Char;
+    CHAR_Q: UTF8Char;
+    CHAR_Z: UTF8Char;
 
   type
     TVECTORS = array of TUTF8StringAB;
@@ -61,6 +76,84 @@ implementation
   end;
 
 
+  procedure TUTF8Tests.fn_Pos;
+  var
+    p: Integer;
+    pa: TCharIndexArray;
+  begin
+    UTF8.Pos(STR, CHAR_T, p);     Test('FirstPos of ''T''').Expect(p).Equals(1);
+    UTF8.Pos(STR, CHAR_BANG, p);  Test('FirstPos of ''!''').Expect(p).Equals(21);
+    UTF8.Pos(STR, CHAR_Q, p);     Test('FirstPos of ''q''').Expect(p).Equals(5);
+    UTF8.Pos(STR, CHAR_Z, p);     Test('FirstPos of ''Z''').Expect(p).Equals(0);
+
+    UTF8.Pos(STR, SUB_THE, p);    Test('FirstPos of ''The''').Expect(p).Equals(1);
+    UTF8.Pos(STR, SUB_FOX, p);    Test('FirstPos of ''fox!''').Expect(p).Equals(18);
+    UTF8.Pos(STR, SUB_QUICK, p);  Test('FirstPos of ''quick''').Expect(p).Equals(5);
+    UTF8.Pos(STR, SUB_BROWN, p);  Test('FirstPos of ''brown''').Expect(p).Equals(0);
+
+    UTF8.Pos(STR, CHAR_T, pa);  Test('2 Positions of ''T''').Expect(Length(pa)).Equals(2).IsRequired;
+                                Test('First ''T''').Expect(pa[0]).Equals(1);
+                                Test('Second ''T''').Expect(pa[1]).Equals(32);
+
+    UTF8.Pos(STR, CHAR_BANG, pa); Test('2 Positions of ''!''').Expect(Length(pa)).Equals(2).IsRequired;
+                                  Test('First ''!''').Expect(pa[0]).Equals(21);
+                                  Test('Second ''!''').Expect(pa[1]).Equals(45);
+
+    UTF8.Pos(STR, CHAR_Q, pa);  Test('3 Positions of ''q''').Expect(Length(pa)).Equals(3).IsRequired;
+                                Test('First ''q''').Expect(pa[0]).Equals(5);
+                                Test('Second ''q''').Expect(pa[1]).Equals(12);
+                                Test('Third ''q''').Expect(pa[2]).Equals(36);
+
+    UTF8.Pos(STR, CHAR_Z, pa);  Test('No Positions of ''z''').Expect(Length(pa)).Equals(0);
+  end;
+
+
+  procedure TUTF8Tests.fn_NPos;
+  const// 0         1         2         3         4
+    STR = 'The quick, quick fox!  I said: The quick fox!';
+  var
+    p: Integer;
+  begin
+    p := 0;
+    UTF8.NPos(STR, 'T', p);   Test('FirstPos of ''T''').Expect(p).Equals(1);
+    UTF8.NPos(STR, 'T', p);   Test('NextPos of ''T''').Expect(p).Equals(32);
+    UTF8.NPos(STR, 'T', p);   Test('NextPos of ''T''').Expect(p).Equals(0);
+
+    p := 0;
+    UTF8.NPos(STR, '!', p);   Test('FirstPos of ''!''').Expect(p).Equals(21);
+    UTF8.NPos(STR, '!', p);   Test('NextPos of ''!''').Expect(p).Equals(45);
+    UTF8.NPos(STR, '!', p);   Test('NextPos of ''!''').Expect(p).Equals(0);
+
+    p := 0;
+    UTF8.NPos(STR, 'q', p);   Test('FirstPos of ''q''').Expect(p).Equals(5);
+    UTF8.NPos(STR, 'q', p);   Test('NextPos of ''q''').Expect(p).Equals(12);
+    UTF8.NPos(STR, 'q', p);   Test('NextPos of ''q''').Expect(p).Equals(36);
+    UTF8.NPos(STR, 'q', p);   Test('NextPos of ''q''').Expect(p).Equals(0);
+
+    p := 0;
+    UTF8.NPos(STR, 'z', p);   Test('FirstPos of ''z''').Expect(p).Equals(0);
+    UTF8.NPos(STR, 'z', p);   Test('NextPos of ''z''').Expect(p).Equals(0);
+  end;
+
+
+  procedure TUTF8Tests.fn_RPos;
+  const// 0         1         2         3         4
+    STR = 'The quick, quick fox!  I said: The quick fox!';
+  var
+    p: Integer;
+  begin
+    UTF8.RPos(STR, 'T', p);       Test('LastPos of ''T''').Expect(p).Equals(32);
+    UTF8.RPos(STR, '!', p);       Test('LastPos of ''!''').Expect(p).Equals(45);
+    UTF8.RPos(STR, 'q', p);       Test('LastPos of ''q''').Expect(p).Equals(36);
+    UTF8.RPos(STR, 'Z', p);       Test('LastPos of ''Z''').Expect(p).Equals(0);
+
+    UTF8.RPos(STR, 'The', p);     Test('LastPos of ''The''').Expect(p).Equals(32);
+    UTF8.RPos(STR, 'fox!', p);    Test('LastPos of ''fox!''').Expect(p).Equals(42);
+    UTF8.RPos(STR, 'quick', p);   Test('LastPos of ''quick''').Expect(p).Equals(36);
+    UTF8.RPos(STR, 'brown', p);   Test('LastPos of ''brown''').Expect(p).Equals(0);
+  end;
+
+
   procedure TUTF8Tests.fn_Compare;
   const
     SRC: array[0..8] of TWIDEStringAB = (
@@ -93,6 +186,20 @@ implementation
     for i := (NUM_LT + NUM_EQ) to Pred(Length(VECTOR)) do
       Test(VECTOR[i].A + ' > ' + VECTOR[i].B + '!')
         .Expect(UTF8.Compare(VECTOR[i].A, VECTOR[i].B)).Equals(1);
+  end;
+
+
+  procedure TUTF8Tests.fn_Contains;
+  begin
+    Test('contains ''T''').Expect(UTF8.Contains(STR, CHAR_T)).IsTRUE;
+    Test('contains ''f''').Expect(UTF8.Contains(STR, CHAR_BANG)).IsTRUE;
+    Test('contains ''q''').Expect(UTF8.Contains(STR, CHAR_Q)).IsTRUE;
+    Test('contains ''Z''').Expect(UTF8.Contains(STR, CHAR_Z)).IsFALSE;
+
+    Test('contains ''The''').Expect(UTF8.Contains(STR, SUB_The)).IsTRUE;
+    Test('contains ''fox!''').Expect(UTF8.Contains(STR, SUB_FOX)).IsTRUE;
+    Test('contains ''quick''').Expect(UTF8.Contains(STR, SUB_QUICK)).IsTRUE;
+    Test('contains ''brown''').Expect(UTF8.Contains(STR, SUB_BROWN)).IsFALSE;
   end;
 
 
@@ -204,6 +311,19 @@ implementation
 
 
 
+
+initialization
+  STR := UTF8.Encode('The quick, quick fox!  I said: The quick fox!');
+
+  SUB_THE     := UTF8.Encode('The');
+  SUB_FOX     := UTF8.Encode('fox!');
+  SUB_QUICK   := UTF8.Encode('quick');
+  SUB_BROWN   := UTF8.Encode('brown');
+
+  CHAR_T      := UTF8.Encode('T')[1];
+  CHAR_BANG   := UTF8.Encode('!')[1];
+  CHAR_q      := UTF8.Encode('q')[1];
+  CHAR_Z      := UTF8.Encode('Z')[1];
 
 end.
 

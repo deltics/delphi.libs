@@ -10,13 +10,30 @@ interface
   type
     TWIDETests = class(TTestCase)
       procedure Transcoding;
+      procedure fn_Pos;
+      procedure fn_NPos;
+      procedure fn_RPos;
       procedure fn_Compare;
+      procedure fn_Contains;
       procedure fn_IsLowercase;
       procedure fn_IsUppercase;
       procedure fn_SameText;
       procedure fn_Lowercase;
       procedure fn_Uppercase;
     end;
+
+
+    TWIDEPerformance = class(TPerformanceCase)
+      procedure SystemPosChar;
+      procedure SystemPosStr;
+      procedure PosChar;
+      procedure NPosChar;
+      procedure RPosChar;
+      procedure PosStr;
+      procedure NPosStr;
+      procedure RPosStr;
+    end;
+
 
 
 implementation
@@ -37,6 +54,86 @@ implementation
 
     Test('WIDE.FromANSI!').Expect(WIDE.FromANSI(SRCA)).Equals(SRCW);
     Test('WIDE.FromUTF8!').Expect(WIDE.FromUTF8(SRCU)).Equals(SRCW);
+  end;
+
+
+  procedure TWIDETests.fn_Pos;
+  const// 0         1         2         3         4
+    STR = 'The quick, quick fox!  I said: The quick fox!';
+  var
+    p: Integer;
+    pa: TCharIndexArray;
+  begin
+    WIDE.Pos(STR, 'T', p);      Test('FirstPos of ''T''').Expect(p).Equals(1);
+    WIDE.Pos(STR, '!', p);      Test('FirstPos of ''!''').Expect(p).Equals(21);
+    WIDE.Pos(STR, 'q', p);      Test('FirstPos of ''q''').Expect(p).Equals(5);
+    WIDE.Pos(STR, 'Z', p);      Test('FirstPos of ''Z''').Expect(p).Equals(0);
+
+    WIDE.Pos(STR, 'The', p);    Test('FirstPos of ''The''').Expect(p).Equals(1);
+    WIDE.Pos(STR, 'fox!', p);   Test('FirstPos of ''fox!''').Expect(p).Equals(18);
+    WIDE.Pos(STR, 'quick', p);  Test('FirstPos of ''quick''').Expect(p).Equals(5);
+    WIDE.Pos(STR, 'brown', p);  Test('FirstPos of ''brown''').Expect(p).Equals(0);
+
+    WIDE.Pos(STR, 'T', pa); Test('2 Positions of ''T''').Expect(Length(pa)).Equals(2).IsRequired;
+                            Test('First ''T''').Expect(pa[0]).Equals(1);
+                            Test('Second ''T''').Expect(pa[1]).Equals(32);
+
+    WIDE.Pos(STR, '!', pa); Test('2 Positions of ''!''').Expect(Length(pa)).Equals(2).IsRequired;
+                            Test('First ''!''').Expect(pa[0]).Equals(21);
+                            Test('Second ''!''').Expect(pa[1]).Equals(45);
+
+    WIDE.Pos(STR, 'q', pa); Test('3 Positions of ''q''').Expect(Length(pa)).Equals(3).IsRequired;
+                            Test('First ''q''').Expect(pa[0]).Equals(5);
+                            Test('Second ''q''').Expect(pa[1]).Equals(12);
+                            Test('Third ''q''').Expect(pa[2]).Equals(36);
+
+    WIDE.Pos(STR, 'z', pa); Test('No Positions of ''z''').Expect(Length(pa)).Equals(0);
+  end;
+
+
+  procedure TWIDETests.fn_NPos;
+  const// 0         1         2         3         4
+    STR = 'The quick, quick fox!  I said: The quick fox!';
+  var
+    p: Integer;
+  begin
+    p := 0;
+    WIDE.NPos(STR, 'T', p);   Test('FirstPos of ''T''').Expect(p).Equals(1);
+    WIDE.NPos(STR, 'T', p);   Test('NextPos of ''T''').Expect(p).Equals(32);
+    WIDE.NPos(STR, 'T', p);   Test('NextPos of ''T''').Expect(p).Equals(0);
+
+    p := 0;
+    WIDE.NPos(STR, '!', p);   Test('FirstPos of ''!''').Expect(p).Equals(21);
+    WIDE.NPos(STR, '!', p);   Test('NextPos of ''!''').Expect(p).Equals(45);
+    WIDE.NPos(STR, '!', p);   Test('NextPos of ''!''').Expect(p).Equals(0);
+
+    p := 0;
+    WIDE.NPos(STR, 'q', p);   Test('FirstPos of ''q''').Expect(p).Equals(5);
+    WIDE.NPos(STR, 'q', p);   Test('NextPos of ''q''').Expect(p).Equals(12);
+    WIDE.NPos(STR, 'q', p);   Test('NextPos of ''q''').Expect(p).Equals(36);
+    WIDE.NPos(STR, 'q', p);   Test('NextPos of ''q''').Expect(p).Equals(0);
+
+    p := 0;
+    WIDE.NPos(STR, 'z', p);   Test('FirstPos of ''z''').Expect(p).Equals(0);
+    WIDE.NPos(STR, 'z', p);   Test('NextPos of ''z''').Expect(p).Equals(0);
+  end;
+
+
+  procedure TWIDETests.fn_RPos;
+  const// 0         1         2         3         4
+    STR = 'The quick, quick fox!  I said: The quick fox!';
+  var
+    p: Integer;
+  begin
+    WIDE.RPos(STR, 'T', p);       Test('LastPos of ''T''').Expect(p).Equals(32);
+    WIDE.RPos(STR, '!', p);       Test('LastPos of ''!''').Expect(p).Equals(45);
+    WIDE.RPos(STR, 'q', p);       Test('LastPos of ''q''').Expect(p).Equals(36);
+    WIDE.RPos(STR, 'Z', p);       Test('LastPos of ''Z''').Expect(p).Equals(0);
+
+    WIDE.RPos(STR, 'The', p);     Test('LastPos of ''The''').Expect(p).Equals(32);
+    WIDE.RPos(STR, 'fox!', p);    Test('LastPos of ''fox!''').Expect(p).Equals(42);
+    WIDE.RPos(STR, 'quick', p);   Test('LastPos of ''quick''').Expect(p).Equals(36);
+    WIDE.RPos(STR, 'brown', p);   Test('LastPos of ''brown''').Expect(p).Equals(0);
   end;
 
 
@@ -69,6 +166,22 @@ implementation
     for i := (NUM_LT + NUM_EQ) to Pred(Length(VECTOR)) do
       Test(VECTOR[i].A + ' > ' + VECTOR[i].B + '!')
         .Expect(WIDE.Compare(VECTOR[i].A, VECTOR[i].B)).Equals(1);
+  end;
+
+
+  procedure TWIDETests.fn_Contains;
+  const
+    STR = 'The quick fox!';
+  begin
+    Test('contains ''T''').Expect(WIDE.Contains(STR, 'T')).IsTRUE;
+    Test('contains ''f''').Expect(WIDE.Contains(STR, '!')).IsTRUE;
+    Test('contains ''q''').Expect(WIDE.Contains(STR, 'q')).IsTRUE;
+    Test('contains ''Z''').Expect(WIDE.Contains(STR, 'Z')).IsFALSE;
+
+    Test('contains ''The''').Expect(WIDE.Contains(STR, 'The')).IsTRUE;
+    Test('contains ''fox!''').Expect(WIDE.Contains(STR, 'fox!')).IsTRUE;
+    Test('contains ''quick''').Expect(WIDE.Contains(STR, 'quick')).IsTRUE;
+    Test('contains ''brown''').Expect(WIDE.Contains(STR, 'brown')).IsFALSE;
   end;
 
 
@@ -161,6 +274,90 @@ implementation
   end;
 
 
+
+
+
+
+
+{ TWIDEPerformance }
+
+  procedure TWIDEPerformance.SystemPosChar;
+  const// 0         1         2         3         4
+    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
+    FOX: WideChar = 'f';
+  begin
+    Pos(FOX, STR);
+  end;
+
+  procedure TWIDEPerformance.SystemPosStr;
+  const// 0         1         2         3         4
+    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
+    FOX: UnicodeString = 'fox';
+  begin
+    Pos(FOX, STR);
+  end;
+
+  procedure TWIDEPerformance.PosChar;
+  const// 0         1         2         3         4
+    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
+    FOX: WideChar = 'f';
+  var
+    p: Integer;
+  begin
+    WIDE.Pos(STR, FOX, p);
+  end;
+
+  procedure TWIDEPerformance.NPosChar;
+  const               // 0         1         2         3         4
+    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
+    FOX: WideChar = 'f';
+  var
+    p: Integer;
+  begin
+    p := 18;
+    WIDE.NPos(STR, FOX, p);
+  end;
+
+  procedure TWIDEPerformance.RPosChar;
+  const// 0         1         2         3         4
+    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
+    FOX: WideChar = 'f';
+  var
+    p: Integer;
+  begin
+    WIDE.RPos(STR, FOX, p);
+  end;
+
+  procedure TWIDEPerformance.PosStr;
+  const// 0         1         2         3         4
+    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
+    FOX: UnicodeString = 'fox';
+  var
+    p: Integer;
+  begin
+    WIDE.Pos(STR, FOX, p);
+  end;
+
+  procedure TWIDEPerformance.NPosStr;
+  const               // 0         1         2         3         4
+    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
+    FOX: UnicodeString = 'fox';
+  var
+    p: Integer;
+  begin
+    p := 18;
+    WIDE.NPos(STR, FOX, p);
+  end;
+
+  procedure TWIDEPerformance.RPosStr;
+  const// 0         1         2         3         4
+    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
+    FOX: UnicodeString = 'fox';
+  var
+    p: Integer;
+  begin
+    WIDE.RPos(STR, FOX, p);
+  end;
 
 
 
