@@ -23,11 +23,14 @@
 
 {$ifdef VER180} // Delphi 2006
   {$define DELPHI2006}
+  {$define DELPHI2006_OR_2007}
   {$UNDEF UNKNOWN_COMPILER_VERSION}
 {$endif}
 
 {$ifdef VER185} // Delphi 2007
+  {$UNDEF DELPHI2006}
   {$define DELPHI2007}
+  {$define DELPHI2006_OR_2007}
   {$UNDEF UNKNOWN_COMPILER_VERSION}
 {$endif}
 
