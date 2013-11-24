@@ -9,6 +9,7 @@
   {$define deltics_finalizer}
   {$define deltics_hpc}
   {$define deltics_imagelists}
+  {$define deltics_json}
   {$define deltics_messagehandler}
   {$define deltics_multicast}
   {$define deltics_oscillator}
