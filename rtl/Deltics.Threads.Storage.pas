@@ -102,6 +102,7 @@ interface
 
     TPerThreadObjectStack = class(TCustomPerThreadObject, ICreateObjectForThread)
     private
+      function get_Count: Integer;
       function get_Stack: TStack;
       property Stack: TStack read get_Stack;
     public
@@ -109,6 +110,7 @@ interface
       function Peek: TObject;
       function Pop: TObject;
       procedure Push(const aObject: TObject);
+      property Count: Integer read get_Count;
 
     private // ICreateObjectForThread
       function CreateObject: TObject;
@@ -361,6 +363,13 @@ implementation
   function TPerThreadObjectStack.CreateObject: TObject;
   begin
     result := TStack.Create;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TPerThreadObjectStack.get_Count: Integer;
+  begin
+    result := Stack.Count;
   end;
 
 
