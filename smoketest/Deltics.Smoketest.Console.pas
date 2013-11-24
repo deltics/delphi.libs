@@ -78,6 +78,7 @@ interface
     Deltics.StateList,
     Deltics.Threads,
     Deltics.ImageLists,
+  { smoketest: }
     Deltics.Smoketest,
     Deltics.Smoketest.Console.ResultsPanel;
 
@@ -128,6 +129,11 @@ interface
       miCollapseAll: TMenuItem;
       miExpandSiblings: TMenuItem;
       miCollapseSiblings: TMenuItem;
+    ResultPanel: TPanel;
+    LegendPanel: TPanel;
+    Legend: TPaintBox;
+    Panel1: TPanel;
+    cmbBenchmarkData: TComboBox;
       procedure FormCreate(Sender: TObject);
       procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
       procedure actRunSelectedExecute(Sender: TObject);
@@ -152,6 +158,8 @@ interface
       procedure miExpandSiblingsClick(Sender: TObject);
       procedure miCollapseSiblingsClick(Sender: TObject);
       procedure TestRunTabsResize(Sender: TObject);
+    procedure cmbBenchmarkDataChange(Sender: TObject);
+    procedure ResultPanelResize(Sender: TObject);
     private
       fClosing: Boolean;
       fCollapsedArticles: TStringList;
@@ -270,6 +278,7 @@ implementation
 
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.FormCreate(Sender: TObject);
 
     procedure Collapse(const aArticle: ITestArticle);
@@ -320,8 +329,11 @@ implementation
     fResults := TResultsPanel.Create(self);
     fResults.Align      := alClient;
     fResults.ImageList  := ResultImages;
-    fResults.Parent     := self;
+    fResults.Parent     := ResultPanel;
     fResults.Visible    := TRUE;
+    fResults.Legend     := Legend;
+
+    ResultPanel.Align   := alClient;
 
     if Smoketest.CommandLine.OutputFilename = '' then
       StatusBar.Panels[2].Text := 'No results file will be saved'
@@ -330,6 +342,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.FormShow(Sender: TObject);
   begin
     lvHierarchy.Columns[0].Caption := Smoketest.Name;
@@ -343,7 +356,7 @@ implementation
   end;
 
 
-
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   destructor TSmoketestConsole.Destroy;
   begin
     FreeAndNIL(fCSI);
@@ -354,6 +367,7 @@ implementation
 
 
 {$ifNdef DELPHI2009_OR_LATER}
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.LVWndProcHook(var aMessage: TMessage) ;
   var
     notify: PNMListView;
@@ -380,6 +394,7 @@ implementation
 {$endif}
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.Add(const aParent: TListItem;
                                   const aObject: ITestArticle);
   var
@@ -431,6 +446,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.AddChildren(const aItem: TListItem);
   var
     i: Integer;
@@ -452,6 +468,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.RemoveChildren(const aItem: TListItem);
   var
     idx: Integer;
@@ -489,6 +506,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.ExpandCollapseAll(const aExpand: Boolean);
   var
     i: Integer;
@@ -498,6 +516,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.ExpandCollapseAll(const aItem: TListItem;
                                                 const aExpand: Boolean);
   var
@@ -520,6 +539,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.ExpandCollapseItem(const aItem: TListItem;
                                                  const aExpand: Boolean);
   var
@@ -546,6 +566,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.ExpandCollapseChildren(const aItem: TListItem;
                                                      const aExpand: Boolean);
   var
@@ -564,6 +585,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.ExpandCollapseSiblings(const aItem: TListItem;
                                                      const aExpand: Boolean);
   var
@@ -594,6 +616,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.ExpandEnabled(const aItem: TListItem);
   var
     i: Integer;
@@ -619,6 +642,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketestConsole.ArticleItem(const aArticle: ITestArticle): TListItem;
   var
     i: Integer;
@@ -635,6 +659,7 @@ implementation
 
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.GetHierarchyActions(var aActions: THierarchyActions;
                                                   var aDefault: THierarchyAction);
 
@@ -744,6 +769,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.OnSuiteFinished(Sender: TObject);
   var
     i: Integer;
@@ -770,6 +796,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.OnSuiteStarted(Sender: TObject);
   begin
     FPS.Start;
@@ -786,6 +813,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.OnArticleChanged(Sender: TObject);
   var
     article: ITestArticle;
@@ -827,6 +855,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketestConsole.ItemImageIndex(const aObject: ITestArticle): Integer;
   var
     test: ITestMethod;
@@ -871,6 +900,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.LoadResources;
   begin
     fListIcons := ImageLists.CreateList(IMGLIST_LISTVIEW, itSmallIcon, [isNormal, isDisabled]);
@@ -900,11 +930,11 @@ implementation
     tbStart.ImageIndex  := fToolIcons.LoadResource('PLAY');
     tbStop.ImageIndex   := fToolIcons.LoadResource('STOP');
 
-
     lvHierarchy.SmallImages := fListIcons.ImageList[isNormal];
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.FormCloseQuery(Sender: TObject;
                                              var CanClose: Boolean);
   begin
@@ -932,7 +962,7 @@ implementation
   end;
 
 
-
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.actRunSelectedExecute(Sender: TObject);
   begin
     ResetItems;
@@ -940,7 +970,7 @@ implementation
   end;
 
 
-
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketestConsole.CloneRunningItemsList: TList;
   begin
     result := TList.Create;
@@ -949,6 +979,44 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TSmoketestConsole.cmbBenchmarkDataChange(Sender: TObject);
+  var
+    benchmark: TBenchmarkType;
+    data: IBenchmarkData;
+    i, j: Integer;
+    results: array of Double;
+  begin
+    with cmbBenchmarkData do
+      benchmark := TBenchmarkType(Items.Objects[ItemIndex]);
+
+    fResults.BeginUpdate;
+    try
+      fResults.Clear;
+
+      data := (SelectedArticle as IBenchmarkInfo).Data[benchmark];
+      if NOT Assigned(data) then
+        EXIT;
+
+      for i := 0 to Pred(data.SeriesCount) do
+        fResults.AddSeries(data.Series[i]);
+
+      SetLength(results, data.SeriesCount);
+      for i := 0 to Pred(data.MethodCount) do
+      begin
+        for j := 0 to Pred(data.SeriesCount) do
+          results[j] := data.Result[i, j];
+
+        fResults.AddMethod(data.Methods[i], results);
+      end;
+
+    finally
+      fResults.EndUpdate;
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.AlignProgressBar;
   begin
     StatusBar.Panels[2].Width := StatusBar.ClientWidth - (StatusBar.Panels[0].Width + StatusBar.Panels[1].Width) - 100;
@@ -960,7 +1028,7 @@ implementation
   end;
 
 
-
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.FormResize(Sender: TObject);
   begin
     AlignProgressBar;
@@ -969,6 +1037,7 @@ implementation
 
 
 (*
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.OnProgress(Sender: TObject);
   var
     proc: IProgressInfo;
@@ -982,6 +1051,7 @@ implementation
 *)
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.ResetItems;
   var
     i: Integer;
@@ -996,6 +1066,14 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TSmoketestConsole.ResultPanelResize(Sender: TObject);
+  begin
+    cmbBenchmarkData.Width := ResultPanel.Width;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.UpdateItem(const aItem: TListItem;
                                          const aUpdateChildrenIfExpanded: Boolean);
   var
@@ -1057,6 +1135,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.UpdateStatusBar;
   begin
     ProgressBar.Visible := Smoketest.IsRunning;
@@ -1074,24 +1153,28 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.actAbortRunExecute(Sender: TObject);
   begin
     Smoketest.Abort;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.actRunSelectedUpdate(Sender: TObject);
   begin
     actRunSelected.Enabled := NOT Smoketest.IsRunning;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.actAbortRunUpdate(Sender: TObject);
   begin
     actAbortRun.Enabled := Smoketest.IsRunning;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.lvHierarchyClick(Sender: TObject);
   begin
     if Assigned(SelectedListItem) then
@@ -1103,6 +1186,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.lvHierarchyDblClick(Sender: TObject);
 
     function KeyIsDown(const aKey: Integer): Boolean;
@@ -1136,6 +1220,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.SetupCanvasForArticle(const aArticle: ITestArticle);
   const
     TEXTCOLOR : array[FALSE..TRUE] of TColor = (clSilver, clWindowText);
@@ -1157,6 +1242,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.lvHierarchyCustomDrawItem(    Sender: TCustomListView;
                                                             Item: TListItem;
                                                             State: TCustomDrawState;
@@ -1167,6 +1253,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.SuiteItemChecked(Sender: TObject; Item: TListItem);
   var
     article: ITestArticle;
@@ -1194,6 +1281,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.TestRunTabsResize(Sender: TObject);
   begin
     if Assigned(fResults) then
@@ -1201,18 +1289,21 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketestConsole.get_SelectedArticle: ITestArticle;
   begin
     result := ItemArticle(SelectedListItem);
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketestConsole.get_SelectedListItem: TListItem;
   begin
     result := lvHierarchy.Selected;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.set_SelectedArticle(const aValue: ITestArticle);
   var
     i: Integer;
@@ -1234,36 +1325,71 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.UpdateResults;
   var
     i: Integer;
     run: TTestRun;
     output: IOutput;
+    benchmarks: IBenchmarkInfo;
+    showingBenchmarks: Boolean;
   begin
-    fResults.Clear;
-
-    if NOT Assigned(SelectedArticle) then
-      EXIT;
-
-    run := Smoketest.TestRun;
-    if NOT Assigned(run) then
-      EXIT;
+    showingBenchmarks := FALSE;
 
     fResults.BeginUpdate;
     try
-      for i := 0 to Pred(run.Output.Count) do
+      fResults.Clear;
+
+      if NOT Assigned(SelectedArticle) then
+        EXIT;
+
+      if (SelectedArticle.ArticleType in [atPerformanceCase,
+                                          atPerformanceDelegate]) then
       begin
-        output := run.Output[i];
-        if (output.Article.Reference = SelectedArticle.Reference) then
-          fResults.Add(output);
+        cmbBenchmarkData.Items.Clear;
+
+        benchmarks := SelectedArticle as IBenchmarkInfo;
+
+        if btCaseComparison in benchmarks.Benchmarks then
+          cmbBenchmarkData.Items.AddObject('Other Cases', TObject(btCaseComparison));
+
+        if btCaseHistory in benchmarks.Benchmarks then
+          cmbBenchmarkData.Items.AddObject('Case History', TObject(btCaseHistory));
+
+        if btCompilerVersions in benchmarks.Benchmarks then
+          cmbBenchmarkData.Items.AddObject('Compiler Versions', TObject(btCompilerVersions));
+
+        showingBenchmarks := (cmbBenchmarkData.Items.Count > 0);
+
+        if showingBenchmarks then
+        begin
+          cmbBenchmarkData.ItemIndex := 0;
+          cmbBenchmarkDataChange(NIL);
+        end;
+      end
+      else
+      begin
+        run := Smoketest.TestRun;
+        if NOT Assigned(run) then
+          EXIT;
+
+        for i := 0 to Pred(run.Output.Count) do
+        begin
+          output := run.Output[i];
+          if (output.Article.Reference = SelectedArticle.Reference) then
+            fResults.Add(output);
+        end;
       end;
 
     finally
       fResults.EndUpdate;
+
+      cmbBenchmarkData.Visible := showingBenchmarks;
     end;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.Initialize;
   begin
     if Smoketest.CommandLine.AutoRun then
@@ -1271,25 +1397,28 @@ implementation
   end;
 
 
-
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketestConsole.IsCollapsed(const aArticle: ITestArticle): Boolean;
   begin
     result := (aArticle.Count = 0) or fCollapsedArticles.Contains(aArticle.Reference);
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketestConsole.IsExpandable(const aArticle: ITestArticle): Boolean;
   begin
     result := (aArticle.Count > 0) and fCollapsedArticles.Contains(aArticle.Reference);
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketestConsole.IsExpanded(const aArticle: ITestArticle): Boolean;
   begin
     result := (aArticle.Count > 0) and NOT fCollapsedArticles.Contains(aArticle.Reference);
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketestConsole.ItemArticle(const aListItem: TListItem): ITestArticle;
   begin
     if Assigned(aListItem) then
@@ -1299,6 +1428,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.Animate(const aFrame: Word);
   var
     i: Integer;
@@ -1329,18 +1459,21 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.STMAutoRun(var Msg: TMessage);
   begin
     actRunSelected.Execute;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.STMClose(var Msg: TMessage);
   begin
     Close;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.PopupMenuPopup(Sender: TObject);
   var
     actions: THierarchyActions;
@@ -1373,6 +1506,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.miEnabledClick(Sender: TObject);
   begin
     // TODO: Hold down "shift" to enable/disable all parents
@@ -1382,50 +1516,56 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.miExpandAllClick(Sender: TObject);
   begin
     ExpandCollapseAll(SelectedListItem, TRUE);
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.miExpandArticleClick(Sender: TObject);
   begin
     ExpandCollapseItem(SelectedListItem, TRUE);
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.miCollapseAllClick(Sender: TObject);
   begin
     ExpandCollapseAll(SelectedListItem, FALSE);
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.miCollapseArticleClick(Sender: TObject);
   begin
     ExpandCollapseItem(SelectedListItem, FALSE);
   end;
 
 
-
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.miCollapseSiblingsClick(Sender: TObject);
   begin
     ExpandCollapseSiblings(SelectedListItem, FALSE);
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.miExpandChildrenClick(Sender: TObject);
   begin
     ExpandCollapseChildren(SelectedListItem, TRUE);
   end;
 
 
-
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.miExpandSiblingsClick(Sender: TObject);
   begin
     ExpandCollapseSiblings(SelectedListItem, TRUE);
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketestConsole.miCollapseChildrenClick(Sender: TObject);
   begin
     ExpandCollapseChildren(SelectedListItem, FALSE);

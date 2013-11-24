@@ -56,6 +56,7 @@ interface
     Controls,
     ExtCtrls,
     Forms,
+    Graphics,
     ImgList,
     Messages,
     Windows,
@@ -67,11 +68,21 @@ interface
     TResultsPanel = class(TScrollbox)
     private
       fImageList: TImageList;
+      fLegend: TPaintBox;
+      fLegendBoxes: array of TRect;
+      fLegendLabels: array of TRect;
+      fLegendLabelWidth: Integer;
+      fLegendRows: Integer;
       fPanel: TPaintbox;
       fResults: TList;
+      fSeries: TStringList;
       fUpdating: Integer;
       procedure Paint(aSender: TObject);
-    protected
+      procedure MeasureLegend;
+      procedure PaintLegend(aSender: TObject);
+      function get_SeriesLabel(const aIndex: Integer): UnicodeString;
+      procedure set_Legend(const aValue: TPaintBox);   protected
+      function get_SeriesCount: Integer;
       procedure DoMouseDown(aSender: TObject; aButton: TMouseButton; aShift: TShiftState; aX, aY: Integer);
       function DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean; override;
       function DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean; override;
@@ -80,11 +91,18 @@ interface
       destructor Destroy; override;
       procedure Resize; override;
       procedure Add(const aOutput: IOutput);
+      procedure AddMethod(const aName: UnicodeString; const aDataSet: array of Double);
+      procedure AddSeries(const aLabel: UnicodeString);
       procedure BeginUpdate;
       procedure Clear;
       procedure EndUpdate;
       procedure Update; reintroduce;  // I don't care about the TWinControl Update method
       property ImageList: TImageList read fImageList write fImageList;
+      property Legend: TPaintBox read fLegend write set_Legend;
+      property SeriesLabel[const aIndex: Integer]: UnicodeString read get_SeriesLabel;
+      property SeriesCount: Integer read get_SeriesCount;
+
+      class function SeriesColor(const aIndex: Integer): TColor;
     end;
 
 
@@ -92,7 +110,6 @@ implementation
 
   uses
     Contnrs,
-    Graphics,
     SysUtils,
   {$ifdef DELPHIXE2_OR_LATER} // Only needed for inlining Brush.GetColor
     UITypes,
@@ -108,19 +125,31 @@ implementation
     ICON_ALERT    = 4;
 
   type
+    TResultArray = array of Double;
+
     TDrawable = class
     private
+      fControl: TPaintBox;
       fSelected: Boolean;
+      fRect: TRect;
       procedure set_Selected(const aValue: Boolean);
+    public
+      constructor Create(const aControl: TPaintBox);
+      function DoLayout(const aCanvas: TCanvas; const aTop, aMaxWidth: Integer): Integer; virtual; abstract;
+      procedure Draw(const aCanvas: TCanvas; const aImageList: TImageList); virtual; abstract;
+      property Control: TPaintBox read fControl;
+      property Rect: TRect read fRect;
+      property Selected: Boolean read fSelected write set_Selected;
+    end;
+
+    TTestResult = class(TDrawable)
     protected
-      Control: TPaintBox;
       Color: TColor;
       BorderColor: TColor;
       IconColor: Boolean;
       IconIndex: Integer;
       LabelRect: TRect;
       LabelText: WideString;
-      Rect: TRect;
       Text: WideString;
       TextColor: TColor;
       TextRect: TRect;
@@ -132,15 +161,30 @@ implementation
       MonoSpaced: Boolean;
       constructor Create(const aControl: TPaintBox; const aText: WideString); overload;
       constructor Create(const aControl: TPaintBox; const aLabel, aText: WideString); overload;
-      function DoLayout(const aCanvas: TCanvas; const aTop, aMaxWidth: Integer): Integer;
-      procedure Draw(const aCanvas: TCanvas; const aImageList: TImageList);
+      function DoLayout(const aCanvas: TCanvas; const aTop, aMaxWidth: Integer): Integer; override;
+      procedure Draw(const aCanvas: TCanvas; const aImageList: TImageList); override;
       procedure AddChild(const aLabel, aValue: WideString);
-      property Selected: Boolean read fSelected write set_Selected;
     end;
 
 
-{ TResultsPanel }
+    TBenchmark = class(TDrawable)
+    protected
+      fMethodName: UnicodeString;
+      fResults: TResultArray;
+      fMaxResult: Double;
+      fMethodRect: TRect;
+      fChartRect: TRect;
+      fBarRects: array of TRect;
+      fLabelRects: array of TRect;
+      constructor Create(const aControl: TPaintBox; const aMethod: WideString; const aResults: TResultArray);
+      function DoLayout(const aCanvas: TCanvas; const aTop, aMaxWidth: Integer): Integer; override;
+      procedure Draw(const aCanvas: TCanvas; const aImageList: TImageList); override;
+    end;
 
+
+{ TResultsPanel ---------------------------------------------------------------------------------- }
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TResultsPanel.Create(aOwner: TComponent);
   begin
     inherited Create(aOwner);
@@ -155,16 +199,21 @@ implementation
     fPanel.OnMouseDown := DoMouseDown;
 
     fResults := TObjectList.Create(TRUE);
+    fSeries  := TStringList.Create;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   destructor TResultsPanel.Destroy;
   begin
+    FreeAndNIL(fSeries);
     FreeAndNIL(fResults);
+
     inherited;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TResultsPanel.EndUpdate;
   begin
     if fUpdating = 0 then
@@ -179,7 +228,25 @@ implementation
   end;
 
 
-  procedure TResultsPanel.DoMouseDown(aSender: TObject; aButton: TMouseButton; aShift: TShiftState; aX, aY: Integer);
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TResultsPanel.get_SeriesLabel(const aIndex: Integer): UnicodeString;
+  begin
+    result := fSeries[aIndex]
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TResultsPanel.get_SeriesCount: Integer;
+  begin
+    result := fSeries.Count;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TResultsPanel.DoMouseDown(aSender: TObject;
+                                      aButton: TMouseButton;
+                                      aShift: TShiftState;
+                                      aX, aY: Integer);
   var
     i: Integer;
     pt: TPoint;
@@ -200,7 +267,9 @@ implementation
   end;
 
 
-  function TResultsPanel.DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TResultsPanel.DoMouseWheelDown(Shift: TShiftState;
+                                          MousePos: TPoint): Boolean;
   begin
     result := TRUE;
     if PtInRect(ClientRect, ScreenToClient(MousePos)) then
@@ -208,7 +277,9 @@ implementation
   end;
 
 
-  function TResultsPanel.DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TResultsPanel.DoMouseWheelUp(Shift: TShiftState;
+                                        MousePos: TPoint): Boolean;
   begin
     result := TRUE;
     if PtInRect(ClientRect, ScreenToClient(MousePos)) then
@@ -216,25 +287,48 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TResultsPanel.Update;
   var
     i: Integer;
     top: Integer;
+    benchmarks: Boolean;
+    align: Integer;
   begin
     if (fUpdating > 0) then
       EXIT;
-    top := 3;
+
+    benchmarks := (fResults.Count > 0) and (TDrawable(fResults[0]).ClassType = TBenchmark);
+
+    top   := 3;
+    align := 0;
+
     for i := 0 to Pred(fResults.Count) do
+    begin
       top := TDrawable(fResults[i]).DoLayout(fPanel.Canvas, top, fPanel.ClientWidth);
+      if benchmarks and (TBenchmark(fResults[i]).fMethodRect.Right > align) then
+        align := TBenchmark(fResults[i]).fMethodRect.Right;
+    end;
+
+    if benchmarks then
+      for i := 0 to Pred(fResults.Count) do
+        TBenchmark(fResults[i]).DoLayout(fPanel.Canvas, -1, align + 8);
 
     fPanel.Height := top;
+
+    if (fSeries.Count > 0) and Assigned(Legend) then
+    begin
+      MeasureLegend;
+      Legend.Parent.Height  := (fLegendRows * 20) + 8;
+    end;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TResultsPanel.Add(const aOutput: IOutput);
   var
     i: Integer;
-    drawable: TDrawable;
+    drawable: TTestResult;
     alert: IAlert;
     info: IInformation;
     inspection: IInspection;
@@ -250,7 +344,7 @@ implementation
     try
       if Assigned(alert) then
       begin
-        drawable := TDrawable.Create(fPanel, alert.Text, '');
+        drawable := TTestResult.Create(fPanel, alert.Text, '');
         drawable.IconColor    := FALSE;
         drawable.IconIndex    := ICON_ALERT;
         drawable.Color        := clRed;
@@ -261,7 +355,7 @@ implementation
 
       if Assigned(info) then
       begin
-        drawable := TDrawable.Create(fPanel, info.Text, '');
+        drawable := TTestResult.Create(fPanel, info.Text, '');
         drawable.IconIndex  := ICON_INFO;
         drawable.Color      := RGB(248, 248, 255);
         EXIT;
@@ -269,7 +363,7 @@ implementation
 
       if Assigned(inspection) then
       begin
-        drawable := TDrawable.Create(fPanel, inspection.Subject, inspection.Value);
+        drawable := TTestResult.Create(fPanel, inspection.Subject, inspection.Value);
         drawable.IconIndex  := ICON_INSPECT;
         drawable.MonoSpaced := inspection.MonoSpaced;
 
@@ -281,7 +375,7 @@ implementation
 
       // Otherwise it's a result
 
-      drawable := TDrawable.Create(fPanel, result.Description, '');
+      drawable := TTestResult.Create(fPanel, result.Description, '');
 
       if NOT result.Evaluated then
       begin
@@ -323,19 +417,145 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TResultsPanel.AddMethod(const aName: UnicodeString;
+                                    const aDataSet: array of Double);
+  var
+    i: Integer;
+    benchmark: TBenchmark;
+    data: TResultArray;
+  begin
+    SetLength(data, Length(aDataSet));
+    for i := 0 to Pred(Length(data)) do
+      data[i] := aDataSet[i];
+
+    benchmark := TBenchmark.Create(fPanel, aName, data);
+    fResults.Add(benchmark);
+
+    Update;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TResultsPanel.AddSeries(const aLabel: UnicodeString);
+  var
+    rc: TRect;
+  begin
+    fSeries.Add(aLabel);
+
+    if NOT Assigned(Legend) then
+      EXIT;
+
+    SetLength(fLegendBoxes, fSeries.Count);
+    SetLength(fLegendLabels, fSeries.Count);
+
+    Legend.Canvas.Font.Name := 'Tahoma';
+    Legend.Canvas.Font.Size := 8;
+
+    rc.Left := 0;
+    rc.Top  := 0;
+    DrawTextExW(Legend.Canvas.Handle, PWideChar(aLabel), Length(aLabel), rc,
+                DT_CALCRECT or DT_WORD_ELLIPSIS or DT_NOPREFIX, NIL);
+
+    if rc.Right > fLegendLabelWidth then
+      fLegendLabelWidth := rc.Right;
+
+    MeasureLegend;
+
+    Legend.Parent.Visible := TRUE;
+    Legend.Parent.Height  := (fLegendRows * 20) + 8;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TResultsPanel.BeginUpdate;
   begin
     Inc(fUpdating);
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TResultsPanel.Clear;
   begin
     fResults.Clear;
+    fSeries.Clear;
     fPanel.Invalidate;
+
+    if NOT Assigned(Legend) then
+      EXIT;
+
+    Legend.Parent.Visible := FALSE;
+
+    SetLength(fLegendBoxes, 0);
+    SetLength(fLegendLabels, 0);
+
+    fLegendLabelWidth := 0;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TResultsPanel.MeasureLegend;
+  var
+    DC: TCanvas;
+    cols: Integer;
+    rows: Integer;
+    w: Integer;
+    r, c: Integer;
+    s: Integer;
+    boxRC: TRect;
+    txtRC: TRect;
+  begin
+    DC := Legend.Canvas;
+
+    DC.Font.Name := 'Tahoma';
+    DC.Font.Size := 8;
+
+    cols := ClientWidth div (fLegendLabelWidth + 32); // left margin 8, box 12, gutter 4 right margin 8
+    if cols = 0 then
+      cols := 1;
+
+    rows := fSeries.Count div cols;
+    if (rows * cols) < fSeries.Count then
+      Inc(rows);
+
+    w := fLegendLabelWidth + 32;
+    s := 0;
+    for c := 1 to cols do
+    begin
+      boxRC.Top := 8;
+      txtRC.Top := 6;
+
+      for r := 1 to rows do
+      begin
+        s := ((c - 1) * rows) + (r - 1);
+        if (s >= fSeries.Count) then
+          BREAK;
+
+        boxRC.Left    := (w * (c - 1)) + 8;
+        boxRC.Right   := boxRC.Left + 12;
+        boxRC.Bottom  := boxRC.Top + 12;
+
+        txtRC.Left    := boxRC.Right + 4;
+        txtRC.Right   := (w * c) - 8;
+        txtRC.Bottom  := txtRC.Top + 16;
+
+        if txtRC.Right > (ClientWidth - 8) then
+          txtRC.Right := ClientWidth - 8;
+
+        fLegendBoxes[s]   := boxRC;
+        fLegendLabels[s]  := txtRC;
+
+        Inc(boxRC.Top, 20);
+        Inc(txtRC.Top, 20);
+        Inc(s);
+      end;
+    end;
+
+    fLegendRows := rows;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TResultsPanel.Paint(aSender: TObject);
   var
     i: Integer;
@@ -345,6 +565,38 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TResultsPanel.PaintLegend(aSender: TObject);
+  var
+    DC: TCanvas;
+    i: Integer;
+    txt: UnicodeString;
+  begin
+    DC := Legend.Canvas;
+
+    DC.Font.Name := 'Tahoma';
+    DC.Font.Size := 8;
+
+    for i := 0 to Pred(fSeries.Count) do
+    begin
+      DC.Brush.Color := TResultsPanel.SeriesColor(i);
+      DC.Brush.Style := bsSolid;
+      FillRect(DC.Handle, fLegendBoxes[i], DC.Brush.Handle);
+
+      DC.Brush.Color := clBlack;
+      DC.Brush.Style := bsSolid;
+      FrameRect(DC.Handle, fLegendBoxes[i], DC.Brush.Handle);
+
+      DC.Brush.Color := clNone;
+      DC.Brush.Style := bsClear;
+
+      DrawTextExW(DC.Handle, PWideChar(fSeries[i]), Length(fSeries[i]), fLegendLabels[i],
+                  DT_WORD_ELLIPSIS or DT_NOPREFIX, NIL);
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TResultsPanel.Resize;
   begin
     inherited;
@@ -353,14 +605,70 @@ implementation
 
 
 
+  var
+    SERIES_COLOR: array[0..8] of TColor;
 
-{ TDrawable }
 
-  constructor TDrawable.Create(const aControl: TPaintBox; const aText: WideString);
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TResultsPanel.SeriesColor(const aIndex: Integer): TColor;
+  begin
+    result := SERIES_COLOR[aIndex mod Length(SERIES_COLOR)];
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TResultsPanel.set_Legend(const aValue: TPaintBox);
+  begin
+    fLegend := aValue;
+    fLegend.OnPaint := PaintLegend;
+  end;
+
+
+
+
+
+
+
+{ TDrawable -------------------------------------------------------------------------------------- }
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TDrawable.Create(const aControl: TPaintBox);
   begin
     inherited Create;
 
-    Control   := aControl;
+    fControl := aControl;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TDrawable.set_Selected(const aValue: Boolean);
+  var
+    rc: TRect;
+  begin
+    if fSelected = aValue then
+      EXIT;
+
+    fSelected := aValue;
+
+    rc := Rect;
+    rc.Left := 0;
+    TranslateRect(rc, 0, Control.Top);
+    InvalidateRect(Control.Parent.Handle, @rc, FALSE);
+  end;
+
+
+
+
+
+
+{ TTestResult ------------------------------------------------------------------------------------ }
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TTestResult.Create(const aControl: TPaintBox;
+                                 const aText: WideString);
+  begin
+    inherited Create(aControl);
+
     Text      := aText;
     IconIndex := -1;
 
@@ -371,7 +679,9 @@ implementation
   end;
 
 
-  constructor TDrawable.Create(const aControl: TPaintBox; const aLabel, aText: WideString);
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TTestResult.Create(const aControl: TPaintBox;
+                                 const aLabel, aText: WideString);
   begin
     Create(aControl, aText);
 
@@ -385,7 +695,8 @@ implementation
   end;
 
 
-  procedure TDrawable.AddChild(const aLabel, aValue: WideString);
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTestResult.AddChild(const aLabel, aValue: WideString);
   begin
     Inc(ChildCount);
 
@@ -400,32 +711,24 @@ implementation
       ChildValues[ChildCount - 1] := aValue;
 
     ChildLabels[ChildCount - 1] := aLabel;
-(*
-    if (aLabel <> '') and (aValue <> '') then
-      ChildLabels[ChildCount - 1] := aLabel + ' : '
-    else
-      ChildLabels[ChildCount - 1] := aLabel;
-
-    ChildValues[ChildCount - 1] := aValue;
-*)
   end;
 
 
-  function TDrawable.DoLayout(const aCanvas: TCanvas; const aTop, aMaxWidth: Integer): Integer;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestResult.DoLayout(const aCanvas: TCanvas; const aTop, aMaxWidth: Integer): Integer;
   var
     i: Integer;
-//    dc: HDC;
     rc: TRect;
     just: Integer;
   begin
     aCanvas.Font.Name := 'Tahoma';
 
-    Rect.Left   := 26;
-    Rect.Top    := aTop;
-    Rect.Right  := aMaxWidth;
-    Rect.Bottom := Rect.Top + 24;
+    fRect.Left   := 26;
+    fRect.Top    := aTop;
+    fRect.Right  := aMaxWidth;
+    fRect.Bottom := Rect.Top + 24;
 
-    rc := Rect;
+    rc := fRect;
     InflateRect(rc, -1, -1);  // For the border
     InflateRect(rc, -3, -3);  // For a comfortable 'margin'
 
@@ -458,32 +761,29 @@ implementation
     else
       TextRect.Left := 0;
 
-    Rect.Bottom := Max(Max(LabelRect.Bottom, TextRect.Bottom) + 2, Rect.Top + 22);
-
-//    if ChildCount > 0 then
-//      Rect.Bottom := Max(Rect.Bottom, Rect.Top + 24);
+    fRect.Bottom := Max(Max(LabelRect.Bottom, TextRect.Bottom) + 2, fRect.Top + 22);
 
     if MonoSpaced then
       aCanvas.Font.Name := 'Tahoma';
 
-    just := Rect.Left + 4;
+    just := fRect.Left + 4;
     for i := 0 to Pred(ChildCount) do
     begin
       if ChildLabels[i] <> '' then
       begin
-        ChildLabelRect[i].Left  := Rect.Left + 12;
-        ChildLabelRect[i].Top   := Rect.Bottom + 2;
+        ChildLabelRect[i].Left  := fRect.Left + 12;
+        ChildLabelRect[i].Top   := fRect.Bottom + 2;
 
         aCanvas.Font.Style := [fsBold];
         DrawTextExW(aCanvas.Handle, PWideChar(ChildLabels[i]), Length(ChildLabels[i]), ChildLabelRect[i],
                     DT_CALCRECT or DT_NOPREFIX, NIL);
 
-        Rect.Bottom := ChildLabelRect[i].Bottom + 1;
-        if ChildLabelRect[i].Right > (Rect.Right - 19) then
+        fRect.Bottom := ChildLabelRect[i].Bottom + 1;
+        if ChildLabelRect[i].Right > (fRect.Right - 19) then
         begin
-          ChildLabelRect[i].Right := Rect.Right - 19;
+          ChildLabelRect[i].Right := fRect.Right - 19;
           ChildValueRect[i].Left  := 0;
-          just  := Rect.Right - 19;
+          just  := fRect.Right - 19;
           CONTINUE;
         end;
 
@@ -504,7 +804,7 @@ implementation
         ChildLabelRect[i].Right := just;
 
         if just < TextRect.Left + 4 then
-          ChildValueRect[i].Left  := Rect.Left + 4
+          ChildValueRect[i].Left  := fRect.Left + 4
         else
           ChildValueRect[i].Left  := just;
 
@@ -513,21 +813,22 @@ implementation
         aCanvas.Font.Style := [];
         DrawTextExW(aCanvas.Handle, PWideChar(ChildValues[i]), Length(ChildValues[i]), ChildValueRect[i],
                     DT_CALCRECT or DT_NOPREFIX, NIL);
-        if ChildValueRect[i].Right > (Rect.Right - 3) then
-          ChildValueRect[i].Right := Rect.Right - 3;
+        if ChildValueRect[i].Right > (fRect.Right - 3) then
+          ChildValueRect[i].Right := fRect.Right - 3;
       end
       else
         ChildValueRect[i].Left := 0;
     end;
 
-    Rect.Bottom := Max(Rect.Bottom + 3, Rect.Top + 24);
+    fRect.Bottom := Max(fRect.Bottom + 3, fRect.Top + 24);
 
-    result := Rect.Bottom + 3;
+    result := fRect.Bottom + 3;
   end;
 
 
-  procedure TDrawable.Draw(const aCanvas: TCanvas;
-                           const aImageList: TImageList);
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTestResult.Draw(const aCanvas: TCanvas;
+                             const aImageList: TImageList);
   var
     i: Integer;
     rc: TRect;
@@ -721,22 +1022,151 @@ implementation
   end;
 
 
-  procedure TDrawable.set_Selected(const aValue: Boolean);
+
+
+{ TBenchmark ------------------------------------------------------------------------------------- }
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TBenchmark.Create(const aControl: TPaintBox;
+                                const aMethod: WideString;
+                                const aResults: TResultArray);
   var
-    rc: TRect;
+    i: Integer;
   begin
-    if fSelected = aValue then
-      EXIT;
+    inherited Create(aControl);
 
-    fSelected := aValue;
+    fMethodName := aMethod;
+    fResults    := aResults;
 
-    rc := Rect;
-    rc.Left := 0;
-    TranslateRect(rc, 0, Control.Top);
-    InvalidateRect(Control.Parent.Handle, @rc, FALSE);
+    SetLength(fBarRects, Length(fResults));
+    SetLength(fLabelRects, Length(fResults));
+
+    fMaxResult := 0;
+    for i:= 0 to Pred(Length(fResults)) do
+      if fResults[i] > fMaxResult then
+        fMaxResult := fResults[i];
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TBenchmark.DoLayout(const aCanvas: TCanvas;
+                               const aTop, aMaxWidth: Integer): Integer;
+  var
+    i: Integer;
+    rc: TRect;
+  begin
+    if aTop <> -1 then
+    begin
+      aCanvas.Font.Name := 'Tahoma';
+
+      fRect.Left   := 8;
+      fRect.Top    := aTop;
+      fRect.Right  := aMaxWidth;
+
+      rc := fRect;
+      InflateRect(rc, -1, -1);  // For the border
+      InflateRect(rc, -3, -3);  // For a comfortable 'margin'
+
+      fChartRect  := rc;
+      fMethodRect := rc;
+
+      // Calculate two primary rectangles for the benchmark output, one for the
+      //  method name label, the other for the chart:
+      //   ___________________________________________________________________
+      //  |                      |                                            |
+      //  |______________________| ##############                             |
+      //  :                      | ##########################                 |
+      //  :                      | ####################                       |
+      //  :......................|____________________________________________|
+      //
+
+      DrawTextExW(aCanvas.Handle, PWideChar(fMethodName), Length(fMethodName), fMethodRect,
+                  DT_CALCRECT or DT_WORD_ELLIPSIS or DT_NOPREFIX, NIL);
+      fChartRect.Left := fMethodRect.Right + 4;
+
+      fChartRect.Bottom := fChartRect.Top + ((Length(fResults) + 1) * 8);
+      if fChartRect.Bottom < fMethodRect.Bottom then
+        fChartRect.Bottom := fMethodRect.Bottom;
+
+      fRect.Bottom := fChartRect.Bottom;
+    end
+    else
+    begin
+      fMethodRect.Right := aMaxWidth;
+      fChartRect.Left   := aMaxWidth;
+    end;
+
+    // Now calculate the rectangles for each bar in the results chart.  The
+    //  longest bar will always be 90% of the available width.
+    //   ___________________________________________________________________
+    //  |                      |                                            |
+    //  |______________________| ###########################                |
+    //  :                      | ######################################     |
+    //  :                      | #############################              |
+    //  :......................|____________________________________________|
+    //
+
+    if fMaxResult > 0 then
+      for i := 0 to Pred(Length(fResults)) do
+      begin
+        fBarRects[i].Top    := fRect.Top + ((i + 1) * 8);
+        fBarRects[i].Bottom := fBarRects[i].Top + 7;
+        fBarRects[i].Left   := fChartRect.Left;
+
+        if (fResults[i] <> 0) then
+          fBarRects[i].Right := fChartRect.Left + Trunc((fChartRect.Right - fChartRect.Left) * 0.9 * fResults[i] / fMaxResult)
+        else
+          fBarRects[i].Right := fBarRects[i].Left;
+      end;
+
+    result := fRect.Bottom + 3;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TBenchmark.Draw(const aCanvas: TCanvas; const aImageList: TImageList);
+  var
+    i: Integer;
+  begin
+    aCanvas.Font.Name := 'Tahoma';
+    aCanvas.Brush.Color := clNone;
+    aCanvas.Brush.Style := bsClear;
+
+    DrawTextExW(aCanvas.Handle, PWideChar(fMethodName), Length(fMethodName), fMethodRect,
+                DT_WORD_ELLIPSIS or DT_NOPREFIX, NIL);
+
+    aCanvas.Pen.Color := clBlack;
+    aCanvas.Pen.Style := psSolid;
+    aCanvas.MoveTo(fChartRect.Left, fChartRect.Top);
+    aCanvas.LineTo(fChartRect.Left, fChartRect.Bottom);
+
+    for i := 0 to Pred(Length(fResults)) do
+    begin
+      if fResults[i] = 0 then
+        CONTINUE;
+
+      aCanvas.Brush.Color := TResultsPanel.SeriesColor(i);
+      aCanvas.Brush.Style := bsSolid;
+      FillRect(aCanvas.Handle, fBarRects[i], aCanvas.Brush.Handle);
+
+      aCanvas.Brush.Color := clBlack;
+      aCanvas.Brush.Style := bsSolid;
+      FrameRect(aCanvas.Handle, fBarRects[i], aCanvas.Brush.Handle);
+    end;
+  end;
+
+
+
+initialization
+  SERIES_COLOR[0] := RGB(127, 255, 127);
+  SERIES_COLOR[1] := RGB(127, 127, 255);
+  SERIES_COLOR[2] := RGB(255, 127, 127);
+  SERIES_COLOR[3] := RGB(192, 227, 192);
+  SERIES_COLOR[4] := RGB(192, 192, 227);
+  SERIES_COLOR[5] := RGB(227, 192, 192);
+  SERIES_COLOR[6] := RGB(227, 255, 255);
+  SERIES_COLOR[7] := RGB(255, 227, 255);
+  SERIES_COLOR[8] := RGB(255, 255, 227);
 
 end.
 

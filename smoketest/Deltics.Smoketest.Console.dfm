@@ -112,6 +112,61 @@ object SmokeTestConsole: TSmokeTestConsole
     Height = 16
     TabOrder = 3
   end
+  object ResultPanel: TPanel
+    Left = 614
+    Top = 44
+    Width = 295
+    Height = 357
+    Color = clWindow
+    ParentBackground = False
+    TabOrder = 4
+    OnResize = ResultPanelResize
+    object LegendPanel: TPanel
+      Left = 1
+      Top = 308
+      Width = 293
+      Height = 48
+      Align = alBottom
+      BevelOuter = bvNone
+      BorderStyle = bsSingle
+      Color = clWindow
+      Ctl3D = False
+      ParentCtl3D = False
+      TabOrder = 0
+      Visible = False
+      object Legend: TPaintBox
+        Left = 0
+        Top = 0
+        Width = 291
+        Height = 46
+        Align = alClient
+      end
+    end
+    object Panel1: TPanel
+      Left = 1
+      Top = 1
+      Width = 293
+      Height = 21
+      Align = alTop
+      AutoSize = True
+      BevelOuter = bvNone
+      Ctl3D = False
+      ParentCtl3D = False
+      TabOrder = 1
+      object cmbBenchmarkData: TComboBox
+        Left = 1
+        Top = 0
+        Width = 293
+        Height = 21
+        Style = csDropDownList
+        Ctl3D = False
+        ParentCtl3D = False
+        TabOrder = 0
+        Visible = False
+        OnChange = cmbBenchmarkDataChange
+      end
+    end
+  end
   object Actions: TActionList
     Left = 16
     Top = 56
@@ -141,7 +196,7 @@ object SmokeTestConsole: TSmokeTestConsole
     Left = 80
     Top = 56
     Bitmap = {
-      494C010105000900740014001400FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010105000900900014001400FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000500000002800000001002000000000000032
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
