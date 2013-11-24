@@ -216,6 +216,8 @@ interface
     private
       fBOMPresent: Boolean;
       fEncoding: TCharEncoding;
+      fCodepoint: Cardinal;
+      fNeedCodepoint: Boolean;
       constructor Create(const aBuffer; const aBufferSize: Integer); overload;
     protected
       procedure Initialise(const aDefaultEncoding: TCharEncoding);
@@ -232,9 +234,6 @@ interface
                              const aDefaultEncoding: TCharEncoding = ceUTF8);
       function ReadChar(var aChar: ANSIChar): Boolean; overload;
       function ReadChar(var aChar: WideChar): Boolean; overload;
-      function ReadChar(var aChar: WideString): Boolean; overload;
-      function ReadChar(var aChar: UTF32Char): Boolean; overload;
-      function ReadUTF32(var aBuffer; const aCount: Integer): Integer;
       function ReadLine: String;
       function ReadString: String; overload;
       function ReadString(const aMaxChars: Integer): String; overload;
@@ -253,9 +252,9 @@ interface
     function IsCharUpper(const aChar: WideChar): Boolean; overload;
 
 
-    function ReadUnicodeCharacter(const aStream: TStream;
-                                  var aChar: UCS4Char;
-                                  const aEncoding: TCharEncoding): Boolean; {$if CompilerVersion > 18} inline; {$ifend}
+    function ReadCodePoint(const aStream: TStream;
+                           var aCodePoint: Cardinal;
+                           const aEncoding: TCharEncoding): Boolean; {$if CompilerVersion > 18} inline; {$ifend}
 
 
 
@@ -788,7 +787,6 @@ implementation
     wc[0] := aChar;
     wc[1] := WideChar(0);
 
-//    result := TCharacter.ToLower(aChar);
     result := Windows.CharLowerW(@wc[0])^;
   end;
 
@@ -800,7 +798,6 @@ implementation
     wc[0] := aChar;
     wc[1] := WideChar(0);
 
-//    result := TCharacter.ToUpper(aChar);
     result := Windows.CharUpperW(@wc[0])^;
   end;
 
@@ -813,7 +810,6 @@ implementation
 
   function IsCharLower(const aChar: WideChar): Boolean;
   begin
-//    result := TCharacter.IsLower(aChar);
     result := Windows.IsCharLowerW(aChar);
   end;
 
@@ -826,7 +822,6 @@ implementation
 
   function IsCharUpper(const aChar: WideChar): Boolean;
   begin
-//    result := TCharacter.IsUpper(aChar);
     result := Windows.IsCharUpperW(aChar);
   end;
 
@@ -1017,74 +1012,82 @@ implementation
   procedure TUnicodeStream.Initialise(const aDefaultEncoding: TCharEncoding);
   begin
     StreamPositionMemento(self);
-    fEncoding := DetectEncoding(aDefaultEncoding);
+    fEncoding       := DetectEncoding(aDefaultEncoding);
+    fNeedCodepoint  := TRUE;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TUnicodeStream.ReadChar(var aChar: ANSIChar): Boolean;
-  var
-    c: UTF32Char;
   begin
-    result := ReadUnicodeCharacter(self, c, Encoding);
-    if NOT result then
-      EXIT;
+    case Encoding of
+      ceANSI: result := (Stream.Read(aChar, 1) = 1);
 
-    case c of
-      0..255  : aChar := ANSIChar(c);
     else
-      // Not an ANSI character - data is lost, we simply return #255
-      aChar := #255;
+      ASSERT(FALSE, 'Not yet implemented');
+
+      {
+        TODO:
+
+          if need codepoint then
+
+            ReadCodePoint
+            if < $128 then
+
+              return ANSIChar(codepoint)
+
+            else
+              if (codepoint >= $10000 <= $10FFFF) then
+                transcode surrogate pair, convert to fANSIChars[]
+              else
+                convert to fANSIChars[]
+
+              set ANSI char index = 1
+              set need codepoint = FALSE
+
+              return fANSIChars[1]
+
+          else
+            Inc fANSICharIndex
+            return fANSIChars[fANSICharIndex]
+
+            if last char then
+              set need codepoint = TRUE
+      }
     end;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TUnicodeStream.ReadChar(var aChar: WideChar): Boolean;
-  var
-    c: UTF32Char;
   begin
-    result := ReadUnicodeCharacter(self, c, Encoding);
-    if NOT result then
-      EXIT;
+    case Encoding of
+      ceUTF16LE : self.Read(aChar, 2);
 
-    // TODO: I don't think it's this simple in the case if/when a surrogate pair is involved.
-
-    aChar := WideChar(c);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TUnicodeStream.ReadChar(var aChar: UTF32Char): Boolean;
-  begin
-    result := ReadUnicodeCharacter(self, aChar, Encoding);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TUnicodeStream.ReadChar(var aChar: WideString): Boolean;
-  var
-    c: UTF32Char;
-  begin
-    result := ReadUnicodeCharacter(self, c, Encoding);
-    if NOT result then
-      EXIT;
-
-    // TODO: Convert to surrogate pair if required ?
-
-    aChar := WideChar(c);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TUnicodeStream.ReadUTF32(var aBuffer;
-                                    const aCount: Integer): Integer;
-  var
-    utf32: UTF32CharArray absolute aBuffer;
-  begin
-    result := 0;
-    while ReadChar(utf32[result]) do
-      Inc(result);
+      ceUTF16,
+      ceUTF16BE : begin
+                    self.Read(aChar, 2);
+                    aChar := WideChar(ReverseBytes(Word(aChar)));
+                  end;
+    else
+      if fNeedCodePoint then
+      begin
+        result  := ReadCodePoint(self, fCodePoint, Encoding);
+        if (fCodepoint >= $10000) and (fCodepoint <= $10FFFF) then
+        begin
+          aChar          := WideChar(((fCodePoint - $10000) div $400) + $D800);
+          fNeedCodePoint := FALSE;
+        end
+        else
+          aChar := WideChar(fCodePoint);
+      end
+      else
+      begin
+        aChar   := WideChar(((fCodePoint - $10000) mod $400) + $DC00);
+        result  := TRUE;
+        fNeedCodePoint := TRUE;
+      end;
+    end;
   end;
 
 
@@ -1099,7 +1102,7 @@ implementation
     while ReadChar(c) and (c <> #13) and (c <> #10) do
       result := result + c;
 
-    // If we ended on a carraige return and the next character is a line feed
+    // If we ended on a carriage return and the next character is a line feed
     //  we skip it (which we will have achieved by simply having read it
     //  already!), but having read it to test it, if it is NOT a line feed then
     //  we have to rewind to where we are right now
@@ -1182,9 +1185,9 @@ implementation
 { Library Routines ------------------------------------------------------------------------------- }
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function ReadUnicodeCharacter(const aStream: TStream;
-                                var aChar: UCS4Char;
-                                const aEncoding: TCharEncoding): Boolean;
+  function ReadCodePoint(const aStream: TStream;
+                         var aCodepoint: Cardinal;
+                         const aEncoding: TCharEncoding): Boolean;
   var
     b: array[1..6] of Byte;
     wc: Word;
@@ -1195,54 +1198,56 @@ implementation
     case aEncoding of
       ceASCII,
       ceANSI    : begin
-                    result := aStream.Read(b[1], 1) = 1;
-                    aChar := Cardinal(b[1]);
+                    // TODO: handle/support MBCS
+
+                    result      := aStream.Read(b[1], 1) = 1;
+                    aCodepoint  := Cardinal(b[1]);
                   end;
 
       ceUTF8    : begin
                     result := aStream.Read(b[1], 1) = 1;
 
                     case b[1] of
-                        0..127  : aChar := Cardinal(b[1]);
+                        0..127  : aCodepoint := Cardinal(b[1]);
 
                       192..223  : begin
-                                    result := aStream.Read(b[2], 1) = 1;
-                                    aChar := ((b[1] - 192) * 64)
-                                           +  (b[2] - 128);
+                                    result      := aStream.Read(b[2], 1) = 1;
+                                    aCodepoint  := ((b[1] - 192) * 64)
+                                                 +  (b[2] - 128);
                                   end;
 
                       224..239  : begin
-                                    result := aStream.Read(b[2], 2) = 2;
-                                    aChar := ((b[1] - 224) * 4096)
-                                           + ((b[2] - 128) * 64)
-                                           +  (b[3] - 128);
+                                    result      := aStream.Read(b[2], 2) = 2;
+                                    aCodepoint  := ((b[1] - 224) * 4096)
+                                                 + ((b[2] - 128) * 64)
+                                                 +  (b[3] - 128);
                                   end;
 
                       240..247  : begin
-                                    result := aStream.Read(b[2], 3) = 3;
-                                    aChar := ((b[1] - 240) * 262144)
-                                           + ((b[2] - 224) * 4096)
-                                           + ((b[3] - 128) * 64)
-                                           +  (b[4] - 128);
+                                    result      := aStream.Read(b[2], 3) = 3;
+                                    aCodepoint  := ((b[1] - 240) * 262144)
+                                                 + ((b[2] - 224) * 4096)
+                                                 + ((b[3] - 128) * 64)
+                                                 +  (b[4] - 128);
                                   end;
 
                       248..251  : begin
-                                    result := aStream.Read(b[2], 4) = 4;
-                                    aChar := ((b[1] - 248) * 16777216)
-                                           + ((b[1] - 240) * 262144)
-                                           + ((b[2] - 224) * 4096)
-                                           + ((b[3] - 128) * 64)
-                                           +  (b[4] - 128);
+                                    result      := aStream.Read(b[2], 4) = 4;
+                                    aCodepoint  := ((b[1] - 248) * 16777216)
+                                                 + ((b[1] - 240) * 262144)
+                                                 + ((b[2] - 224) * 4096)
+                                                 + ((b[3] - 128) * 64)
+                                                 +  (b[4] - 128);
                                   end;
 
                       252..253  : begin
-                                    result := aStream.Read(b[2], 5) = 5;
-                                    aChar := ((b[1] - 252) * 1073741824)
-                                           + ((b[2] - 248) * 16777216)
-                                           + ((b[3] - 240) * 262144)
-                                           + ((b[4] - 224) * 4096)
-                                           + ((b[5] - 128) * 64)
-                                           +  (b[6] - 128);
+                                    result      := aStream.Read(b[2], 5) = 5;
+                                    aCodepoint  := ((b[1] - 252) * 1073741824)
+                                                 + ((b[2] - 248) * 16777216)
+                                                 + ((b[3] - 240) * 262144)
+                                                 + ((b[4] - 224) * 4096)
+                                                 + ((b[5] - 128) * 64)
+                                                 +  (b[6] - 128);
                                   end;
 
                       254..255  : // BOM Characters - should not encounter these in an actual encoding!
@@ -1260,12 +1265,12 @@ implementation
 
                     case wc of
                       $D800..$DFFF  : begin
-                                        result    := aStream.Read(surrogate, 2) = 2;
-                                        surrogate := WORD(Byte(surrogate) or (surrogate shr 8));
-                                        aChar := ((wc or $D800) shl 10) + (surrogate or $DC00);
+                                        result      := aStream.Read(surrogate, 2) = 2;
+                                        surrogate   := WORD(Byte(surrogate) or (surrogate shr 8));
+                                        aCodepoint  := ((wc or $D800) shl 10) + (surrogate or $DC00);
                                       end;
                     else
-                      aChar := Cardinal(wc);
+                      aCodepoint := Cardinal(wc);
                     end;
                   end;
 
@@ -1273,11 +1278,11 @@ implementation
                     result := aStream.Read(wc, 2) = 2;
                     case wc of
                       $D800..$DFFF  : begin
-                                        result  := aStream.Read(surrogate, 2) = 2;
-                                        aChar   := ((wc or $D800) shl 10) + (surrogate or $DC00);
+                                        result      := aStream.Read(surrogate, 2) = 2;
+                                        aCodepoint  := ((wc or $D800) shl 10) + (surrogate or $DC00);
                                       end;
                     else
-                      aChar := Cardinal(wc);
+                      aCodepoint := Cardinal(wc);
                     end;
                   end;
 
@@ -1285,11 +1290,11 @@ implementation
       ceUTF32BE : begin
                     // INTEL is Little-Endian so we need to re-order the bytes in the longword
 
-                    result := aStream.Read(b, 4) = 4;
-                    aChar  := Cardinal((b[4] shl 24) + (b[3] shl 16) + (b[2] shl 8) + b[1]);
+                    result      := aStream.Read(b, 4) = 4;
+                    aCodepoint  := Cardinal((b[4] shl 24) + (b[3] shl 16) + (b[2] shl 8) + b[1]);
                   end;
 
-      ceUTF32LE : result := aStream.Read(aChar, 4) = 4;
+      ceUTF32LE : result := aStream.Read(aCodepoint, 4) = 4;
     end;
   end;
 
