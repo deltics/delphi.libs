@@ -50,13 +50,13 @@
 
 interface
 
-  {$ifdef DELPHI2006}
+  {$ifdef DELPHI2006_OR_2007}
   uses
     Controls; // Contains TDate and TTime declarations in Delphi 2006 only
   {$endif}
 
   type
-  {$ifdef DELPHI2006}               // Alias the TDate and TTime types from Controls
+  {$ifdef DELPHI2006_OR_2007}               // Alias the TDate and TTime types from Controls
     TDate = Controls.TDate;
     TTime = Controls.TTime;
   {$else}
