@@ -219,6 +219,7 @@ interface
         function get_IsNull: Boolean; override;
         procedure Add(const aValue: TJSONValue); overload; virtual; abstract;
       public
+        class function CreateFromFile(const aFilename: UnicodeString): TJSONText;
         class function CreateFromStream(const aStream: TStream): TJSONText;
       {$ifdef UNICODE}
         class function CreateFromString(const aString: RawByteString): TJSONText;
@@ -231,11 +232,11 @@ interface
         function Add(const aName: UnicodeString; const aValue: Integer): TJSONInteger; overload;
         function Add(const aName: UnicodeString; const aValue: Int64): TJSONNumber; overload;
         function Add(const aName: UnicodeString; const aValue: UnicodeString): TJSONString; overload;
-        function Add(const aName: UnicodeString; const aValue: TDateTime): TJSONString; overload;
         function Add(const aName: UnicodeString; const aValue: TGUID): TJSONString; overload;
         function Add(const aName: UnicodeString; const aValue: Double): TJSONNumber; overload;
         function Add(const aName: UnicodeString; const aValue: Integer; const aTypeInfo: PTypeInfo): TJSONString; overload;
       {$ifdef DELPHI2009_OR_LATER}
+        function Add(const aName: UnicodeString; const aValue: TDateTime): TJSONString; overload;
         function Add(const aName: UnicodeString; const aValue: TDate): TJSONString; overload;
         function Add(const aName: UnicodeString; const aValue: TTime): TJSONString; overload;
       {$endif}
@@ -305,6 +306,7 @@ interface
           class function TryCreate(const aString: UnicodeString): TJSONObject;
           constructor Create; overload; override;
           constructor Create(const aString: UnicodeString); reintroduce; overload;
+          constructor CreateFromFile(const aFilename: UnicodeString);
           destructor Destroy; override;
           procedure Clear; override;
           function Clone: TJSONObject; reintroduce;
@@ -692,6 +694,21 @@ implementation
 { TJSONText -------------------------------------------------------------------------------------- }
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TJSONText.CreateFromFile(const aFilename: UnicodeString): TJSONText;
+  var
+    stream: TFileStream;
+  begin
+    stream := TFileStream.Create(aFilename, fmOpenRead or fmShareDenyWrite);
+    try
+      result := CreateFromStream(stream);
+
+    finally
+      stream.Free;
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function TJSONText.CreateFromStream(const aStream: TStream): TJSONText;
   var
     reader: TJSONStreamReader;
@@ -699,6 +716,7 @@ implementation
     reader := TJSONStreamReader.Create(aStream);
     try
       result := reader.ReadValue as TJSONText;
+
     finally
       reader.Free;
     end;
@@ -1051,7 +1069,6 @@ implementation
 
     Add(result);
   end;
-{$endif}
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
@@ -1060,6 +1077,7 @@ implementation
   begin
     result := AddDateTime(aName, aValue);
   end;
+{$endif}
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
@@ -1865,6 +1883,15 @@ implementation
   begin
     Create;
     AsString := aString;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TJSONObject.CreateFromFile(const aFilename: UnicodeString);
+  begin
+    Create;
+
+    LoadFromFile(aFilename);
   end;
 
 
