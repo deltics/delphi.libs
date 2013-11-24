@@ -42,32 +42,32 @@ interface
       end;
 
 
-    TTestCounters = class(TTestCase, ISetupSmoketest,
+    TTestCounters = class(TTestCase, ISetupProject,
                                      ISetupTestRun,
                                      ISetupTestCase,
                                      ISetupTest,
                                      ICleanupTest,
                                      ICleanupTestCase,
                                      ICleanupTestRun,
-                                     ICleanupSmoketest)
+                                     ICleanupProject)
     private
-      fSetupSmoketest: Integer;
+      fSetupProject: Integer;
       fSetupTestRun: Integer;
       fSetupCase: Integer;
       fSetupTest: Integer;
       fCleanupTest: Integer;
       fCleanupCase: Integer;
       fCleanupTestRun: Integer;
-      fCleanupSmoketest: Integer;
+      fCleanupProject: Integer;
     protected
-      procedure SetupSmoketest;
+      procedure SetupProject;
       procedure SetupTestRun;
       procedure Setup;
-      procedure SetupTest(const aTest: TDelegate);
-      procedure CleanupTest(const aTest: TDelegate);
+      procedure SetupTest(const aTest: ITestMethod);
+      procedure CleanupTest(const aTest: ITestMethod);
       procedure Cleanup;
       procedure CleanupTestRun;
-      procedure CleanupSmoketest;
+      procedure CleanupProject;
 
     published
       procedure TestCaseMetaData;
@@ -309,9 +309,9 @@ implementation
 { TTestCounters ---------------------------------------------------------------------------------- }
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestCounters.SetupSmoketest;
+  procedure TTestCounters.SetupProject;
   begin
-    Inc(fSetupSmoketest);
+    Inc(fSetupProject);
   end;
 
 
@@ -330,14 +330,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestCounters.SetupTest(const aTest: TDelegate);
+  procedure TTestCounters.SetupTest(const aTest: ITestMethod);
   begin
     Inc(fSetupTest);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestCounters.CleanupTest(const aTest: TDelegate);
+  procedure TTestCounters.CleanupTest(const aTest: ITestMethod);
   begin
     Inc(fCleanupTest);
   end;
@@ -358,9 +358,9 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestCounters.CleanupSmoketest;
+  procedure TTestCounters.CleanupProject;
   begin
-    Inc(fCleanupSmoketest);
+    Inc(fCleanupProject);
   end;
 
 
@@ -374,7 +374,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTestCounters.CounterValues;
   begin
-    Test('SetupSmoketest').Expect(fSetupSmoketest).Equals(1);
+    Test('SetupProject').Expect(fSetupProject).Equals(1);
 
     Test('SetupTestRun').Expect(fSetupTestRun).Equals(RunCount);
     Test('Setup (case)').Expect(fSetupCase).Equals(RunCount);
@@ -383,7 +383,7 @@ implementation
     Test('Cleanup (case)').Expect(fCleanupCase).Equals(RunCount - 1);
     Test('CleanupTestRun').Expect(fCleanupTestRun).Equals(RunCount - 1);
 
-    Test('CleanupSmoketest').Expect(fCleanupSmoketest).Equals(0);
+    Test('CleanupProject').Expect(fCleanupProject).Equals(0);
   end;
 
 
