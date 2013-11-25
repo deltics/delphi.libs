@@ -519,7 +519,6 @@ implementation
       Inc(rows);
 
     w := fLegendLabelWidth + 32;
-    s := 0;
     for c := 1 to cols do
     begin
       boxRC.Top := 8;
@@ -547,7 +546,6 @@ implementation
 
         Inc(boxRC.Top, 20);
         Inc(txtRC.Top, 20);
-        Inc(s);
       end;
     end;
 
@@ -570,7 +568,6 @@ implementation
   var
     DC: TCanvas;
     i: Integer;
-    txt: UnicodeString;
   begin
     DC := Legend.Canvas;
 
