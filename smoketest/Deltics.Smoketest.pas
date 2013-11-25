@@ -156,9 +156,10 @@ interface
     UTF8TextExpectation     = interface;
     TimeExpectation         = interface;
 
-    TTestArticle = class;
     TSmoketest  = class;
     TSmoketestCommandLine = class;
+    TBenchmark = class;
+    TTestArticle = class;
     {$typeinfo ON}
     TCase = class;
     TTestCase = class;
@@ -296,17 +297,57 @@ interface
       function Tests: ITheseTests;
     end;
 
+    TBenchmarkType = (btMethodComparison, btCaseComparison, btCaseHistory, btCompilerVersions);
+    TBenchmarkTypes = set of TBenchmarkType;
+
+    ICaseComparisonBenchmark = interface
+    ['{13BE0C86-2DA4-447E-997B-6F7CEA0F066B}']
+    end;
+
+    ICaseHistoryBenchmark = interface
+    ['{4A14154A-4C28-4E27-9016-2D944B994A71}']
+    end;
+
+    ICompilerVersionBenchmark = interface
+    ['{D3A7A4A6-2E14-4671-B090-FD71737C7031}']
+    end;
+
+    IBenchmarkData = interface
+    ['{CB0361A7-644F-41BC-A936-936FBE185CEA}']
+      function get_Result(const aMethodIndex: Integer; const aSeriesIndex: Integer): Double;
+      function get_Method(const aIndex: Integer): UnicodeString;
+      function get_MethodCount: Integer;
+      function get_Series(const aIndex: Integer): UnicodeString;
+      function get_SeriesCount: Integer;
+
+      property Result[const aMethodIndex: Integer; const aSeriesIndex: Integer]: Double read get_Result;
+      property Methods[const aIndex: Integer]: UnicodeString read get_Method;
+      property MethodCount: Integer read get_MethodCount;
+      property Series[const aIndex: Integer]: UnicodeString read get_Series;
+      property SeriesCount: Integer read get_SeriesCount;
+    end;
+
+
+    IBenchmarkInfo = interface
+    ['{183214B7-5805-44C5-8C70-F6129BE69775}']
+      function get_Benchmarks: TBenchmarkTypes;
+      function get_Data(const aType: TBenchmarkType): IBenchmarkData;
+
+      property Benchmarks: TBenchmarkTypes read get_Benchmarks;
+      property Data[const aType: TBenchmarkType]: IBenchmarkData read get_Data;
+    end;
+
 
     IHaveChildCases   = interface ['{E5518D96-A989-4E6F-8CB7-B24D83548FEE}'] procedure AddCases; end;
     INameCase         = interface ['{BDAA53B3-DC49-486B-BB75-B6A098B0E45F}'] function NameForCase: UnicodeString; end;
-    ISetupSmoketest   = interface ['{C6ABF342-11F2-4D89-96D9-E47E09EBA6DC}'] procedure SetupSmoketest; end;
-    ICleanupSmoketest = interface ['{4E4A026F-EACD-4CAC-BB2E-32F3CFE6E465}'] procedure CleanupSmoketest; end;
+    ISetupProject     = interface ['{C6ABF342-11F2-4D89-96D9-E47E09EBA6DC}'] procedure SetupProject; end;
+    ICleanupProject   = interface ['{4E4A026F-EACD-4CAC-BB2E-32F3CFE6E465}'] procedure CleanupProject; end;
     ISetupTestRun     = interface ['{41AD1AC7-488E-4344-BEBF-3082F7010DB5}'] procedure SetupTestRun; end;
     ICleanupTestRun   = interface ['{77D3B727-8F6B-4C89-AA01-56B2A37E3E38}'] procedure CleanupTestRun; end;
     ISetupTestCase    = interface ['{9799BC59-9E89-4100-B92B-939346C678A8}'] procedure Setup; end;
     ICleanupTestCase  = interface ['{214DFC59-2FF5-4DA3-97B1-85FA7AFAC006}'] procedure Cleanup; end;
-    ISetupTest        = interface ['{A792944A-165C-41FB-A67B-6E3F104A50A7}'] procedure SetupTest(const aTest: TDelegate); end;
-    ICleanupTest      = interface ['{1016CB7A-CD07-4640-9C96-B9F466103654}'] procedure CleanupTest(const aTest: TDelegate); end;
+    ISetupTest        = interface ['{A792944A-165C-41FB-A67B-6E3F104A50A7}'] procedure SetupTest(const aTest: ITestMethod); end;
+    ICleanupTest      = interface ['{1016CB7A-CD07-4640-9C96-B9F466103654}'] procedure CleanupTest(const aTest: ITestMethod); end;
 
 
     ISmoketestSetup = interface
@@ -314,6 +355,7 @@ interface
       procedure Ready;
       procedure RegisterExtension(const aIID: TGUID; const aTest: TExpectationClass); overload;
       procedure RegisterExtension(const aIID: TGUID; const aInspector: TInspectorClass); overload;
+      procedure Add(const aCase: TTestCaseClass); overload;
       procedure Add(const aCases: array of TTestCaseClass); overload;
       procedure Add(const aParentCase: TTestCaseClass; const aCases: array of TTestCaseClass); overload;
       function AverageTime(const aCases: array of TPerformanceCaseClass; const aRepeats: Integer): IPerformanceCaseAddition; overload;
@@ -495,6 +537,20 @@ interface
 
 
 
+    IDefineComparisons = interface
+    ['{0E4C9DC1-CDAF-43C2-B158-43EE8691B97B}']
+      procedure CompilerVersions(const aResultsFile: UnicodeString; const aTag: UnicodeString = '');
+      procedure WithCase(const aCaseName: UnicodeString);
+      procedure PreviousResults;
+    end;
+
+
+    ICompareResults = interface
+    ['{1A1701DA-2CD9-4DB2-8CFB-DE50FCFE9A9B}']
+      procedure DefineComparisons(const aCompare: IDefineComparisons);
+    end;
+
+
     IAlert = interface
     ['{A1A6A0EB-5205-4F05-B303-303F2821EE90}']
       function get_Text: UnicodeString;
@@ -655,19 +711,17 @@ interface
       function get_EnableList: TStringList;
 
       function get_AutoRun: Boolean;
-      function get_DisableCases: Boolean;
+      function get_DisableTestCases: Boolean;
       function get_DisablePerformanceCases: Boolean;
+      function get_DisableCases: Boolean;
       function get_EnableCases: Boolean;
       function get_ExpandAll: Boolean;
       function get_ExpandEnabled: Boolean;
       function get_NoOutput: Boolean;
       function get_OutputFilename: UnicodeString;
-      function get_OutputToConsole: Boolean;
-      function get_OutputJSON: Boolean;
-      function get_OutputPlainText: Boolean;
-      function get_OutputXML: Boolean;
       function get_SilentRunning: Boolean;
       function get_ThreadIsolation: Boolean;
+      function get_DetailedOutput: Boolean;
       function get_VerboseOutput: Boolean;
     public
       destructor Destroy; override;
@@ -676,19 +730,17 @@ interface
       property EnableList: TStringList read get_EnableList;
 
       property AutoRun: Boolean read get_AutoRun;
-      property DisableCases: Boolean read get_DisableCases;
+      property DisableTestCases: Boolean read get_DisableTestCases;
       property DisablePerformanceCases: Boolean read get_DisablePerformanceCases;
+      property DisableCases: Boolean read get_DisableCases;
       property EnableCases: Boolean read get_EnableCases;
       property ExpandAll: Boolean read get_ExpandAll;
       property ExpandEnabled: Boolean read get_ExpandEnabled;
       property NoOutput: Boolean read get_NoOutput;
       property OutputFilename: UnicodeString read get_OutputFilename;
-      property OutputToConsole: Boolean read get_OutputToConsole;
-      property OutputJSON: Boolean read get_OutputJSON;
-      property OutputPlainText: Boolean read get_OutputPlainText;
-      property OutputXML: Boolean read get_OutputXML;
       property SilentRunning: Boolean read get_SilentRunning;
       property ThreadIsolation: Boolean read get_ThreadIsolation;
+      property DetailedOutput: Boolean read get_DetailedOutput;
       property VerboseOutput: Boolean read get_VerboseOutput;
     end;
 
@@ -706,6 +758,7 @@ interface
       fOn_Started: TMultiCastNotify;
       fOn_Finished: TMultiCastNotify;
       fOn_Update: TMultiCastNotify;
+      fCompilerVersionResults: TBenchmark;
       constructor Create;
       function get_Child(const aIndex: Integer): ITestArticle; override;
       function get_ActiveCase: TCase;
@@ -714,18 +767,19 @@ interface
       procedure set_ActiveCase(const aValue: TCase);
       function FindExtension(const aIID: TGUID; var aClass: TExpectationClass): Boolean; overload;
       function FindExtension(const aIID: TGUID; var aClass: TInspectorClass): Boolean; overload;
-      procedure OutputResults;
       procedure OnThreadStateChange(Sender: TObject; const aStateID: TStateID);
       property ActiveCase: TCase read get_ActiveCase write set_ActiveCase;
       procedure Add(const aArticle: TTestArticle); overload; override;
       procedure Remove(const aArticle: TTestArticle); override;
       procedure Execute;
-      procedure Initialise;
       procedure Startup;
       procedure Shutdown;
       procedure EndRun;
       procedure StartRun;
+      procedure AddCompilerVersionResult(const aCase: TPerformanceCase; const aTag: UnicodeString; const aFilename: UnicodeString);
+      procedure AddPreviousResult(const aCase: TPerformanceCase);
 
+      property CompilerVersionResults: TBenchmark read fCompilerVersionResults;
       property On_Finished: TMultiCastNotify read fOn_Finished;
       property On_Started: TMultiCastNotify read fOn_Started;
       property On_Update: TMultiCastNotify read fOn_Update;
@@ -767,6 +821,7 @@ interface
       procedure Ready;
       procedure RegisterExtension(const aIID: TGUID; const aTest: TExpectationClass); overload;
       procedure RegisterExtension(const aIID: TGUID; const aInspector: TInspectorClass); overload;
+      procedure Add(const aCase: TTestCaseClass); overload;
       procedure Add(const aCases: array of TTestCaseClass); overload;
       procedure Add(const aParent: TTestCaseClass;
                     const aCases: array of TTestCaseClass); overload;
@@ -784,10 +839,12 @@ interface
       function get_DelegateCount: Integer; virtual; abstract;
       function get_StartTime: TDateTime;
       procedure DoExecute; virtual; abstract;
+      procedure DoFinalise; virtual;
       procedure DoInitialise; virtual;
       procedure DoShutdown; virtual;
       procedure DoStartup; virtual;
       procedure Execute;
+      procedure Finalise;
       procedure Initialise;
       procedure Shutdown;
       procedure Startup;
@@ -900,8 +957,11 @@ interface
     end;
 
 
-    TPerformanceCase = class(TCase, IPerformanceCase)
+    TPerformanceCase = class(TCase, IPerformanceCase,
+                                    IDefineComparisons,
+                                    IBenchmarkInfo)
     private
+      fCaseComparisons: TBenchmark;
       fDelegates: TObjectList;
       fN: Integer;
       fMode: TPerformanceMode;
@@ -915,6 +975,7 @@ interface
       procedure Add(const aObject: TTestArticle); override;
       procedure Remove(const aObject: TTestArticle); override;
       procedure DoExecute; override;
+      procedure DoStartup; override;
       constructor Create(const N: Integer;
                          const aMode: TPerformanceMode;
                          const aSamples: Integer); reintroduce;
@@ -924,12 +985,21 @@ interface
       destructor Destroy; override;
       property N: Integer read fN;
 
+    private // IDefineComparisons
+      procedure CompilerVersions(const aResultsFile: UnicodeString; const aTag: UnicodeString);
+      procedure PreviousResults;
+      procedure WithCase(const aCaseName: UnicodeString);
+
     private // IPerformanceCase
       function get_MethodByIndex(const aIndex: Integer): IPerformanceMethod;
       function get_MethodByName(const aName: UnicodeString): IPerformanceMethod;
       function get_MethodCount: Integer;
       function get_Samples: Integer;
       function get_Sampling: Integer;
+
+    private // IBenchmarkInfo
+      function get_Benchmarks: TBenchmarkTypes;
+      function get_Data(const aType: TBenchmarkType): IBenchmarkData;
     end;
 
 
@@ -991,7 +1061,8 @@ interface
       end;
 
 
-      TPerformanceDelegate = class(TDelegate, IPerformanceMethod)
+      TPerformanceDelegate = class(TDelegate, IPerformanceMethod,
+                                              IBenchmarkInfo)
       private
         fSample: Integer;
         fElapsed: array of Int64;
@@ -1009,6 +1080,10 @@ interface
         procedure Finalise;
         procedure DoExecute; override;
         procedure SetStartTime; override;
+
+      private // IBenchmarkInfo
+        function get_Benchmarks: TBenchmarkTypes;
+        function get_Data(const aType: TBenchmarkType): IBenchmarkData;
 
       private // IPerformanceMethod
         function get_Sample(const aIndex: Integer): IPerformanceSample;
@@ -1649,6 +1724,19 @@ interface
     end;
 
 
+    TBenchmark = class(TObject)
+    private
+      function get_Smoketest: ISmoketestRuntime;
+    protected
+      function get_Count: Integer; virtual;
+      function Contains(const aCase: IPerformanceCase): Boolean; virtual; abstract;
+      function GetData(const aCase: IPerformanceCase): IBenchmarkData; virtual; abstract;
+      procedure SaveCase(const aCase: IPerformanceCase); virtual; abstract;
+      property Smoketest: ISmoketestRuntime read get_Smoketest;
+    public
+      procedure Save;
+      property Count: Integer read get_Count;
+    end;
 
 
   const
@@ -1693,6 +1781,7 @@ implementation
     Deltics.StrUtils,
     Deltics.Threads,
   { smoketest: }
+    Deltics.Smoketest.Benchmarks,
     Deltics.Smoketest.Console,
     Deltics.Smoketest.Expectations,
     Deltics.Smoketest.FileWriter,
@@ -1701,17 +1790,16 @@ implementation
 
   const
     CMDLINE_AutoRun                 = '-r';
-    CMDLINE_DisableCases            = '-d';
+    CMDLINE_DisableTestCases        = '-dt';
     CMDLINE_DisablePerformanceCases = '-dp';
-    CMDLINE_EnableCases             = '-e';
-    CMDLINE_NoOutput                = '-no';
+    CMDLINE_DisableCases            = '-dc';
+    CMDLINE_EnableCases             = '-ec';
+    CMDLINE_NoOutput                = '-n';
     CMDLINE_OutputToFile            = '-f';
-    CMDLINE_OutputJSON              = '-json';
-    CMDLINE_OutputPlainText         = '-text';
-    CMDLINE_OutputXML               = '-xml';
     CMDLINE_SilentRunning           = '-s';
-    CMDLINE_ThreadIsolation         = '-ti';
+    CMDLINE_DetailedOutput          = '-d';
     CMDLINE_VerboseOutput           = '-v';
+    CMDLINE_ThreadIsolation         = '-ti';
     CMDLINE_ExpandCases             = '-x';
     CMDLINE_ExpandAll               = '-xa';
     CMDLINE_ExpandEnabled           = '-xe';
@@ -1738,7 +1826,7 @@ implementation
     _InitCase: TTestCase;
 
     _Extensions: TObjectList = NIL;
-    _Suite: TSmoketest = NIL;
+    Project: TSmoketest = NIL;
 
 
   type
@@ -1773,19 +1861,19 @@ implementation
 
   procedure TVCLNotifier.STMStart(var aMessage: TMessage);
   begin
-    _Suite.On_Started.DoEvent;
+    Project.On_Started.DoEvent;
   end;
 
 
   procedure TVCLNotifier.STMFinish(var aMessage: TMessage);
   begin
-    _Suite.On_Finished.DoEvent;
+    Project.On_Finished.DoEvent;
   end;
 
 
   procedure TVCLNotifier.STMUpdate(var aMessage: TMessage);
   begin
-    _Suite.On_Update.DoEventFor(TTestArticle(aMessage.WParam));
+    Project.On_Update.DoEventFor(TTestArticle(aMessage.WParam));
   end;
 
 
@@ -1922,18 +2010,44 @@ implementation
   end;
 
 
-
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function CommandLine: TSmoketestCommandLine;
   begin
-    result := _Suite.CommandLine;
+    result := Project.CommandLine;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function IsTerminating: Boolean;
   begin
-    result := _Suite.Thread.Terminating;
+    result := Project.Thread.Terminating;
+  end;
+
+
+  type
+    TWriteProc = procedure(const aString: String = '');
+
+  var
+    Write: TWriteProc;
+    WriteLn: TWriteProc;
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure DoWrite(const aString: String);
+  begin
+    System.Write(aString);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure DoWriteLn(const aString: String);
+  begin
+    System.WriteLn(aString);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure noopWrite(const aString: String);
+  begin
   end;
 
 
@@ -1945,10 +2059,10 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function Smoketest: ISmoketestSetup;
   begin
-    if NOT _Suite.IsInitialised then
-      _Suite.Initialize{([])};
+    if NOT Project.IsInitialised then
+      Project.Initialize;
 
-    result := _Suite;
+    result := Project;
   end;
 
 
@@ -1990,13 +2104,12 @@ implementation
   begin
     CoInitializeEx(NIL, COINIT_MULTITHREADED);
     try
-      _Suite.StartRun;
+      Project.StartRun;
       try
-        _Suite.Initialise;
-        _Suite.Execute;
+        Project.Execute;
 
       finally
-        _Suite.EndRun;
+        Project.EndRun;
       end;
 
     finally
@@ -2063,8 +2176,8 @@ implementation
     fName   := aName;
     fOwner  := aOwner;
 
-    if NOT Assigned(Owner) and (self <> _Suite) then
-      fOwner := _Suite;
+    if NOT Assigned(Owner) and (self <> Project) then
+      fOwner := Project;
 
     if Assigned(Owner) then
       Owner.Add(self);
@@ -2293,7 +2406,6 @@ implementation
       EXIT;
 
     Inc(fElapsed, aValue);
-    NotifyChange;
 
     if Assigned(Owner) then
       Owner.AddElapsed(aValue);
@@ -2405,15 +2517,14 @@ implementation
 
     // The rest are simple switches that may work in conjunction with the previous
     //  switches or each other
+    DefineSwitch(CMDLINE_DisableTestCases);
     DefineSwitch(CMDLINE_DisablePerformanceCases);
-    DefineSwitch(CMDLINE_VerboseOutput);
-    DefineSwitch(CMDLINE_OutputXML);
-    DefineSwitch(CMDLINE_OutputJSON);
-    DefineSwitch(CMDLINE_OutputPlainText);
     DefineSwitch(CMDLINE_SilentRunning);
     DefineSwitch(CMDLINE_ThreadIsolation);
     DefineSwitch(CMDLINE_ExpandAll);
     DefineSwitch(CMDLINE_ExpandEnabled);
+    DefineSwitch(CMDLINE_DetailedOutput);
+    DefineSwitch(CMDLINE_VerboseOutput);
 
     DefineSwitch(CMDLINE_NoOutput); // Overrides any/all other output settings to disable any output
   end;
@@ -2427,9 +2538,16 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSmoketestCommandLine.get_DisableCases: Boolean;
+  function TSmoketestCommandLine.get_DetailedOutput: Boolean;
   begin
-    result := Switch[CMDLINE_DisableCases].Specified;
+    result := Switch[CMDLINE_DetailedOutput].Specified;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TSmoketestCommandLine.get_DisableTestCases: Boolean;
+  begin
+    result := Switch[CMDLINE_DisableTestCases].Specified;
   end;
 
 
@@ -2437,6 +2555,13 @@ implementation
   function TSmoketestCommandLine.get_DisablePerformanceCases: Boolean;
   begin
     result := Switch[CMDLINE_DisablePerformanceCases].Specified;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TSmoketestCommandLine.get_DisableCases: Boolean;
+  begin
+    result := Switch[CMDLINE_DisableCases].Specified;
   end;
 
 
@@ -2483,12 +2608,6 @@ implementation
   function TSmoketestCommandLine.get_NoOutput: Boolean;
   begin
     result := Switch[CMDLINE_NoOutput].Specified;
-
-    result := result
-           or (IsConsole and (NOT OutputToConsole) and (OutputFilename = ''));
-
-    result := result
-           or (NOT IsConsole and (OutputFilename = ''));
   end;
 
 
@@ -2504,59 +2623,18 @@ implementation
 
     if (result <> '') then
     begin
-      ext := ExtractFileExt(result);
-
       // If there is a valid file extension on the default filename (txt, json, xml)
-      //  then we will change it according to the specified file format
-      //
-      // Otherwise we ADD the appropriate extension
+      //  then we will leave it alone
 
+      ext := ExtractFileExt(result);
       if StringIndex(ext, ['json', 'txt', 'xml']) <> -1 then
-      begin
-        if OutputJSON then
-          result := ChangeFileExt(result, '.json')
-        else if OutputPlainText then
-          result := ChangeFileExt(result, '.txt')
-        else
-          result := ChangeFileExt(result, '.xml');
-      end
-      else if OutputJSON then
-        result := result + '.json'
-      else if OutputPlainText then
-        result := result + '.txt'
-      else
-        result := result + '.xml';
+        EXIT;
+
+      // Otherwise we either change the file extension (if there is one) to XML
+      //  or ADD this file extension
+
+      result := result + '.xml';
     end;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSmoketestCommandLine.get_OutputToConsole: Boolean;
-  begin
-    result := NOT NoOutput and NOT Switch[CMDLINE_OutputToFile].Specified;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSmoketestCommandLine.get_OutputJSON: Boolean;
-  begin
-    result := Switch[CMDLINE_OutputJSON].Specified;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSmoketestCommandLine.get_OutputPlainText: Boolean;
-  begin
-    result := Switch[CMDLINE_OutputPlainText].Specified;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSmoketestCommandLine.get_OutputXML: Boolean;
-  begin
-    result := NOT NoOutput
-               and (Switch[CMDLINE_OutputXML].Specified
-                    or ((NOT OutputPlainText) and (NOT OutputJSON)));
   end;
 
 
@@ -2640,10 +2718,10 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketest.AfterConstruction;
   begin
-    if Assigned(_Suite) then
+    if Assigned(Project) then
       raise Exception.Create('Only one test suite permitted per smoke test');
 
-    _Suite := self;
+    Project := self;
 
     inherited;
   end;
@@ -2660,6 +2738,7 @@ implementation
     FreeAndNIL(fActiveCase);
     FreeAndNIL(fCases);
     FreeAndNIL(fCmdLine);
+    FreeAndNIL(fCompilerVersionResults);
 
     inherited;
   end;
@@ -2689,7 +2768,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketest.get_IsInitialised: Boolean;
   begin
-    result := Assigned(_Suite);
+    result := Assigned(Project);
   end;
 
 
@@ -2797,6 +2876,13 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TSmoketest.Add(const aCase: TTestCaseClass);
+  begin
+      aCase.Create(_InitCase);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketest.Add(const aCases: array of TTestCaseClass);
   var
     i: Integer;
@@ -2819,6 +2905,25 @@ implementation
 
     for i := Low(aCases) to High(aCases) do
       aCases[i].Create(parent);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TSmoketest.AddCompilerVersionResult(const aCase: TPerformanceCase;
+                                                const aTag: UnicodeString;
+                                                const aFilename: UnicodeString);
+  begin
+    if NOT Assigned(fCompilerVersionResults) then
+      fCompilerVersionResults := TCompilerVersionResults.Create;
+
+    TCompilerVersionResults(fCompilerVersionResults).Add(aCase, aTag, aFilename);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TSmoketest.AddPreviousResult(const aCase: TPerformanceCase);
+  begin
+
   end;
 
 
@@ -2885,11 +2990,24 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketest.EndRun;
+  var
+    i: Integer;
   begin
     fTestRun.EndTime := Now;
 
+    for i := 0 to Pred(fCases.Count) do
+      TCase(fCases[i]).Finalise;
+
+    WriteLn('--end run');
+
     if NOT CommandLine.NoOutput then
-      OutputResults;
+      Deltics.Smoketest.FileWriter.OutputResults;
+
+    if State.InState[tsAborted] then
+      EXIT;
+
+    if Assigned(fCompilerVersionResults) then
+      fCompilerVersionResults.Save;
   end;
 
 
@@ -2942,16 +3060,6 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TSmoketest.Initialise;
-  var
-    i: Integer;
-  begin
-    for i := 0 to Pred(fCases.Count) do
-      TCase(fCases[i]).Initialise;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketest.Initialize;
   begin
     TSmoketest.Create;
@@ -2962,7 +3070,10 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketest.get_ActiveCase: TCase;
   begin
-    result := TCase(fActiveCase.Peek);
+    if fActiveCase.Count > 0 then
+      result := TCase(fActiveCase.Peek)
+    else
+      result := NIL;
   end;
 
 
@@ -2995,31 +3106,20 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TSmoketest.OutputResults;
-  begin
-    if CommandLine.NoOutput then
-      EXIT;
-
-    Deltics.Smoketest.FileWriter.OutputResults;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketest.Ready;
   begin
     if IsConsole then
     begin
       CoInitializeEx(NIL, 0);
       try
-        _Suite.Startup;
-        _Suite.StartRun;
+        Project.Startup;
+        Project.StartRun;
         try
-          _Suite.Initialise;
-          _Suite.Execute;
+          Project.Execute;
 
         finally
-          _Suite.EndRun;
-          _Suite.Shutdown;
+          Project.EndRun;
+          Project.Shutdown;
         end;
       finally
         CoUninitialize;
@@ -3027,14 +3127,14 @@ implementation
     end
     else
     begin
-      _Suite.Startup;
+      Project.Startup;
       try
         Application.CreateForm(TSmokeTestConsole, Console);
         Console.Initialize;
         Application.Run;
 
       finally
-        _Suite.Shutdown;
+        Project.Shutdown;
       end;
     end;
   end;
@@ -3156,11 +3256,18 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketest.StartRun;
+  var
+    i: Integer;
   begin
+    WriteLn('--start run');
+
     if Assigned(fTestRun) then
       fTestRun.Clear
     else
       fTestRun := TTestRun.Create;
+
+    for i := 0 to Pred(fCases.Count) do
+      TCase(fCases[i]).Initialise;
 
     fTestRun.fStartTime := Now;
   end;
@@ -3318,13 +3425,23 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TCase.DoFinalise;
+  var
+    cleanup: ICleanupTestRun;
+  begin
+    if GetInterface(ICleanupTestRun, cleanup) then
+      cleanup.CleanupTestRun;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TCase.DoInitialise;
   var
     i: Integer;
-    init: ISetupTestRun;
+    setup: ISetupTestRun;
   begin
-    if GetInterface(ISetupTestRun, init) then
-      init.SetupTestRun;
+    if GetInterface(ISetupTestRun, setup) then
+      setup.SetupTestRun;
 
     State.Leave(tsAborted);
     State.Leave(tsError);
@@ -3343,20 +3460,20 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TCase.DoShutdown;
   var
-    init: ICleanupSmoketest;
+    init: ICleanupProject;
   begin
-    if GetInterface(ICleanupSmoketest, init) then
-      init.CleanupSmoketest;
+    if GetInterface(ICleanupProject, init) then
+      init.CleanupProject;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TCase.DoStartup;
   var
-    init: ISetupSmoketest;
+    init: ISetupProject;
   begin
-    if GetInterface(ISetupSmoketest, init) then
-      init.SetupSmoketest;
+    if GetInterface(ISetupProject, init) then
+      init.SetupProject;
   end;
 
 
@@ -3373,27 +3490,21 @@ implementation
     try
       Inc(fRunCount);
 
-      _Suite.ActiveCase := self;
+      Project.ActiveCase := self;
       try
         if GetInterface(ISetupTestCase, setup) then
           setup.Setup;
 
         try
-          if IsConsole and NOT CommandLine.SilentRunning then
-          begin
-            WriteLn('');
-            WriteLn(NameForConsole);
-          end;
           DoExecute;
 
         finally
           if GetInterface(ICleanupTestCase, cleanup) then
             cleanup.Cleanup;
-
         end;
 
       finally
-        _Suite.ActiveCase := NIL;
+        Project.ActiveCase := NIL;
       end;
 
     finally
@@ -3410,11 +3521,38 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TCase.Finalise;
+  var
+    i: Integer;
+    sub: TCase;
+  begin
+    DoFinalise;
+
+    for i := 0 to Pred(Count) do
+      if Child[i].ArticleType in [atTestCase, atPerformanceCase] then
+      begin
+        Child[i].AsObject(sub, TCase);
+        sub.Finalise;
+      end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TCase.Initialise;
+  var
+    i: Integer;
+    sub: TCase;
   begin
     State.Enter(tsInitialising);
     try
       DoInitialise;
+
+      for i := 0 to Pred(Count) do
+        if Child[i].ArticleType in [atTestCase, atPerformanceCase] then
+        begin
+          Child[i].AsObject(sub, TCase);
+          sub.Initialise;
+        end;
 
     finally
       State.Leave(tsInitialising);
@@ -3643,7 +3781,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTestCase.get_Smoketest: ISmoketestMetadata;
   begin
-    result := _Suite as ISmoketestMetadata;
+    result := Project as ISmoketestMetadata;
   end;
 
 
@@ -3671,6 +3809,8 @@ implementation
   var
     i: Integer;
   begin
+    WriteLn(NameForConsole);
+
     try
       ExecuteDelegates(fInitialDelegates);
 
@@ -3717,9 +3857,6 @@ implementation
       ClearState(Delegate[i].State, tsError);
       ClearState(Delegate[i].State, tsAborted);
     end;
-
-    for i := 0 to Pred(fCases.Count) do
-      TTestCase(fCases[i]).Initialise;
   end;
 
 
@@ -4208,25 +4345,22 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTestDelegate.DoExecute;
   var
-    start: Cardinal;
+    start: Int64;
     setup: ISetupTest;
     cleanup: ICleanupTest;
     output: Integer;
   begin
-    if IsConsole and NOT CommandLine.SilentRunning then
-      Write(NameForConsole + '...');
-
-
     try
       TTestCase(Owner).fActiveDelegate := self;
 
       if TestCase.GetInterface(ISetupTest, setup) then
         setup.SetupTest(self);
+
       try
         try
           TMethod(fMethod).Data := Owner;
 
-          output := _Suite.fTestRun.fOutput.Count;
+          output := Project.fTestRun.fOutput.Count;
 
         {$ifdef LeakReport}
           FastMM4.LogMemoryManagerStateToFile(Name + '.before.txt');
@@ -4243,7 +4377,7 @@ implementation
           FastMM4.LogMemoryManagerStateToFile(Name + '.after.txt');
         {$endif}
 
-          if _Suite.fTestRun.fOutput.Count = output then
+          if Project.fTestRun.fOutput.Count = output then
             State.Enter(tsNotImplemented);
 
         except
@@ -4258,20 +4392,24 @@ implementation
         end;
 
       finally
-        if IsConsole and NOT CommandLine.SilentRunning then
-        begin
-          if Aborted then
-            WriteLn('aborted')
-          else if HasPasses and NOT HasErrors and NOT HasFailures then
-            WriteLn('ok')
-          else if HasErrors then
-            WriteLn('error')
-          else if HasFailures then
-            WriteLn('failed')
-          else
-            WriteLn('no tests performed');
-        end;
+        Write();
 
+
+        if State.InState[tsNotImplemented] then
+          WriteLn(NameForConsole + '... not implemented')
+        else if Aborted then
+          WriteLn(NameForConsole + '... aborted')
+        else if HasPasses and NOT HasErrors and NOT HasFailures then
+        begin
+          if CommandLine.VerboseOutput then
+            WriteLn(NameForConsole + '... ok')
+        end
+        else if HasErrors then
+          WriteLn(NameForConsole + '... error')
+        else if HasFailures then
+          WriteLn(NameForConsole + '... failed')
+        else
+          WriteLn(NameForConsole + '... no result');
 
         try
           if TestCase.GetInterface(ICleanupTest, cleanup) then
@@ -4368,7 +4506,8 @@ implementation
     fMode     := aMode;
     fSamples  := aSamples;
 
-    fDelegates := TObjectList.Create(TRUE);
+    fCaseComparisons  := TCompareCaseResults.Create;
+    fDelegates        := TObjectList.Create(TRUE);
 
     Enabled := NOT CommandLine.DisablePerformanceCases;
 
@@ -4400,8 +4539,44 @@ implementation
   destructor TPerformanceCase.Destroy;
   begin
     FreeAndNIL(fDelegates);
+    FreeAndNIL(fCaseComparisons);
 
     inherited;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TPerformanceCase.CompilerVersions(const aResultsFile: UnicodeString;
+                                              const aTag: UnicodeString);
+  begin
+    Project.AddCompilerVersionResult(self, aTag, aResultsFile);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TPerformanceCase.PreviousResults;
+  begin
+    Project.AddPreviousResult(self);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TPerformanceCase.WithCase(const aCaseName: UnicodeString);
+  var
+    c: TPerformanceCase;
+  begin
+    c := TPerformanceCase(Project.FindArticle('\' + aCaseName));
+    if NOT Assigned(c) then
+      raise Exception.Create('Case ''' + aCaseName + ''' not found');
+
+    if NOT TCompareCaseResults(fCaseComparisons).Contains(self) then
+      TCompareCaseResults(fCaseComparisons).Add(self);
+
+    if NOT TCompareCaseResults(c.fCaseComparisons).Contains(c) then
+      TCompareCaseResults(c.fCaseComparisons).Add(c);
+
+    TCompareCaseResults(fCaseComparisons).Add(c);
+    TCompareCaseResults(c.fCaseComparisons).Add(self);
   end;
 
 
@@ -4421,6 +4596,29 @@ implementation
   function TPerformanceCase.get_Count: Integer;
   begin
     result := DelegateCount;
+  end;
+
+
+  {  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TPerformanceCase.get_Benchmarks: TBenchmarkTypes;
+  begin
+    result := [];
+
+    if Project.CompilerVersionResults.Contains(self) then
+      Include(result, btCompilerVersions);
+
+    if fCaseComparisons.Count > 0 then
+      Include(result, btCaseComparison);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TPerformanceCase.get_Data(const aType: TBenchmarkType): IBenchmarkData;
+  begin
+    case aType of
+      btCompilerVersions  : result := Project.CompilerVersionResults.GetData(self);
+      btCaseComparison    : result := fCaseComparisons.GetData(self);
+    end;
   end;
 
 
@@ -4523,6 +4721,7 @@ implementation
     if IsTerminating then
       EXIT;
 
+    Write(NameForConsole + '...');
     try
       for i := 0 to Pred(DelegateCount) do
         TPerformanceDelegate(Delegate[i]).Prepare(fSamples);
@@ -4545,10 +4744,31 @@ implementation
       end;
 
     finally
+      WriteLn;
+
       fSampling := 0;
       NotifyChange;
     end;
   end;
+
+
+  procedure TPerformanceCase.DoStartup;
+  var
+    compare: ICompareResults;
+  begin
+    inherited;
+
+    if GetInterface(ICompareResults, compare) then
+      compare.DefineComparisons(self);
+  end;
+
+
+
+
+
+
+
+
 
 
 
@@ -4644,19 +4864,22 @@ implementation
   var
     hProcess: Cardinal;
     terminalValue: Cardinal;
-    start: Cardinal;
+    start: Int64;
     setup: ISetupTest;
     cleanup: ICleanupTest;
+    elapsed: Cardinal;
+    secs: Cardinal;
+    tenths: Cardinal;
   begin
     TestCase.GetInterface(ISetupTest, setup);
     TestCase.GetInterface(ICleanupTest, cleanup);
 
-    if IsConsole and NOT CommandLine.SilentRunning then
-      Write(NameForConsole + '...');
-
     try
       try
         TMethod(fMethod).Data := Owner;
+
+        secs    := 0;
+        tenths  := 0;
 
         fIteration := 0;
         NotifyChange;
@@ -4669,26 +4892,35 @@ implementation
                               if IsTerminating then
                                 EXIT;
 
-                              // FlushInstructionCache(hProcess, NIL, 0);
+                              FlushInstructionCache(hProcess, NIL, 0);
 
                               if Assigned(setup) then
-                                setup.SetupTest(self);
+                                setup.SetupTest(self as ITestMethod);
 
                               if (fIteration = 0) then
                                 SetStartTime;
 
                               start := HPC.Value;
                               Method;
-                              AddElapsed(HPC.Value - Start);
+                              elapsed := HPC.Value - Start;
+                              AddElapsed(elapsed);
 
-                              if IsConsole and NOT CommandLine.SilentRunning then
+                              if (elapsed div 1000) > secs then
+                              begin
                                 Write('.');
+                                secs := elapsed div 1000;
+                              end;
 
                               if Assigned(cleanup) then
-                                cleanup.CleanupTest(self);
+                                cleanup.CleanupTest(self as ITestMethod);
 
                               Inc(fIteration);
-                              NotifyChange;
+
+                              if (elapsed div 100) > tenths then
+                              begin
+                                NotifyChange;
+                                tenths := elapsed div 100;
+                              end;
 
                             until (fIteration = terminalValue);
                           end;
@@ -4702,31 +4934,38 @@ implementation
                               FlushInstructionCache(hProcess, NIL, 0);
 
                               if Assigned(setup) then
-                                setup.SetupTest(self);
+                                setup.SetupTest(self as ITestMethod);
 
                               if (fIteration = 0) then
                                 SetStartTime;
 
                               start := HPC.Value;
                               Method;
-                              AddElapsed(HPC.Value - Start);
+                              elapsed := HPC.Value - Start;
+                              AddElapsed(elapsed);
 
-                              if IsConsole and NOT CommandLine.SilentRunning then
+                              if (elapsed div 1000) > secs then
+                              begin
                                 Write('.');
+                                secs := elapsed div 1000;
+                              end;
 
                               if Assigned(cleanup) then
-                                cleanup.CleanupTest(self);
+                                cleanup.CleanupTest(self as ITestMethod);
 
                               Inc(fIteration);
-                              NotifyChange;
+
+                              if (elapsed div 100) > tenths then
+                              begin
+                                NotifyChange;
+                                tenths := elapsed div 100;
+                              end;
 
                             until (Elapsed >= terminalValue);
                           end;
         end;
 
       finally
-        if IsConsole and NOT CommandLine.SilentRunning then
-          WriteLn;
       end;
 
     except
@@ -4756,6 +4995,25 @@ implementation
       end
       else if (Iteration > 0) then
         result := 1000 * ((Elapsed / HPC.Frequency) / Iteration);
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TPerformanceDelegate.get_Benchmarks: TBenchmarkTypes;
+  begin
+    result := [];
+
+    if Project.CompilerVersionResults.Contains(get_TestCase) then
+      Include(result, btCompilerVersions);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TPerformanceDelegate.get_Data(const aType: TBenchmarkType): IBenchmarkData;
+  begin
+    case aType of
+      btCompilerVersions  : result := Project.CompilerVersionResults.GetData(get_TestCase);
     end;
   end;
 
@@ -4935,7 +5193,7 @@ implementation
     fText := aText;
     fTime := Now;
 
-    _Suite.TestRun.Output.Add(self);
+    Project.TestRun.Output.Add(self);
   end;
 
 
@@ -5172,7 +5430,7 @@ implementation
     inspection: TInspector;
   begin
     if NOT SameGUID(aIID, IInspector)
-     and _Suite.FindExtension(aIID, extClass) then
+     and Project.FindExtension(aIID, extClass) then
     begin
       result      := 0;
       inspection  := extClass.Create(TestCase, Name);
@@ -5411,7 +5669,7 @@ implementation
     extClass: TExpectationClass;
     expectation: TExpectation;
   begin
-    if _Suite.FindExtension(aIID, extClass) then
+    if Project.FindExtension(aIID, extClass) then
     begin
       result      := 0;
       expectation := extClass.Create(self);
@@ -5427,7 +5685,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTest.Replace(const aOld, aNew: TExpectation);
   begin
-    _Suite.TestRun.Output.Replace(aOld, aNew);
+    Project.TestRun.Output.Replace(aOld, aNew);
   end;
 
 
@@ -5585,7 +5843,7 @@ implementation
     fSubject      := aSubject;
     fSubjectName  := aSubject.Name;
 
-//    if (soDiagnostics in _Suite.Options) then
+//    if (soDiagnostics in Project.Options) then
 //      fSubjectName := '[' + ClassName + ']' + fSubjectName;
   end;
 
@@ -5811,7 +6069,7 @@ implementation
     if NOT OK then
     begin
       TTestCase(Subject.Test.Owner).AbortCase('Tests cannot proceed');
-      _Suite.Abort;
+      Project.Abort;
     end;
   end;
 
@@ -5978,12 +6236,48 @@ implementation
 { ------------------------------------------------------------------------------------------------ }
 
 
+{ TBenchmark }
+
+  function TBenchmark.get_Count: Integer;
+  begin
+    result := 0;
+  end;
+
+
+  function TBenchmark.get_Smoketest: ISmoketestRuntime;
+  begin
+    result := Project as ISmoketestRuntime;
+  end;
+
+
+  procedure TBenchmark.Save;
+  var
+    i: Integer;
+  begin
+    for i := 0 to Pred(Project.get_CaseCount) do
+      if Project.get_Case(i).ArticleType = atPerformanceCase then
+        SaveCase(Project.get_Case(i) as IPerformanceCase);
+  end;
+
+
+
 initialization
-  if NOT IsConsole then
+  Write   := noopWrite;
+  WriteLn := noopWrite;
+
+  if IsConsole then
+  begin
+    if NOT CommandLine.SilentRunning then
+    begin
+      Write   := DoWrite;
+      WriteLn := DoWriteLn;
+    end;
+  end
+  else
     _VCL := TVCLNotifier.Create;
 
 finalization
   _Extensions.Free;
-  _Suite.Free;
+  Project.Free;
   _VCL.Free;
 end.
