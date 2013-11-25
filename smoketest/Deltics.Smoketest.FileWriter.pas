@@ -52,7 +52,9 @@
 interface
 
   uses
+  { vcl: }
     Classes,
+  { smoketest: }
     Deltics.Smoketest;
 
 
@@ -115,9 +117,14 @@ interface
 implementation
 
   uses
+  { vcl: }
     SysUtils,
+    Windows,
+  { deltics: }
     Deltics.DateUtils,
-    Deltics.SysUtils;
+    Deltics.Strings,
+    Deltics.SysUtils,
+    Deltics.VersionInfo;
 
 
   const
@@ -133,11 +140,14 @@ implementation
     fTestRun      := aSmoketest.TestRun;
     fResults      := fTestRun.Output;      // Could this be made: aSmoketest.TestRun.Results ?
 
-    fToConsole := IsConsole and CommandLine.OutputToConsole;
     fToFile    := (CommandLine.OutputFilename <> '');
+    fToConsole := IsConsole and NOT CommandLine.NoOutput and NOT fToFile;
 
-    fDetailed  := TRUE; // CommandLine,DetailedOutput;  TODO: optional - levels of verbosity
+    if NOT ToFile and NOT ToConsole then
+      EXIT;
+
     fVerbose   := CommandLine.VerboseOutput;
+    fDetailed  := fVerbose or CommandLine.DetailedOutput;
 
     if ToFile then
       fFile := TFileStream.Create(CommandLine.OutputFilename, fmOpenWrite or fmCreate)
@@ -237,6 +247,9 @@ implementation
 
         fTests.Add(testMethod);
 
+        if Detailed and NOT Verbose then
+          fTestsToReport.Add(testMethod);
+
         if testMethod.HasFailures
          or testMethod.HasErrors
          or testMethod.Aborted then
@@ -276,7 +289,7 @@ implementation
 
     if ToFile then
     begin
-      utf8 := utf8 + #13;
+      utf8 := utf8 + #13#10;
       fFile.Write(utf8[1], Length(utf8));
     end;
 
@@ -315,8 +328,9 @@ implementation
     result: IResult;
     test: ITestMethod;
     testCase: ITestCase;
-    caseName: String;
-    testName: String;
+    caseName: UnicodeString;
+    testName: UnicodeString;
+    tag: UnicodeString;
   begin
     if aList.Count = 0 then
     begin
@@ -347,8 +361,11 @@ implementation
       begin
         if (caseName <> '') then
         begin
-          Indent(-1);
-          Write('</test>');
+          if Verbose then
+          begin
+            Indent(-1);
+            Write('</test>');
+          end;
           Indent(-1);
           Write('</case>');
         end;
@@ -362,7 +379,7 @@ implementation
 
       if (test.DisplayName <> testName) then
       begin
-        if (testName <> '') then
+        if (testName <> '') and Verbose then
         begin
           Indent(-1);
           Write('</test>');
@@ -370,47 +387,57 @@ implementation
 
         testName  := test.DisplayName;
 
-        Write('<test ref="' + test.Reference + '" name="' + XMLEncode(testName) + '">');
-        Indent(1);
+        if Verbose then
+        begin
+          Write('<test ref="' + test.Reference + '" name="' + XMLEncode(testName) + '">');
+          Indent(1);
+        end
+        else
+          Write('<test ref="' + test.Reference + '" name="' + XMLEncode(testName) + '" />');
       end;
 
       if NOT Assigned(result) then
         CONTINUE;
 
-      Write('<expectation description="' + XMLEncode(result.Description) + '"');
+      tag := '<expectation description="' + XMLEncode(result.Description) + '"';
       if NOT result.OK then
       begin
         if result.Evaluated then
         begin
           if (result.ExpectedToFail) then
-            Write('             result="failed as expected" />')
+            Write(tag + ' result="failed as expected" />')
           else
           begin
             if (Verbose or Detailed) and ((result.Expected <> '') or (result.Actual <> '')) then
             begin
-              Write('             result="failed">');
+              Write(tag + ' result="failed">');
               Indent(1);
               if result.Expected <> '' then
                 Write('<expected>%s</expected>', [result.Expected]);
               if result.Actual <> '' then
                 Write('<actual>%s</actual>', [result.Actual]);
+              Indent(-1);
               Write('</expectation>');
             end
             else
-              Write('             result="failed" />');
+              Write(tag + ' result="failed" />');
           end;
         end
         else
-          Write('             result="none" />');
+          Write(tag + ' result="none" />');
       end
       else
-        Write('             result="passed" />');
+        Write(tag + ' result="passed" />');
     end;
 
     if (aList.Count > 0) then
     begin
-      Indent(-1);
-      Write('</test>');
+      if Verbose then
+      begin
+        Indent(-1);
+        Write('</test>');
+      end;
+
       Indent(-1);
       Write('</case>');
     end;
@@ -421,9 +448,33 @@ implementation
 
 
   procedure TXMLFileWriter.Write;
+  var
+    hEXE: THandle;
+    filetime: TFileTime;
+    systemtime: TSystemTime;
+    notUsed: TFileTime;
+    ver: TVersionInfo;
   begin
     Write('<?xml version="1.0" encoding="utf-8" ?>');
-    Write('<smoketest project="' + ChangeFileExt(ExtractFileName(ParamStr(0)), '') + '">');
+    Write('<smoketest project="' + ChangeFileExt(ExtractFileName(ParamStr(0)), ''));
+
+    ver   := NIL;
+    hEXE  := CreateFile(PChar(ParamStr(0)), GENERIC_READ, 0, NIL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    try
+      ver := TVersionInfo.Create;
+      if ver.HasInfo then
+        Write('           build="' + ver.FileVersion + '"');
+
+      GetFileTime(hEXE, @notUsed, @notUsed, @filetime);
+      FileTimeToSystemTime(filetime, systemtime);
+
+      Write('           created="' + DatetimeToISO8601(UTCToLocal(SystemTimeToDateTime(systemtime))) + '">');
+
+    finally
+      CloseHandle(hEXE);
+      ver.Free;
+    end;
+
     try
       Indent(1);
       Write('<summary>');
