@@ -1024,6 +1024,7 @@ implementation
       ceANSI: result := (Stream.Read(aChar, 1) = 1);
 
     else
+      result := FALSE;
       ASSERT(FALSE, 'Not yet implemented');
 
       {
@@ -1062,11 +1063,11 @@ implementation
   function TUnicodeStream.ReadChar(var aChar: WideChar): Boolean;
   begin
     case Encoding of
-      ceUTF16LE : self.Read(aChar, 2);
+      ceUTF16LE : result := self.Read(aChar, 2) = 2;
 
       ceUTF16,
       ceUTF16BE : begin
-                    self.Read(aChar, 2);
+                    result := self.Read(aChar, 2) = 2;
                     aChar := WideChar(ReverseBytes(Word(aChar)));
                   end;
     else
