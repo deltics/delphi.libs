@@ -244,13 +244,14 @@ interface
     end;
 
 
+(*
     function CharLower(const aChar: WideChar): WideChar;
     function CharUpper(const aChar: WideChar): WideChar;
     function IsCharLower(const aChar: ANSIChar): Boolean; overload;
     function IsCharLower(const aChar: WideChar): Boolean; overload;
     function IsCharUpper(const aChar: ANSIChar): Boolean; overload;
     function IsCharUpper(const aChar: WideChar): Boolean; overload;
-
+*)
 
     function ReadCodePoint(const aStream: TStream;
                            var aCodePoint: Cardinal;
@@ -780,6 +781,7 @@ implementation
 
 
 
+(*
   function CharLower(const aChar: WideChar): WideChar;
   var
     wc: array[0..1] of WideChar;
@@ -824,7 +826,7 @@ implementation
   begin
     result := Windows.IsCharUpperW(aChar);
   end;
-
+*)
 
 
 
