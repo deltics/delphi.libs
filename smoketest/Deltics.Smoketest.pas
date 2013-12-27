@@ -115,6 +115,7 @@ interface
 
     IPerformanceCaseAddition = interface;
     IPerformanceCaseDuration = interface;
+    IPerformanceCaseDurationOrRepetition = interface;
     Evaluation   = interface;
     IExpectation  = interface;
     IReason       = interface;
@@ -358,7 +359,8 @@ interface
       procedure Add(const aCase: TTestCaseClass); overload;
       procedure Add(const aCases: array of TTestCaseClass); overload;
       procedure Add(const aParentCase: TTestCaseClass; const aCases: array of TTestCaseClass); overload;
-      function AverageTime(const aCases: array of TPerformanceCaseClass; const aRepeats: Integer): IPerformanceCaseAddition; overload;
+      function Compare(const aCases: array of TPerformanceCaseClass): IPerformanceCaseAddition;
+//      function AverageTime(const aCases: array of TPerformanceCaseClass; const aRepeats: Integer): IPerformanceCaseAddition; overload;
       function Time(const aCases: array of TPerformanceCaseClass): IPerformanceCaseAddition; overload;
     end;
 
@@ -540,14 +542,19 @@ interface
     IDefineComparisons = interface
     ['{0E4C9DC1-CDAF-43C2-B158-43EE8691B97B}']
       procedure CompilerVersions(const aResultsFile: UnicodeString; const aTag: UnicodeString = '');
-      procedure WithCase(const aCaseName: UnicodeString);
-      procedure PreviousResults;
+      procedure WithResult(const aBaseline: UnicodeString);
     end;
 
 
     ICompareResults = interface
     ['{1A1701DA-2CD9-4DB2-8CFB-DE50FCFE9A9B}']
       procedure DefineComparisons(const aCompare: IDefineComparisons);
+    end;
+
+
+    ISaveResults = interface
+    ['{A3171F7C-C127-4F54-8255-1A5483047EF0}']
+      function ResultTag: UnicodeString;
     end;
 
 
@@ -690,13 +697,19 @@ interface
 
     IPerformanceCaseAddition = interface
     ['{BDB38494-97F7-47F3-83D5-871ABE82C8B4}']
-      function RunningFor(const aNumber: Integer): IPerformanceCaseDuration;
+      function RunningFor(const aNumber: Integer): IPerformanceCaseDurationOrRepetition;
     end;
 
     IPerformanceCaseDuration = interface
     ['{44AA8CB7-869B-4C1A-A0A5-4B7D17D2B22B}']
       procedure Iterations;
+      function RunsOf(const aNumber: Integer): IPerformanceCaseDuration;
       procedure Seconds;
+    end;
+
+    IPerformanceCaseDurationOrRepetition = interface(IPerformanceCaseDuration)
+    ['{FE53ED65-0AF5-4B11-BC91-198D077E262E}']
+      function RunsOf(const aNumber: Integer): IPerformanceCaseDuration;
     end;
 
 
@@ -776,8 +789,8 @@ interface
       procedure Shutdown;
       procedure EndRun;
       procedure StartRun;
-      procedure AddCompilerVersionResult(const aCase: TPerformanceCase; const aTag: UnicodeString; const aFilename: UnicodeString);
-      procedure AddPreviousResult(const aCase: TPerformanceCase);
+      procedure AddCompilerVersionResult(const aCase: TPerformanceCase; const aFilename: UnicodeString; const aTag: UnicodeString);
+      procedure AddWithResult(const aCase: TPerformanceCase; const aBaseline: UnicodeString);
 
       property CompilerVersionResults: TBenchmark read fCompilerVersionResults;
       property On_Finished: TMultiCastNotify read fOn_Finished;
@@ -825,7 +838,7 @@ interface
       procedure Add(const aCases: array of TTestCaseClass); overload;
       procedure Add(const aParent: TTestCaseClass;
                     const aCases: array of TTestCaseClass); overload;
-      function AverageTime(const aCases: array of TPerformanceCaseClass; const aRepeats: Integer): IPerformanceCaseAddition; overload;
+      function Compare(const aCases: array of TPerformanceCaseClass): IPerformanceCaseAddition; overload;
       function Time(const aCases: array of TPerformanceCaseClass): IPerformanceCaseAddition; overload;
     end;
 
@@ -962,6 +975,7 @@ interface
                                     IBenchmarkInfo)
     private
       fCaseComparisons: TBenchmark;
+      fBaselineResults: TBenchmark;
       fDelegates: TObjectList;
       fN: Integer;
       fMode: TPerformanceMode;
@@ -974,6 +988,7 @@ interface
       function get_DelegateCount: Integer; override;
       procedure Add(const aObject: TTestArticle); override;
       procedure Remove(const aObject: TTestArticle); override;
+      procedure SaveResults(const aTag: UnicodeString);
       procedure DoExecute; override;
       procedure DoStartup; override;
       constructor Create(const N: Integer;
@@ -987,9 +1002,8 @@ interface
 
     private // IDefineComparisons
       procedure CompilerVersions(const aResultsFile: UnicodeString; const aTag: UnicodeString);
-      procedure PreviousResults;
-      procedure WithCase(const aCaseName: UnicodeString);
-
+      procedure WithResult(const aBaseline: UnicodeString);
+      
     private // IPerformanceCase
       function get_MethodByIndex(const aIndex: Integer): IPerformanceMethod;
       function get_MethodByName(const aName: UnicodeString): IPerformanceMethod;
@@ -1935,36 +1949,42 @@ implementation
 
   type
     TPerformanceAdder = class(TCOMInterfacedObject, IPerformanceCaseAddition,
-                                                    IPerformanceCaseDuration)
+                                                    IPerformanceCaseDuration,
+                                                    IPerformanceCaseDurationOrRepetition)
     private
-      fHasBeenAdded: Boolean;
       fCases: array of TPerformanceCaseClass;
+      fCompareResults: Boolean;
+      fHasBeenAdded: Boolean;
       fN: Integer;
       fRepeats: Integer;
+      procedure SetupComparison;
     public // IPerformanceCaseAddition
-      function RunningFor(const aN: Integer): IPerformanceCaseDuration;
+      function RunningFor(const aN: Integer): IPerformanceCaseDurationOrRepetition;
     public // IPerformanceCaseDuration
       procedure Seconds;
       procedure Iterations;
+      function RunsOf(const aN: Integer): IPerformanceCaseDuration;
     public
-      constructor Create(const aCases: array of TPerformanceCaseClass; const aRepeats: Integer = 1);
+      constructor Create(const aCases: array of TPerformanceCaseClass; const aCompareResults: Boolean = FALSE);
       destructor Destroy; override;
     end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TPerformanceAdder.Create(const aCases: array of TPerformanceCaseClass;
-                                       const aRepeats: Integer);
+                                       const aCompareResults: Boolean);
   var
     i: Integer;
   begin
     inherited Create;
 
-    fRepeats := aRepeats;
+    fRepeats := 1;
     SetLength(fCases, Length(aCases));
 
     for i := 0 to Pred(Length(aCases)) do
       fCases[i] := aCases[i];
+
+    fCompareResults := aCompareResults;
   end;
 
 
@@ -1979,7 +1999,15 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TPerformanceAdder.RunningFor(const aN: Integer): IPerformanceCaseDuration;
+  function TPerformanceAdder.RunsOf(const aN: Integer): IPerformanceCaseDuration;
+  begin
+    fRepeats := aN;
+    result   := self;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TPerformanceAdder.RunningFor(const aN: Integer): IPerformanceCaseDurationOrRepetition;
   begin
     fN := aN;
     result := self;
@@ -1995,6 +2023,67 @@ implementation
       fCases[i].Create(fN, pmSeconds, fRepeats);
 
     fHasBeenAdded := TRUE;
+    SetupComparison;
+  end;
+
+
+(*
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TPerformanceCase.WithCase(const aCase: TPerformanceCaseClass);
+  var
+    c: TPerformanceCase;
+  begin
+    c := TPerformanceCase(Project.FindArticle('\' + aCase.ClassName));
+    if NOT Assigned(c) then
+      raise Exception.Create('Case ''' + aCase.ClassName + ''' not found');
+
+    if NOT TCompareCaseResults(fCaseComparisons).Contains(self) then
+      TCompareCaseResults(fCaseComparisons).Add(self);
+
+    if NOT TCompareCaseResults(c.fCaseComparisons).Contains(c) then
+      TCompareCaseResults(c.fCaseComparisons).Add(c);
+
+    if NOT TCompareCaseResults(fCaseComparisons).Contains(c) then
+      TCompareCaseResults(fCaseComparisons).Add(c);
+
+    if NOT TCompareCaseResults(c.fCaseComparisons).Contains(self) then
+      TCompareCaseResults(c.fCaseComparisons).Add(self);
+  end;
+*)
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TPerformanceAdder.SetupComparison;
+  var
+    i, j: Integer;
+    tests: array of TPerformanceCase;
+    comparison: TCompareCaseResults;
+  begin
+    if NOT fCompareResults then
+      EXIT;
+
+    for i := Low(fCases) to High(fCases) do
+      for j := Succ(i) to High(fCases) do
+        if (fCases[i] = fCases[j]) then
+          fCases[j] := NIL;
+
+    SetLength(tests, Length(fCases));
+    for i := Low(fCases) to High(fCases) do
+      if fCases[i] <> NIL then
+        tests[i] := TPerformanceCase(Project.FindArticle('\' + fCases[i].ClassName));
+
+    for i := Low(tests) to High(tests) do
+    begin
+      if tests[i] = NIL then
+        CONTINUE;
+
+      comparison := TCompareCaseResults(tests[i].fCaseComparisons);
+
+      for j := Low(tests) to High(tests) do
+      begin
+        if (tests[j] <> NIL) then
+          comparison.Add(tests[j]);
+      end;
+    end;
   end;
 
 
@@ -2007,6 +2096,7 @@ implementation
       fCases[i].Create(fN, pmIterations, fRepeats);
 
     fHasBeenAdded := TRUE;
+    SetupComparison;
   end;
 
 
@@ -2910,20 +3000,21 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketest.AddCompilerVersionResult(const aCase: TPerformanceCase;
-                                                const aTag: UnicodeString;
-                                                const aFilename: UnicodeString);
+                                                const aFilename: UnicodeString;
+                                                const aTag: UnicodeString);
   begin
     if NOT Assigned(fCompilerVersionResults) then
       fCompilerVersionResults := TCompilerVersionResults.Create;
 
-    TCompilerVersionResults(fCompilerVersionResults).Add(aCase, aTag, aFilename);
+    TCompilerVersionResults(fCompilerVersionResults).Add(aCase, aFilename, aTag);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TSmoketest.AddPreviousResult(const aCase: TPerformanceCase);
+  procedure TSmoketest.AddWithResult(const aCase: TPerformanceCase;
+                                     const aBaseline: UnicodeString);
   begin
-
+    // TODO: AddWithResult
   end;
 
 
@@ -2974,10 +3065,9 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TSmoketest.AverageTime(const aCases: array of TPerformanceCaseClass;
-                                  const aRepeats: Integer): IPerformanceCaseAddition;
+  function TSmoketest.Compare(const aCases: array of TPerformanceCaseClass): IPerformanceCaseAddition;
   begin
-    result := TPerformanceAdder.Create(aCases, aRepeats);
+    result := TPerformanceAdder.Create(aCases, TRUE);
   end;
 
 
@@ -4507,6 +4597,7 @@ implementation
     fSamples  := aSamples;
 
     fCaseComparisons  := TCompareCaseResults.Create;
+
     fDelegates        := TObjectList.Create(TRUE);
 
     Enabled := NOT CommandLine.DisablePerformanceCases;
@@ -4540,6 +4631,7 @@ implementation
   begin
     FreeAndNIL(fDelegates);
     FreeAndNIL(fCaseComparisons);
+    FreeAndNIL(fBaselineResults);
 
     inherited;
   end;
@@ -4549,34 +4641,24 @@ implementation
   procedure TPerformanceCase.CompilerVersions(const aResultsFile: UnicodeString;
                                               const aTag: UnicodeString);
   begin
-    Project.AddCompilerVersionResult(self, aTag, aResultsFile);
+    Project.AddCompilerVersionResult(self, aResultsFile, aTag);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TPerformanceCase.PreviousResults;
+  procedure TPerformanceCase.WithResult(const aBaseline: UnicodeString);
   begin
-    Project.AddPreviousResult(self);
+    if Assigned(fBaselineResults) then
+      raise ESmoketest.Create('Baseline results comparison already defined using result set ''blah''');
+
+    fBaselineResults := TBaselineResults.Create(aBaseline);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TPerformanceCase.WithCase(const aCaseName: UnicodeString);
-  var
-    c: TPerformanceCase;
+  procedure TPerformanceCase.SaveResults(const aTag: UnicodeString);
   begin
-    c := TPerformanceCase(Project.FindArticle('\' + aCaseName));
-    if NOT Assigned(c) then
-      raise Exception.Create('Case ''' + aCaseName + ''' not found');
 
-    if NOT TCompareCaseResults(fCaseComparisons).Contains(self) then
-      TCompareCaseResults(fCaseComparisons).Add(self);
-
-    if NOT TCompareCaseResults(c.fCaseComparisons).Contains(c) then
-      TCompareCaseResults(c.fCaseComparisons).Add(c);
-
-    TCompareCaseResults(fCaseComparisons).Add(c);
-    TCompareCaseResults(c.fCaseComparisons).Add(self);
   end;
 
 
@@ -4585,10 +4667,12 @@ implementation
   begin
     result := inherited SetDisplayName;
 
+(*
     case fMode of
       pmIterations  : result := Format('%s for %d iterations', [result, N]);
       pmSeconds     : result := Format('%s for %d seconds', [result, N]);
     end;
+*)
   end;
 
 
@@ -4609,6 +4693,9 @@ implementation
 
     if fCaseComparisons.Count > 0 then
       Include(result, btCaseComparison);
+
+    if fBaselineResults.Count > 0 then
+      Include(result, btCaseHistory);
   end;
 
 
@@ -4717,6 +4804,7 @@ implementation
   procedure TPerformanceCase.DoExecute;
   var
     i, j: Integer;
+    save: ISaveResults;
   begin
     if IsTerminating then
       EXIT;
@@ -4742,6 +4830,9 @@ implementation
           TPerformanceDelegate(Delegate[j]).Execute(i);
         end;
       end;
+
+      if Supports(self, ISaveResults, save) then
+        SaveResults(save.ResultTag);
 
     finally
       WriteLn;

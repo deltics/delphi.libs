@@ -26,6 +26,21 @@ interface
     end;
 
 
+    TBaselineResults = class(TBenchmark)
+    private
+      fEntries: TList;
+      fTag: UnicodeString;
+    protected
+      function get_Count: Integer; override;
+      function Contains(const aCase: IPerformanceCase): Boolean; override;
+      function GetData(const aCase: IPerformanceCase): IBenchmarkData; override;
+      procedure SaveCase(const aCase: IPerformanceCase); override;
+    public
+      constructor Create(const aTag: UnicodeString);
+      destructor Destroy; override;
+    end;
+
+
     TCompareCaseResults = class(TBenchmark)
     private
       fCases: TList;
@@ -57,7 +72,7 @@ interface
     public
       constructor Create;
       destructor Destroy; override;
-      procedure Add(const aCase: TPerformanceCase; const aTag: UnicodeString; const aFilename: UnicodeString);
+      procedure Add(const aCase: TPerformanceCase; const aFilename: UnicodeString; const aTag: UnicodeString);
       property CasesCount[const aIndex: Integer]: Integer read get_CaseCount;
       property Cases[const aFileIndex, aCaseIndex: Integer]: IPerformanceCase read get_Case;
       property Filename[const aIndex: Integer]: UnicodeString read get_Filename;
@@ -78,8 +93,105 @@ implementation
 
 
 
-{ TCompareCaseResults }
+{ TBenchmarkData --------------------------------------------------------------------------------- }
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TBenchmarkData.get_Method(const aIndex: Integer): UnicodeString;
+  begin
+    result := fMethods[aIndex];
+  end;
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TBenchmarkData.get_MethodCount: Integer;
+  begin
+    result := Length(fMethods);
+  end;
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TBenchmarkData.get_Result(const aMethodIndex, aSeriesIndex: Integer): Double;
+  begin
+    result := fResults[aMethodIndex][aSeriesIndex];
+  end;
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TBenchmarkData.get_Series(const aIndex: Integer): UnicodeString;
+  begin
+    result := fSeries[aIndex];
+  end;
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TBenchmarkData.get_SeriesCount: Integer;
+  begin
+    result := Length(fSeries);
+  end;
+
+
+
+
+
+
+{ TCaseHistoryResults ---------------------------------------------------------------------------- }
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TBaselineResults.Create(const aTag: UnicodeString);
+  begin
+    inherited Create;
+
+    fTag      := aTag;
+    fEntries  := TList.Create;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  destructor TBaselineResults.Destroy;
+  begin
+    FreeAndNIL(fEntries);
+    inherited;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TBaselineResults.Contains(const aCase: IPerformanceCase): Boolean;
+  begin
+    result := TRUE;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TBaselineResults.GetData(const aCase: IPerformanceCase): IBenchmarkData;
+  begin
+
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TBaselineResults.get_Count: Integer;
+  begin
+    result := fEntries.Count;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TBaselineResults.SaveCase(const aCase: IPerformanceCase);
+  var
+    tag: UnicodeString;
+  begin
+    tag := fTag;
+    if (tag = '') then
+      tag := FormatDateTime('dd-mmm-yyyy HH:nn:ss', Now);
+  end;
+
+
+
+
+
+
+
+
+
+{ TCompareCaseResults ---------------------------------------------------------------------------- }
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TCompareCaseResults.Create;
   begin
     inherited Create;
@@ -88,6 +200,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   destructor TCompareCaseResults.Destroy;
   begin
     fCases.Free;
@@ -96,12 +209,14 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TCompareCaseResults.Add(const aCase: TPerformanceCase);
   begin
     fCases.Add(aCase);
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TCompareCaseResults.Contains(const aCase: IPerformanceCase): Boolean;
   var
     c: TPerformanceCase;
@@ -111,6 +226,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TCompareCaseResults.GetData(const aCase: IPerformanceCase): IBenchmarkData;
   var
     i, j, k: Integer;
@@ -149,12 +265,14 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TCompareCaseResults.get_Count: Integer;
   begin
     result := fCases.Count;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TCompareCaseResults.SaveCase(const aCase: IPerformanceCase);
   begin
     // TO DO: Save case comparison results to output file
@@ -163,8 +281,17 @@ implementation
 
 
 
-{ TCompilerVersionResults }
 
+
+
+
+
+
+
+
+{ TCompilerVersionResults ------------------------------------------------------------------------ }
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TCompilerVersionResults.Create;
   begin
     inherited Create;
@@ -173,6 +300,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   destructor TCompilerVersionResults.Destroy;
   begin
     while (fFiles.Count > 0) do
@@ -186,6 +314,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TCompilerVersionResults.Contains(const aCase: IPerformanceCase): Boolean;
   var
     i, j: Integer;
@@ -202,6 +331,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TCompilerVersionResults.GetData(const aCase: IPerformanceCase): IBenchmarkData;
   var
     i, j: Integer;
@@ -272,7 +402,9 @@ implementation
   end;
 
 
-  function TCompilerVersionResults.get_Case(const aFileIndex, aCaseIndex: Integer): IPerformanceCase;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TCompilerVersionResults.get_Case(const aFileIndex: Integer;
+                                            const aCaseIndex: Integer): IPerformanceCase;
   var
     obj: TObject;
   begin
@@ -281,18 +413,21 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TCompilerVersionResults.get_CaseCount(const aIndex: Integer): Integer;
   begin
     result := TList(fFiles.Objects[aIndex]).Count;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TCompilerVersionResults.get_Count: Integer;
   begin
     result := fFiles.Count;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TCompilerVersionResults.get_Filename(const aIndex: Integer): UnicodeString;
   var
     notUsed: UnicodeString;
@@ -301,6 +436,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TCompilerVersionResults.get_Tag(const aIndex: Integer): UnicodeString;
   var
     notUsed: UnicodeString;
@@ -309,6 +445,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TCompilerVersionResults.SaveCase(const aCase: IPerformanceCase);
   var
     i, j: Integer;
@@ -320,6 +457,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TCompilerVersionResults.SaveResults(const aCase: IPerformanceCase;
                                                 const aFilename: UnicodeString;
                                                 const aTag: UnicodeString);
@@ -384,9 +522,10 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TCompilerVersionResults.Add(const aCase: TPerformanceCase;
-                                        const aTag: UnicodeString;
-                                        const aFilename: UnicodeString);
+                                        const aFilename: UnicodeString;
+                                        const aTag: UnicodeString);
   var
     idx: Integer;
     filename: UnicodeString;
@@ -414,32 +553,7 @@ implementation
 
 
 
-{ TBenchmarkData }
 
-  function TBenchmarkData.get_Method(const aIndex: Integer): UnicodeString;
-  begin
-    result := fMethods[aIndex];
-  end;
-
-  function TBenchmarkData.get_MethodCount: Integer;
-  begin
-    result := Length(fMethods);
-  end;
-
-  function TBenchmarkData.get_Result(const aMethodIndex, aSeriesIndex: Integer): Double;
-  begin
-    result := fResults[aMethodIndex][aSeriesIndex];
-  end;
-
-  function TBenchmarkData.get_Series(const aIndex: Integer): UnicodeString;
-  begin
-    result := fSeries[aIndex];
-  end;
-
-  function TBenchmarkData.get_SeriesCount: Integer;
-  begin
-    result := Length(fSeries);
-  end;
 
 
 
