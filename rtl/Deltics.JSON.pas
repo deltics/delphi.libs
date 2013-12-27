@@ -216,6 +216,7 @@ interface
       private
         function get_AsDisplayText: UnicodeString;
       protected
+        function get_IsEmpty: Boolean; virtual; abstract;
         function get_IsNull: Boolean; override;
         procedure Add(const aValue: TJSONValue); overload; virtual; abstract;
       public
@@ -252,6 +253,7 @@ interface
         procedure SaveToStream(const aStream: TStream; const aCompact: Boolean = FALSE);
         procedure Wipe; override; abstract;
         property AsDisplayText: UnicodeString read get_AsDisplayText;
+        property IsEmpty: Boolean read get_IsEmpty;
       end;
 
 
@@ -261,6 +263,7 @@ interface
           function get_Item(const aIndex: Integer): TJSONValue;
           function get_Count: Integer;
         protected
+          function get_IsEmpty: Boolean; override;
           function DoGetAsString: UnicodeString; override;
           procedure DoSetAsString(const aValue: UnicodeString); override;
         public
@@ -298,6 +301,7 @@ interface
           function get_ValueCount: Integer;
           function get_ValueByIndex(const aIndex: Integer): TJSONValue;
         protected
+          function get_IsEmpty: Boolean; override;
           procedure Add(const aValue: TJSONValue); override;
           function DoGetAsString: UnicodeString; override;
           procedure DoSetAsString(const aValue: UnicodeString); override;
@@ -1444,6 +1448,13 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TJSONArray.get_IsEmpty: Boolean;
+  begin
+    result := (fItems.Count = 0);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TJSONArray.get_Item(const aIndex: Integer): TJSONValue;
   begin
     result := TJSONValue(fItems[aIndex])
@@ -1886,6 +1897,13 @@ implementation
   begin
     FreeAndNIL(fValues);
     inherited;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TJSONObject.get_IsEmpty: Boolean;
+  begin
+    result := (fValues.Count = 0);
   end;
 
 
