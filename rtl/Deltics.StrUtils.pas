@@ -510,11 +510,7 @@ implementation
       s := aString;
       while (Length(s) > 0) do
       begin
-      {$ifdef FASTSTRINGS}
-        pos := FastCharPos(s, aDelim, 1);
-      {$else}
         pos := System.Pos(aDelim, s);
-      {$endif}
 
         case pos of
           0 : begin
@@ -565,11 +561,7 @@ implementation
       s := aString;
       while (Length(s) > 0) do
       begin
-      {$ifdef FASTSTRINGS}
-        pos := FastCharPos(s, aDelim, 1);
-      {$else}
         pos := System.Pos(aDelim, s);
-      {$endif}
 
         case pos of
           0 : begin
