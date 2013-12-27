@@ -52,14 +52,9 @@ interface
 
   type
   {$ifNdef UNICODE}
-//    UCS4Char    = Cardinal;
-//    UCS4String  = array of UCS4Char;
-
     UTF8String    = type ANSIString;
     UnicodeString = type WideString;
   {$endif}
-
-//    TSetOfChar = set of ANSIChar;
 
     ASCIIString = type ANSIString;
     ASCIIChar   = type ANSIChar;
@@ -68,12 +63,11 @@ interface
     UTF8Char    = type ANSIChar;
     PUTF8Char   = ^UTF8Char;
 
-(*
-    UTF32Char       = UCS4Char;
-    UTF32CharArray  = array of UCS4Char;
-    UTF32String     = UCS4String;
-*)
-    TCharIndexArray = array of Integer;
+    TCharIndexArray   = array of Integer;
+    TStringArray      = array of String;
+    TANSIStringArray  = array of ANSIString;
+    TUTF8StringArray  = array of UTF8String;
+    TWideStringArray  = array of UnicodeString;
 
 
     ANSISupport = class
@@ -82,20 +76,27 @@ interface
       class function FromUTF8(const aBuffer: PUTF8Char; const aMaxLen: Integer = -1): ANSIString; overload;
       class function FromWide(const aString: UnicodeString): ANSIString;
       // Analysis
+      class function Len(const aString: PANSIChar): Integer;
       class function Pos(const aString: ANSIString; const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
       class function Pos(const aString: ANSIString; const aSubStr: ANSIString; var aPos: Integer): Boolean; overload;
       class function Pos(const aString: ANSIString; const aChar: ANSIChar; var aPositions: TCharIndexArray): Boolean; overload;
       class function Pos(const aString: ANSIString; const aSubStr: ANSIString; var aPositions: TCharIndexArray): Boolean; overload;
+      class function PosText(const aString: ANSIString; const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
+      class function PosText(const aString: ANSIString; const aSubStr: ANSIString; var aPos: Integer): Boolean; overload;
+      class function PosText(const aString: ANSIString; const aSubStr: ANSIString; var aPositions: TCharIndexArray): Boolean; overload;
       class function NPos(const aString: ANSIString; const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
       class function NPos(const aString: ANSIString; const aSubStr: ANSIString; var aPos: Integer): Boolean; overload;
       class function RPos(const aString: ANSIString; const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
       class function RPos(const aString: ANSIString; const aSubStr: ANSIString; var aPos: Integer): Boolean; overload;
+      class function Split(const aString: ANSIString; const aChar: ANSIChar; var aLeft, aRight: ANSIString): Boolean; overload;
+      class function Split(const aString: ANSIString; const aChar: ANSIChar; var aParts: TANSIStringArray): Boolean; overload;
       // Evaluations
       class function Compare(const S1, S2: ANSIString): Integer;
       class function CompareText(const S1, S2: ANSIString): Integer;
       class function Contains(const aString: ANSIString; const aChar: ANSIChar): Boolean; overload;
       class function Contains(const aString, aSubStr: ANSIString): Boolean; overload;
-      class function IsLowercase(const aChar: ANSIChar): Boolean; overload;
+      class function ContainsText(const aString, aSubStr: ANSIString): Boolean; overload;
+      class function IsLowercase(const aChar: ANSIChar): Boolean; overload;
       class function IsLowercase(const aString: ANSIString): Boolean; overload;
       class function IsUppercase(const aChar: ANSIChar): Boolean; overload;
       class function IsUppercase(const aString: ANSIString): Boolean; overload;
@@ -121,16 +122,17 @@ interface
       class function FromANSI(const aString: ANSIString): UTF8String;
       class function FromWide(const aString: UnicodeString): UTF8String;
       // Analysis
-      class function Pos(const aString: UTF8String; const aChar: UTF8Char; var aPos: Integer): Boolean; overload;
+      class function Len(const aString: PUTF8Char): Integer;
+      class function Pos(const aString: UTF8String; const aChar: UTF8Char; var aPos: Integer): Boolean; overload;
       class function Pos(const aString: UTF8String; const aSubStr: UTF8String; var aPos: Integer): Boolean; overload;
       class function Pos(const aString: UTF8String; const aChar: UTF8Char; var aPositions: TCharIndexArray): Boolean; overload;
       class function Pos(const aString: UTF8String; const aSubStr: UTF8String; var aPositions: TCharIndexArray): Boolean; overload;
-      class function RPos(const aString: UTF8String; const aChar: UTF8Char; var aPos: Integer): Boolean; overload;
-      class function RPos(const aString: UTF8String; const aSubStr: UTF8String; var aPos: Integer): Boolean; overload;
       class function NPos(const aString: UTF8String; const aChar: UTF8Char; var aPos: Integer): Boolean; overload;
       class function NPos(const aString: UTF8String; const aSubStr: UTF8String; var aPos: Integer): Boolean; overload;
+      class function RPos(const aString: UTF8String; const aChar: UTF8Char; var aPos: Integer): Boolean; overload;
+      class function RPos(const aString: UTF8String; const aSubStr: UTF8String; var aPos: Integer): Boolean; overload;
       // Evaluations
-      class function Compare(const S1, S2: UTF8String): Integer;
+      class function Compare(const S1, S2: UTF8String): Integer;
       class function CompareText(const S1, S2: UTF8String): Integer;
       class function Contains(const aString: UTF8String; const aChar: UTF8Char): Boolean; overload;
       class function Contains(const aString, aSubStr: UTF8String): Boolean; overload;
@@ -151,14 +153,20 @@ interface
       class function FromUTF8(const aString: UTF8String): UnicodeString; overload;
       class function FromUTF8(const aBuffer: PUTF8Char; const aMaxLen: Integer = -1): UnicodeString; overload;
       // Analysis
+      class function Len(const aString: PWideChar): Integer;
       class function Pos(const aString: UnicodeString; const aChar: WideChar; var aPos: Integer): Boolean; overload;
       class function Pos(const aString: UnicodeString; const aSubStr: UnicodeString; var aPos: Integer): Boolean; overload;
       class function Pos(const aString: UnicodeString; const aChar: WideChar; var aPositions: TCharIndexArray): Boolean; overload;
       class function Pos(const aString: UnicodeString; const aSubStr: UnicodeString; var aPositions: TCharIndexArray): Boolean; overload;
-      class function RPos(const aString: UnicodeString; const aChar: WideChar; var aPos: Integer): Boolean; overload;
-      class function RPos(const aString: UnicodeString; const aSubStr: UnicodeString; var aPos: Integer): Boolean; overload;
+      class function PosText(const aString: UnicodeString; const aChar: WideChar; var aPos: Integer): Boolean; overload;
+      class function PosText(const aString: UnicodeString; const aSubStr: UnicodeString; var aPos: Integer): Boolean; overload;
+      class function PosText(const aString: UnicodeString; const aSubStr: UnicodeString; var aPositions: TCharIndexArray): Boolean; overload;
       class function NPos(const aString: UnicodeString; const aChar: WideChar; var aPos: Integer): Boolean; overload;
       class function NPos(const aString: UnicodeString; const aSubStr: UnicodeString; var aPos: Integer): Boolean; overload;
+      class function RPos(const aString: UnicodeString; const aChar: WideChar; var aPos: Integer): Boolean; overload;
+      class function RPos(const aString: UnicodeString; const aSubStr: UnicodeString; var aPos: Integer): Boolean; overload;
+      class function Split(const aString: UnicodeString; const aChar: WideChar; var aLeft, aRight: UnicodeString): Boolean; overload;
+      class function Split(const aString: UnicodeString; const aChar: WideChar; var aParts: TWideStringArray): Boolean; overload;
       // Evaluations
       class function BeginsWith(const aString, aLead: UnicodeString): Boolean;
       class function BeginsWithText(const aString, aLead: UnicodeString): Boolean;
@@ -166,6 +174,7 @@ interface
       class function CompareText(const S1, S2: UnicodeString): Integer;
       class function Contains(const aString: UnicodeString; const aChar: WideChar): Boolean; overload;
       class function Contains(const aString, aSubStr: UnicodeString): Boolean; overload;
+      class function ContainsText(const aString, aSubStr: UnicodeString): Boolean; overload;
       class function IsLowercase(const aChar: WideChar): Boolean; overload;
       class function IsLowercase(const aString: UnicodeString): Boolean; overload;
       class function IsUppercase(const aChar: WideChar): Boolean; overload;
@@ -191,8 +200,11 @@ interface
     end;
 
 
-    STR = class({$ifdef UNICODE}WIDESupport
-                {$else}         ANSISupport{$endif})
+  {$ifdef UNICODE}
+    STR = class(WIDESupport)
+  {$else}
+    STR = class(ANSISupport)
+  {$endif}
       // Transcoding
     {$ifdef UNICODE}
       class function FromWide(const aString: UnicodeString): String;
@@ -206,6 +218,10 @@ interface
 implementation
 
   uses
+  {$ifdef FASTSTRINGS}
+    FastStrings,
+  {$endif}
+  { vcl: }
     SysUtils,
     Windows;
 
@@ -224,18 +240,23 @@ implementation
   var
     i: Integer;
     bAlpha: Boolean;
+    pc: PANSIChar;
   begin
     result  := FALSE;
     bAlpha  := FALSE;
 
+    pc := PANSIChar(aString);
     for i := 0 to Pred(Length(aString)) do
-      if Windows.IsCharAlphaA(aString[i]) then
+    begin
+      if Windows.IsCharAlphaA(pc^) then
       begin
-        if NOT aCaseFn(aString[i]) then
+        if NOT aCaseFn(pc^) then
           EXIT;
 
         bAlpha := TRUE;
       end;
+      Inc(pc);
+    end;
 
     if bAlpha then
       result := TRUE;
@@ -248,18 +269,23 @@ implementation
   var
     i: Integer;
     bAlpha: Boolean;
+    pc: PWideChar;
   begin
     result  := FALSE;
     bAlpha  := FALSE;
 
+    pc := PWideChar(aString);
     for i := 0 to Pred(Length(aString)) do
-      if Windows.IsCharAlphaW(aString[i]) then
+    begin
+      if Windows.IsCharAlphaW(pc^) then
       begin
-        if NOT aCaseFn(aString[i]) then
+        if NOT aCaseFn(pc^) then
           EXIT;
 
         bAlpha := TRUE;
       end;
+      Inc(pc);
+    end;
 
     if bAlpha then
       result := TRUE;
@@ -302,29 +328,252 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSISupport.Len(const aString: PANSIChar): Integer;
+  begin
+    result := SysUtils.StrLen(aString);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function ANSISupport.Pos(const aString: ANSIString;
-                          const aChar: ANSIChar;
-                          var   aPos: Integer): Boolean;
+                                 const aChar: ANSIChar;
+                                 var   aPos: Integer): Boolean;
   begin
-    aPos    := System.Pos(aChar, aString);
-    result  := (aPos <> 0);
+  {$ifdef FASTSTRINGS}
+    aPos := FastStrings.FastCharPos(aString, aChar, 1);
+  {$else}
+    aPos := System.Pos(aChar, aString);
+  {$endif}
+
+    result := (aPos <> 0);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function ANSISupport.Pos(const aString: ANSIString;
-                          const aSubStr: ANSIString;
-                          var   aPos: Integer): Boolean;
+                                 const aSubStr: ANSIString;
+                                 var   aPos: Integer): Boolean;
   begin
-    aPos    := System.Pos(aSubStr, aString);
+  {$ifdef FASTSTRINGS}
+    aPos := FastStrings.FastPos(aString, aSubStr, Length(aString), Length(aSubStr), 1);
+  {$else}
+    aPos := System.Pos(aSubStr, aString);
+  {$endif}
+
     result  := (aPos <> 0);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSISupport.Pos(const aString: ANSIString;
+                                 const aChar: ANSIChar;
+                                 var   aPositions: TCharIndexArray): Boolean;
+  var
+    i, j: Integer;
+    strLen: Integer;
+    firstChar: PANSIChar;
+    currChar: PANSIChar;
+  begin
+    result  := FALSE;
+    strLen  := Length(aString);
+    if (strLen = 0) then
+      EXIT;
+
+    SetLength(aPositions, strLen);
+
+    j         := 0;
+    firstChar := @aString[1];
+    currChar  := firstChar;
+
+    for i := Pred(strLen) downto 0 do
+    begin
+      if (currChar^ = aChar) then
+      begin
+        aPositions[j] := (currChar - firstChar) + 1;
+        Inc(j);
+      end;
+      Inc(currChar);
+    end;
+
+    SetLength(aPositions, j);
+    result := (j > 0);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSISupport.Pos(const aString: ANSIString;
+                                 const aSubStr: ANSIString;
+                                 var   aPositions: TCharIndexArray): Boolean;
+  var
+    i, j: Integer;
+    strLen: Integer;
+    subLen: Integer;
+    firstChar: PANSIChar;
+    currChar: PANSIChar;
+    initialChar: PANSIChar;
+  begin
+    result  := FALSE;
+    subLen  := Length(aSubStr);
+    strLen  := Length(aString);
+    if (strLen = 0) then
+      EXIT;
+
+    SetLength(aPositions, strLen);
+
+    j           := 0;
+    firstChar   := @aString[1];
+    currChar    := firstChar;
+    initialChar := @aSubStr[1];
+
+    for i := Pred(strLen) downto 0 do
+    begin
+      if (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen) then
+      begin
+        aPositions[j] := (currChar - firstChar) + 1;
+        Inc(j);
+      end;
+      Inc(currChar);
+    end;
+
+    SetLength(aPositions, j);
+    result := (j > 0);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSISupport.PosText(const aString: ANSIString;
+                                     const aChar: ANSIChar;
+                                     var aPos: Integer): Boolean;
+  var
+    i: Integer;
+    currChar: PANSIChar;
+    firstChar: PANSIChar;
+    strlen: Integer;
+  begin
+    result  := FALSE;
+    strLen  := Length(aString);
+    if (strLen = 0) then
+      EXIT;
+
+    if NOT Windows.IsCharAlphaA(aChar) then
+    begin
+      aPos    := System.Pos(aChar, aString);
+      result  := aPos <> 0;
+      EXIT;
+    end;
+
+    firstChar := PANSIChar(aString);
+    currChar  := firstChar;
+    for i := Pred(strlen) downto 0 do
+    begin
+      result := Windows.IsCharAlphaA(currChar^)
+            and (Windows.CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                                        currChar, 1,
+                                        @aChar, 1) = CSTR_EQUAL);
+      if result then
+        BREAK;
+
+      Inc(currChar);
+    end;
+
+    if result then
+      aPos := (currChar - firstChar) + 1
+    else
+      aPos := 0;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSISupport.PosText(const aString, aSubStr: ANSIString;
+                                     var aPos: Integer): Boolean;
+  var
+    i: Integer;
+    currChar: PANSIChar;
+    firstChar: PANSIChar;
+    psub: PANSIChar;
+    strlen: Integer;
+    sublen: Integer;
+  begin
+    result  := FALSE;
+    subLen  := Length(aSubStr);
+    strLen  := Length(aString);
+    if (strLen = 0) or (strlen = 0) or (sublen > strlen)then
+      EXIT;
+
+    firstChar := PANSIChar(aString);
+    currChar  := firstChar;
+    psub      := PANSIChar(aSubStr);
+    for i := (strlen - sublen) downto 0 do
+    begin
+      result := Windows.CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                                       currChar, sublen,
+                                       psub, sublen) = CSTR_EQUAL;
+      if result then
+        BREAK;
+
+      Inc(currChar);
+    end;
+
+    if result then
+      aPos := (currChar - firstChar) + 1
+    else
+      aPos := 0;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSISupport.PosText(const aString, aSubStr: ANSIString;
+                                     var aPositions: TCharIndexArray): Boolean;
+  var
+    i, j: Integer;
+    currChar: PANSIChar;
+    firstChar: PANSIChar;
+    psub: PANSIChar;
+    strlen: Integer;
+    sublen: Integer;
+  begin
+    result  := FALSE;
+    subLen  := Length(aSubStr);
+    strLen  := Length(aString);
+    if (strLen = 0) or (strlen = 0) or (sublen > strlen)then
+      EXIT;
+
+    SetLength(aPositions, strlen);
+
+    j         := 0;
+    firstChar := PANSIChar(aString);
+    currChar  := firstChar;
+    psub      := PANSIChar(aSubStr);
+    for i := (strlen - sublen) downto 0 do
+    begin
+      result := Windows.CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                                       currChar, sublen,
+                                       psub, sublen) = CSTR_EQUAL;
+      if result then
+      begin
+        aPositions[j] := (currChar - firstChar) + 1;
+        Inc(j)
+      end;
+
+      Inc(currChar);
+    end;
+
+    SetLength(aPositions, j);
+
+    result := (j > 0);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function ANSISupport.RPos(const aString: ANSIString;
-                           const aChar: ANSIChar;
-                           var   aPos: Integer): Boolean;
+                                  const aChar: ANSIChar;
+                                  var   aPos: Integer): Boolean;
+  {$ifdef FASTSTRINGS}
+  begin
+    aPos    := FastStrings.FastPosBack(aString, aChar, Length(aString), 1, Length(aString));
+    result  := aPos <> 0;
+  end;
+  {$else}
   var
     i: Integer;
     strLen: Integer;
@@ -352,12 +601,19 @@ implementation
     if result then
       aPos := (currChar - firstChar) + 1;
   end;
+  {$endif}
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function ANSISupport.RPos(const aString: ANSIString;
-                                 const aSubStr: ANSIString;
-                                 var   aPos: Integer): Boolean;
+                                  const aSubStr: ANSIString;
+                                  var   aPos: Integer): Boolean;
+  {$ifdef FASTSTRINGS}
+  begin
+    aPos    := FastStrings.FastPosBack(aString, aSubStr, Length(aString), Length(aSubStr), Length(aString));
+    result  := aPos <> 0;
+  end;
+  {$else}
   var
     i: Integer;
     strLen: Integer;
@@ -389,12 +645,13 @@ implementation
     if result then
       aPos := (currChar - firstChar) + 1;
   end;
+  {$endif}
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function ANSISupport.NPos(const aString: ANSIString;
-                                 const aChar: ANSIChar;
-                                 var   aPos: Integer): Boolean;
+                                  const aChar: ANSIChar;
+                                  var   aPos: Integer): Boolean;
   var
     i: Integer;
     strLen: Integer;
@@ -429,8 +686,8 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function ANSISupport.NPos(const aString: ANSIString;
-                                 const aSubStr: ANSIString;
-                                 var   aPos: Integer): Boolean;
+                                  const aSubStr: ANSIString;
+                                  var   aPos: Integer): Boolean;
   var
     i: Integer;
     strLen: Integer;
@@ -471,83 +728,50 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Pos(const aString: ANSIString;
+  class function ANSISupport.Split(const aString: ANSIString;
                                    const aChar: ANSIChar;
-                                   var   aPositions: TCharIndexArray): Boolean;
+                                   var   aLeft: ANSIString;
+                                   var   aRight: ANSIString): Boolean;
   var
-    i, j: Integer;
-    strLen: Integer;
-    firstChar: PANSIChar;
-    currChar: PANSIChar;
-  begin
-    result  := FALSE;
-    strLen  := Length(aString);
-    if (strLen = 0) then
-      EXIT;
+    p: Integer;
+  begin
+    aLeft   := aString;
+    aRight  := '';
 
-    SetLength(aPositions, strLen);
+    result := Pos(aString, aChar, p);
+    if NOT result then
+      EXIT;
 
-    j         := 0;
-    firstChar := @aString[1];
-    currChar  := firstChar;
-
-    for i := Pred(strLen) downto 0 do
-    begin
-      if (currChar^ = aChar) then
-      begin
-        aPositions[j] := (currChar - firstChar) + 1;
-        Inc(j);
-      end;
-      Inc(currChar);
-    end;
-
-    SetLength(aPositions, j);
-    result := (j > 0);
-  end;
+    SetLength(aLeft, p - 1);
+    aRight := Copy(aString, p + 1, Length(aString) - p);
+  end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Pos(const aString: ANSIString;
-                                   const aSubStr: ANSIString;
-                                   var   aPositions: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PANSIChar;
-    currChar: PANSIChar;
-    initialChar: PANSIChar;
-  begin
-    result  := FALSE;
-    subLen  := Length(aSubStr);
-    strLen  := Length(aString);
-    if (strLen = 0) then
-      EXIT;
+  class function ANSISupport.Split(const aString: ANSIString;
+                                   const aChar: ANSIChar;
+                                   var   aParts: TANSIStringArray): Boolean;
+  var
+    i: Integer;
+    p: TCharIndexArray;
+  begin
+    result := Pos(aString, aChar, p);
+    if NOT result then
+      EXIT;
 
-    SetLength(aPositions, strLen);
+    SetLength(aParts, Length(p) + 1);
 
-    j           := 0;
-    firstChar   := @aString[1];
-    currChar    := firstChar;
-    initialChar := @aSubStr[1];
+    aParts[0] := Copy(aString, 1, p[0] - 1);
+    for i := 1 to Pred(Length(p)) do
+      aParts[i] := Copy(aString, p[i - 1] + 1, p[i] - p[i - 1] - 1);
 
-    for i := Pred(strLen) downto 0 do
-    begin
-      if (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen) then
-      begin
-        aPositions[j] := (currChar - firstChar) + 1;
-        Inc(j);
-      end;
-      Inc(currChar);
-    end;
-
-    SetLength(aPositions, j);
-    result := (j > 0);
-  end;
+    i := p[Pred(Length(p))] + 1;
+    aParts[Length(p)] := Copy(aString, i, Length(aString) - i + 1)
+  end;
 
 
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Compare(const S1, S2: ANSIString): Integer;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSISupport.Compare(const S1, S2: ANSIString): Integer;
   begin
     result := CompareStringA(LOCALE_USER_DEFAULT, 0,
                              PANSIChar(S1), Length(S1),
@@ -576,6 +800,15 @@ implementation
   begin
     result := System.Pos(aSubStr, aString) <> 0;
   end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSISupport.ContainsText(const aString, aSubStr: ANSIString): Boolean;
+  var
+    p : Integer;
+  begin
+    result := ANSI.PosText(aString, aSubStr, p);
+  end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
@@ -760,6 +993,13 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function UTF8.Len(const aString: PUTF8Char): Integer;
+  begin
+    result := SysUtils.StrLen(PANSIChar(aString));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function UTF8.Pos(const aString: UTF8String;
                           const aChar: UTF8Char;
                           var   aPos: Integer): Boolean;
@@ -776,6 +1016,82 @@ implementation
   begin
     aPos    := System.Pos(aSubStr, aString);
     result  := (aPos <> 0);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function UTF8.Pos(const aString: UTF8String;
+                          const aChar: UTF8Char;
+                          var   aPositions: TCharIndexArray): Boolean;
+  var
+    i, j: Integer;
+    strLen: Integer;
+    firstChar: PUTF8Char;
+    currChar: PUTF8Char;
+  begin
+    result  := FALSE;
+    strLen  := Length(aString);
+    if (strLen = 0) then
+      EXIT;
+
+    SetLength(aPositions, strLen);
+
+    j         := 0;
+    firstChar := @aString[1];
+    currChar  := firstChar;
+
+    for i := Pred(strLen) downto 0 do
+    begin
+      if (currChar^ = aChar) then
+      begin
+        aPositions[j] := (PANSIChar(currChar) - PANSIChar(firstChar)) + 1;
+        Inc(j);
+      end;
+      Inc(currChar);
+    end;
+
+    SetLength(aPositions, j);
+    result := (j > 0);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function UTF8.Pos(const aString: UTF8String;
+                          const aSubStr: UTF8String;
+                          var   aPositions: TCharIndexArray): Boolean;
+  var
+    i, j: Integer;
+    strLen: Integer;
+    subLen: Integer;
+    firstChar: PUTF8Char;
+    currChar: PUTF8Char;
+    initialChar: PUTF8Char;
+  begin
+    result  := FALSE;
+    subLen  := Length(aSubStr);
+    strLen  := Length(aString);
+    if (strLen = 0) then
+      EXIT;
+
+    SetLength(aPositions, strLen);
+
+    j           := 0;
+    firstChar   := @aString[1];
+    currChar    := firstChar;
+    initialChar := @aSubStr[1];
+
+    for i := Pred(strLen) downto 0 do
+    begin
+      if (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen) then
+      begin
+        aPositions[j] := (PANSIChar(currChar) - PANSIChar(firstChar)) + 1;
+        Inc(j);
+      end;
+      Inc(currChar);
+    end;
+
+    SetLength(aPositions, j);
+    result := (j > 0);
   end;
 
 
@@ -929,82 +1245,6 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Pos(const aString: UTF8String;
-                                   const aChar: UTF8Char;
-                                   var   aPositions: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
-    strLen: Integer;
-    firstChar: PUTF8Char;
-    currChar: PUTF8Char;
-  begin
-    result  := FALSE;
-    strLen  := Length(aString);
-    if (strLen = 0) then
-      EXIT;
-
-    SetLength(aPositions, strLen);
-
-    j         := 0;
-    firstChar := @aString[1];
-    currChar  := firstChar;
-
-    for i := Pred(strLen) downto 0 do
-    begin
-      if (currChar^ = aChar) then
-      begin
-        aPositions[j] := (PANSIChar(currChar) - PANSIChar(firstChar)) + 1;
-        Inc(j);
-      end;
-      Inc(currChar);
-    end;
-
-    SetLength(aPositions, j);
-    result := (j > 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Pos(const aString: UTF8String;
-                                   const aSubStr: UTF8String;
-                                   var   aPositions: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PUTF8Char;
-    currChar: PUTF8Char;
-    initialChar: PUTF8Char;
-  begin
-    result  := FALSE;
-    subLen  := Length(aSubStr);
-    strLen  := Length(aString);
-    if (strLen = 0) then
-      EXIT;
-
-    SetLength(aPositions, strLen);
-
-    j           := 0;
-    firstChar   := @aString[1];
-    currChar    := firstChar;
-    initialChar := @aSubStr[1];
-
-    for i := Pred(strLen) downto 0 do
-    begin
-      if (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen) then
-      begin
-        aPositions[j] := (PANSIChar(currChar) - PANSIChar(firstChar)) + 1;
-        Inc(j);
-      end;
-      Inc(currChar);
-    end;
-
-    SetLength(aPositions, j);
-    result := (j > 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function UTF8.Compare(const S1, S2: UTF8String): Integer;
   begin
     result := WIDE.Compare(WIDE.FromUTF8(S1), WIDE.FromUTF8(S2));
@@ -1083,12 +1323,13 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function WIDESupport.FromANSI(const aString: ANSIString): UnicodeString;
   begin
-    result := FromANSI(@aString[1], Length(aString));
+    result := FromANSI(PANSIChar(aString), Length(aString));
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.FromANSI(const aBuffer: PANSIChar; const aMaxLen: Integer): UnicodeString;
+  class function WIDESupport.FromANSI(const aBuffer: PANSIChar;
+                                      const aMaxLen: Integer): UnicodeString;
   var
     len: Integer;
   begin
@@ -1120,12 +1361,13 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function WIDESupport.FromUTF8(const aString: UTF8String): UnicodeString;
   begin
-    result := FromUTF8(@aString[1], Length(aString));
+    result := FromUTF8(PUTF8Char(aString), Length(aString));
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.FromUTF8(const aBuffer: PUTF8Char; const aMaxLen: Integer): UnicodeString;
+  class function WIDESupport.FromUTF8(const aBuffer: PUTF8Char;
+                                      const aMaxLen: Integer): UnicodeString;
   var
     len: Integer;
   begin
@@ -1148,9 +1390,27 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDESupport.Len(const aString: PWideChar): Integer;
+  {$ifdef UNICODE}
+  begin
+    result := SysUtils.StrLen(aString);
+  {$else}
+  var
+    p: PWideChar;
+  begin
+    p := aString;
+    while p^ <> WideChar(0) do
+      Inc(p);
+
+    result := (p - aString);
+  {$endif}
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function WIDESupport.Pos(const aString: UnicodeString;
-                          const aChar: WideChar;
-                          var   aPos: Integer): Boolean;
+                                 const aChar: WideChar;
+                                 var   aPos: Integer): Boolean;
   begin
     aPos    := System.Pos(aChar, aString);
     result  := (aPos <> 0);
@@ -1159,8 +1419,8 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function WIDESupport.Pos(const aString: UnicodeString;
-                          const aSubStr: UnicodeString;
-                          var   aPos: Integer): Boolean;
+                                 const aSubStr: UnicodeString;
+                                 var   aPos: Integer): Boolean;
   begin
     aPos    := System.Pos(aSubStr, aString);
     result  := (aPos <> 0);
@@ -1168,79 +1428,208 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.RPos(const aString: UnicodeString;
-                           const aChar: WideChar;
-                           var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    firstChar: PWideChar;
-    currChar: PWideChar;
+  class function WIDESupport.Pos(const aString: UnicodeString;
+                                 const aChar: WideChar;
+                                 var   aPositions: TCharIndexArray): Boolean;
+  var
+    i, j: Integer;
+    strLen: Integer;
+    firstChar: PWideChar;
+    currChar: PWideChar;
   begin
-    strLen  := Length(aString);
-    aPos    := 0;
-    result  := FALSE;
+    result  := FALSE;
+    strLen  := Length(aString);
     if (strLen = 0) then
       EXIT;
 
+    SetLength(aPositions, strLen);
+
+    j         := 0;
     firstChar := @aString[1];
-    currChar  := @aString[strLen];
+    currChar  := firstChar;
 
     for i := Pred(strLen) downto 0 do
     begin
-      result := (currChar^ = aChar);
-      if result then
-        BREAK;
-
-      Dec(currChar);
+      if (currChar^ = aChar) then
+      begin
+        aPositions[j] := (currChar - firstChar) + 1;
+        Inc(j);
+      end;
+      Inc(currChar);
     end;
 
-    if result then
-      aPos := (currChar - firstChar) + 1;
+    SetLength(aPositions, j);
+    result := (j > 0);
   end;
 
 
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.RPos(const aString: UnicodeString;
-                           const aSubStr: UnicodeString;
-                           var   aPos: Integer): Boolean;
-  var
-    i: Integer;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDESupport.Pos(const aString: UnicodeString;
+                                 const aSubStr: UnicodeString;
+                                 var   aPositions: TCharIndexArray): Boolean;
+  var
+    i, j: Integer;
     strLen: Integer;
     subLen: Integer;
     firstChar: PWideChar;
     currChar: PWideChar;
     initialChar: PWideChar;
   begin
-    strLen  := Length(aString);
-    subLen  := Length(aSubStr);
-    aPos    := 0;
     result  := FALSE;
-    if (subLen > strLen) or (subLen = 0) or (strLen = 0) then
+    subLen  := Length(aSubStr);
+    strLen  := Length(aString);
+    if (strLen = 0) then
       EXIT;
 
+    SetLength(aPositions, strLen);
+
+    j           := 0;
     firstChar   := @aString[1];
+    currChar    := firstChar;
     initialChar := @aSubStr[1];
-    currChar    := @aString[Length(aString)];
 
-    for i := (strLen - subLen) downto 0 do
+    for i := Pred(strLen) downto 0 do
     begin
-      result := (currChar^ = initialChar^);
-      if result and CompareMem(currChar, initialChar, subLen * 2) then
-        BREAK;
-
-      Dec(currChar);
+      if (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen * 2) then
+      begin
+        aPositions[j] := (currChar - firstChar) + 1;
+        Inc(j);
+      end;
+      Inc(currChar);
     end;
 
-    if result then
-      aPos := (currChar - firstChar) + 1;
+    SetLength(aPositions, j);
+    result := (j > 0);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDESupport.PosText(const aString: UnicodeString;
+                                     const aChar: WideChar;
+                                     var aPos: Integer): Boolean;
+  var
+    i: Integer;
+    currChar: PWideChar;
+    firstChar: PWideChar;
+    strlen: Integer;
+  begin
+    result  := FALSE;
+    strLen  := Length(aString);
+    if (strLen = 0) then
+      EXIT;
+
+    if NOT Windows.IsCharAlphaW(aChar) then
+    begin
+      aPos    := System.Pos(aChar, aString);
+      result  := aPos <> 0;
+      EXIT;
+    end;
+
+    firstChar := PWideChar(aString);
+    currChar  := firstChar;
+    for i := Pred(strlen) downto 0 do
+    begin
+      result := Windows.IsCharAlphaW(currChar^)
+            and (Windows.CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                                        currChar, 1,
+                                        @aChar, 1) = CSTR_EQUAL);
+      if result then
+        BREAK;
+
+      Inc(currChar);
+    end;
+
+    if result then
+      aPos := (currChar - firstChar) + 1
+    else
+      aPos := 0;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.NPos(const aString: UnicodeString;
-                           const aChar: WideChar;
-                           var   aPos: Integer): Boolean;
+  class function WIDESupport.PosText(const aString, aSubStr: UnicodeString;
+                                     var aPos: Integer): Boolean;
+  var
+    i: Integer;
+    currChar: PWideChar;
+    firstChar: PWideChar;
+    psub: PWideChar;
+    strlen: Integer;
+    sublen: Integer;
+  begin
+    result  := FALSE;
+    subLen  := Length(aSubStr);
+    strLen  := Length(aString);
+    if (strLen = 0) or (strlen = 0) or (sublen > strlen)then
+      EXIT;
+
+    firstChar := PWideChar(aString);
+    currChar  := firstChar;
+    psub      := PWideChar(aSubStr);
+    for i := (strlen - sublen) downto 0 do
+    begin
+      result := Windows.CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                                       currChar, sublen,
+                                       psub, sublen) = CSTR_EQUAL;
+      if result then
+        BREAK;
+
+      Inc(currChar);
+    end;
+
+    if result then
+      aPos := (currChar - firstChar) + 1
+    else
+      aPos := 0;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDESupport.PosText(const aString, aSubStr: UnicodeString;
+                                     var aPositions: TCharIndexArray): Boolean;
+  var
+    i, j: Integer;
+    currChar: PWideChar;
+    firstChar: PWideChar;
+    psub: PWideChar;
+    strlen: Integer;
+    sublen: Integer;
+  begin
+    result  := FALSE;
+    subLen  := Length(aSubStr);
+    strLen  := Length(aString);
+    if (strLen = 0) or (strlen = 0) or (sublen > strlen)then
+      EXIT;
+
+    SetLength(aPositions, strlen);
+
+    j         := 0;
+    firstChar := PWideChar(aString);
+    currChar  := firstChar;
+    psub      := PWideChar(aSubStr);
+    for i := (strlen - sublen) downto 0 do
+    begin
+      if (Windows.CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                                 currChar, sublen,
+                                 psub, sublen) = CSTR_EQUAL) then
+      begin
+        aPositions[j] := (currChar - firstChar) + 1;
+        Inc(j)
+      end;
+
+      Inc(currChar);
+    end;
+
+    SetLength(aPositions, j);
+
+    result := (j > 0);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDESupport.NPos(const aString: UnicodeString;
+                                  const aChar: WideChar;
+                                  var   aPos: Integer): Boolean;
   var
     i: Integer;
     strLen: Integer;
@@ -1275,8 +1664,8 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function WIDESupport.NPos(const aString: UnicodeString;
-                           const aSubStr: UnicodeString;
-                           var   aPos: Integer): Boolean;
+                                  const aSubStr: UnicodeString;
+                                  var   aPos: Integer): Boolean;
   var
     i: Integer;
     strLen: Integer;
@@ -1317,82 +1706,119 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Pos(const aString: UnicodeString;
-                          const aChar: WideChar;
-                          var   aPositions: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
-    strLen: Integer;
-    firstChar: PWideChar;
-    currChar: PWideChar;
+  class function WIDESupport.RPos(const aString: UnicodeString;
+                                  const aChar: WideChar;
+                                  var   aPos: Integer): Boolean;
+  var
+    i: Integer;
+    strLen: Integer;
+    firstChar: PWideChar;
+    currChar: PWideChar;
   begin
-    result  := FALSE;
-    strLen  := Length(aString);
+    strLen  := Length(aString);
+    aPos    := 0;
+    result  := FALSE;
     if (strLen = 0) then
       EXIT;
 
-    SetLength(aPositions, strLen);
-
-    j         := 0;
     firstChar := @aString[1];
-    currChar  := firstChar;
+    currChar  := @aString[strLen];
 
     for i := Pred(strLen) downto 0 do
     begin
-      if (currChar^ = aChar) then
-      begin
-        aPositions[j] := (currChar - firstChar) + 1;
-        Inc(j);
-      end;
-      Inc(currChar);
+      result := (currChar^ = aChar);
+      if result then
+        BREAK;
+
+      Dec(currChar);
     end;
 
-    SetLength(aPositions, j);
-    result := (j > 0);
+    if result then
+      aPos := (currChar - firstChar) + 1;
   end;
 
 
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Pos(const aString: UnicodeString;
-                          const aSubStr: UnicodeString;
-                          var   aPositions: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDESupport.RPos(const aString: UnicodeString;
+                                  const aSubStr: UnicodeString;
+                                  var   aPos: Integer): Boolean;
+  var
+    i: Integer;
     strLen: Integer;
     subLen: Integer;
     firstChar: PWideChar;
     currChar: PWideChar;
     initialChar: PWideChar;
   begin
-    result  := FALSE;
-    subLen  := Length(aSubStr);
     strLen  := Length(aString);
-    if (strLen = 0) then
+    subLen  := Length(aSubStr);
+    aPos    := 0;
+    result  := FALSE;
+    if (subLen > strLen) or (subLen = 0) or (strLen = 0) then
       EXIT;
 
-    SetLength(aPositions, strLen);
-
-    j           := 0;
     firstChar   := @aString[1];
-    currChar    := firstChar;
     initialChar := @aSubStr[1];
+    currChar    := @aString[Length(aString)];
 
-    for i := Pred(strLen) downto 0 do
+    for i := (strLen - subLen) downto 0 do
     begin
-      if (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen * 2) then
-      begin
-        aPositions[j] := (currChar - firstChar) + 1;
-        Inc(j);
-      end;
-      Inc(currChar);
+      result := (currChar^ = initialChar^);
+      if result and CompareMem(currChar, initialChar, subLen * 2) then
+        BREAK;
+
+      Dec(currChar);
     end;
 
-    SetLength(aPositions, j);
-    result := (j > 0);
+    if result then
+      aPos := (currChar - firstChar) + 1;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDESupport.Split(const aString: UnicodeString;
+                                   const aChar: WideChar;
+                                   var   aLeft: UnicodeString;
+                                   var   aRight: UnicodeString): Boolean;
+  var
+    p: Integer;
+  begin
+    aLeft   := aString;
+    aRight  := '';
+
+    result := Pos(aString, aChar, p);
+    if NOT result then
+      EXIT;
+
+    SetLength(aLeft, p - 1);
+    aRight := Copy(aString, p + 1, Length(aString) - p);
+  end;
+
+
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDESupport.Split(const aString: UnicodeString;
+                                   const aChar: WideChar;
+                                   var   aParts: TWideStringArray): Boolean;
+  var
+    i: Integer;
+    p: TCharIndexArray;
+  begin
+    result := Pos(aString, aChar, p);
+    if NOT result then
+      EXIT;
+
+    SetLength(aParts, Length(p) + 1);
+
+    aParts[0] := Copy(aString, 1, p[0] - 1);
+    for i := 1 to Pred(Length(p)) do
+      aParts[i] := Copy(aString, p[i - 1] + 1, p[i] - p[i - 1] - 1);
+
+    i := p[Pred(Length(p))] + 1;
+    aParts[Length(p)] := Copy(aString, i, Length(aString) - i + 1)
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function WIDESupport.BeginsWith(const aString, aLead: UnicodeString): Boolean;
   begin
     result := (Length(aLead) <= Length(aString))
@@ -1432,7 +1858,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function WIDESupport.Contains(const aString: UnicodeString;
-                               const aChar: WideChar): Boolean;
+                                      const aChar: WideChar): Boolean;
   begin
     result := System.Pos(aChar, aString) <> 0;
   end;
@@ -1440,13 +1866,22 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function WIDESupport.Contains(const aString: UnicodeString;
-                               const aSubStr: UnicodeString): Boolean;
+                                      const aSubStr: UnicodeString): Boolean;
   begin
     result := System.Pos(aSubStr, aString) <> 0;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDESupport.ContainsText(const aString, aSubStr: UnicodeString): Boolean;
+  var
+    p : Integer;
+  begin
+    result := WIDE.PosText(aString, aSubStr, p);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function WIDESupport.IsLowercase(const aChar: WideChar): Boolean;
   begin
     result := IsCharLowerW(aChar);
@@ -1543,6 +1978,9 @@ implementation
     result := aString;
   end;
 {$endif}
+
+
+
 
 
 
