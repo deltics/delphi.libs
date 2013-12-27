@@ -10,28 +10,20 @@ interface
   type
     TWIDETests = class(TTestCase)
       procedure Transcoding;
+      procedure fn_Len;
       procedure fn_Pos;
+      procedure fn_PosText;
       procedure fn_NPos;
       procedure fn_RPos;
+      procedure fn_Split;
       procedure fn_Compare;
       procedure fn_Contains;
+      procedure fn_ContainsText;
       procedure fn_IsLowercase;
       procedure fn_IsUppercase;
       procedure fn_SameText;
       procedure fn_Lowercase;
       procedure fn_Uppercase;
-    end;
-
-
-    TWIDEPerformance = class(TPerformanceCase)
-      procedure SystemPosChar;
-      procedure SystemPosStr;
-      procedure PosChar;
-      procedure NPosChar;
-      procedure RPosChar;
-      procedure PosStr;
-      procedure NPosStr;
-      procedure RPosStr;
     end;
 
 
@@ -64,6 +56,9 @@ implementation
     p: Integer;
     pa: TCharIndexArray;
   begin
+    WIDE.Pos(STR, 'i', p);      Test('FirstPos of ''i''').Expect(p).Equals(7);
+    WIDE.Pos(STR, 'I', p);      Test('FirstPos of ''I''').Expect(p).Equals(24);
+
     WIDE.Pos(STR, 'T', p);      Test('FirstPos of ''T''').Expect(p).Equals(1);
     WIDE.Pos(STR, '!', p);      Test('FirstPos of ''!''').Expect(p).Equals(21);
     WIDE.Pos(STR, 'q', p);      Test('FirstPos of ''q''').Expect(p).Equals(5);
@@ -88,6 +83,43 @@ implementation
                             Test('Third ''q''').Expect(pa[2]).Equals(36);
 
     WIDE.Pos(STR, 'z', pa); Test('No Positions of ''z''').Expect(Length(pa)).Equals(0);
+  end;
+
+
+  procedure TWIDETests.fn_PosText;
+  const// 0         1         2         3         4
+    STR = 'The quick, quick fox!  I said: The quick fox!';
+  var
+    p: Integer;
+    pa: TCharIndexArray;
+  begin
+    WIDE.PosText(STR, 'i', p);      Test('FirstPos of ''i''').Expect(p).Equals(7);
+    WIDE.PosText(STR, 'I', p);      Test('FirstPos of ''I''').Expect(p).Equals(7);
+
+    WIDE.PosText(STR, 't', p);      Test('FirstPos of ''t''').Expect(p).Equals(1);
+    WIDE.PosText(STR, '!', p);      Test('FirstPos of ''!''').Expect(p).Equals(21);
+    WIDE.PosText(STR, 'Q', p);      Test('FirstPos of ''Q''').Expect(p).Equals(5);
+    WIDE.PosText(STR, 'Z', p);      Test('FirstPos of ''Z''').Expect(p).Equals(0);
+
+    WIDE.PosText(STR, 'THE', p);    Test('FirstPos of ''THE''').Expect(p).Equals(1);
+    WIDE.PosText(STR, 'FOX!', p);   Test('FirstPos of ''FOX!''').Expect(p).Equals(18);
+    WIDE.PosText(STR, 'QUICK', p);  Test('FirstPos of ''QUICK''').Expect(p).Equals(5);
+    WIDE.PosText(STR, 'BROWN', p);  Test('FirstPos of ''BROWN''').Expect(p).Equals(0);
+
+    WIDE.PosText(STR, 'T', pa); Test('2 Positions of ''T''').Expect(Length(pa)).Equals(2).IsRequired;
+                                Test('First ''T''').Expect(pa[0]).Equals(1);
+                                Test('Second ''T''').Expect(pa[1]).Equals(32);
+
+    WIDE.PosText(STR, '!', pa); Test('2 Positions of ''!''').Expect(Length(pa)).Equals(2).IsRequired;
+                                Test('First ''!''').Expect(pa[0]).Equals(21);
+                                Test('Second ''!''').Expect(pa[1]).Equals(45);
+
+    WIDE.PosText(STR, 'q', pa); Test('3 Positions of ''q''').Expect(Length(pa)).Equals(3).IsRequired;
+                                Test('First ''q''').Expect(pa[0]).Equals(5);
+                                Test('Second ''q''').Expect(pa[1]).Equals(12);
+                                Test('Third ''q''').Expect(pa[2]).Equals(36);
+
+    WIDE.PosText(STR, 'z', pa); Test('No Positions of ''z''').Expect(Length(pa)).Equals(0);
   end;
 
 
@@ -171,7 +203,7 @@ implementation
 
   procedure TWIDETests.fn_Contains;
   const
-    STR = 'The quick fox!';
+    STR: UnicodeString = 'The quick fox!';
   begin
     Test('contains ''T''').Expect(WIDE.Contains(STR, 'T')).IsTRUE;
     Test('contains ''f''').Expect(WIDE.Contains(STR, '!')).IsTRUE;
@@ -182,6 +214,22 @@ implementation
     Test('contains ''fox!''').Expect(WIDE.Contains(STR, 'fox!')).IsTRUE;
     Test('contains ''quick''').Expect(WIDE.Contains(STR, 'quick')).IsTRUE;
     Test('contains ''brown''').Expect(WIDE.Contains(STR, 'brown')).IsFALSE;
+  end;
+
+
+  procedure TWIDETests.fn_ContainsText;
+  const
+    STR: UnicodeString = 'The quick fox!';
+  begin
+    Test('contains ''t''').Expect(WIDE.ContainsText(STR, 't')).IsTRUE;
+    Test('contains ''!''').Expect(WIDE.ContainsText(STR, '!')).IsTRUE;
+    Test('contains ''Q''').Expect(WIDE.ContainsText(STR, 'Q')).IsTRUE;
+    Test('contains ''Z''').Expect(WIDE.ContainsText(STR, 'Z')).IsFALSE;
+
+    Test('contains ''the''').Expect(WIDE.ContainsText(STR, 'the')).IsTRUE;
+    Test('contains ''Fox!''').Expect(WIDE.ContainsText(STR, 'Fox!')).IsTRUE;
+    Test('contains ''QUICK''').Expect(WIDE.ContainsText(STR, 'QUICK')).IsTRUE;
+    Test('contains ''brown''').Expect(WIDE.ContainsText(STR, 'brown')).IsFALSE;
   end;
 
 
@@ -242,6 +290,52 @@ implementation
   end;
 
 
+  procedure TWIDETests.fn_Len;
+  var
+    s: UnicodeString;
+  begin
+    s := #0;
+    Test('Zero length').Expect(WIDE.Len(PWideChar(s))).Equals(0);
+    s := 'short';
+    Test('Non-zero length').Expect(WIDE.Len(PWideChar(s))).Equals(5);
+  end;
+
+
+  procedure TWIDETests.fn_Split;
+  const
+    STAR: WideChar = '*';
+  var
+    s: UnicodeString;
+    left, right: UnicodeString;
+    parts: TWideStringArray;
+  begin
+    Test('Split('''', ''*'')').Expect(WIDE.Split('', STAR, left, right)).IsFALSE;
+    Test('')['left'].Expect(left).Equals('');
+    Test('')['right'].Expect(right).Equals('');
+
+    Test('Split(''left'', ''*'')').Expect(WIDE.Split('left', STAR, left, right)).IsFALSE;
+    Test('left')['left'].Expect(left).Equals('left');
+    Test('left')['right'].Expect(right).Equals('');
+
+    Test('Split(''*right'', ''*'')').Expect(WIDE.Split('*right', STAR, left, right)).IsTRUE;
+    Test('*right')['left'].Expect(left).Equals('');
+    Test('*right')['right'].Expect(right).Equals('right');
+
+    Test('Split(''left*right'', ''*'')').Expect(WIDE.Split('left*right', STAR, left, right)).IsTRUE;
+    Test('left*right')['left'].Expect(left).Equals('left');
+    Test('left*right')['right'].Expect(right).Equals('right');
+
+    s := 'left*mid-left*middle*mid-right*right';
+    Test('Split(''%s'', ''*'')', [s]).Expect(WIDE.Split(s, STAR, parts)).IsTRUE;
+    Test('Split(''%s'', ''*'')', [s])['no. of parts'].Expect(Length(parts)).Equals(5);
+    Test('part')[0].Expect(parts[0]).Equals('left');
+    Test('part')[1].Expect(parts[1]).Equals('mid-left');
+    Test('part')[2].Expect(parts[2]).Equals('middle');
+    Test('part')[3].Expect(parts[3]).Equals('mid-right');
+    Test('part')[4].Expect(parts[4]).Equals('right');
+  end;
+
+
   procedure TWIDETests.fn_Lowercase;
   const
     VECTOR: array[0..3] of TWIDEStringAB = (
@@ -274,90 +368,6 @@ implementation
   end;
 
 
-
-
-
-
-
-{ TWIDEPerformance }
-
-  procedure TWIDEPerformance.SystemPosChar;
-  const// 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: WideChar = 'f';
-  begin
-    Pos(FOX, STR);
-  end;
-
-  procedure TWIDEPerformance.SystemPosStr;
-  const// 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: UnicodeString = 'fox';
-  begin
-    Pos(FOX, STR);
-  end;
-
-  procedure TWIDEPerformance.PosChar;
-  const// 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: WideChar = 'f';
-  var
-    p: Integer;
-  begin
-    WIDE.Pos(STR, FOX, p);
-  end;
-
-  procedure TWIDEPerformance.NPosChar;
-  const               // 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: WideChar = 'f';
-  var
-    p: Integer;
-  begin
-    p := 18;
-    WIDE.NPos(STR, FOX, p);
-  end;
-
-  procedure TWIDEPerformance.RPosChar;
-  const// 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: WideChar = 'f';
-  var
-    p: Integer;
-  begin
-    WIDE.RPos(STR, FOX, p);
-  end;
-
-  procedure TWIDEPerformance.PosStr;
-  const// 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: UnicodeString = 'fox';
-  var
-    p: Integer;
-  begin
-    WIDE.Pos(STR, FOX, p);
-  end;
-
-  procedure TWIDEPerformance.NPosStr;
-  const               // 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: UnicodeString = 'fox';
-  var
-    p: Integer;
-  begin
-    p := 18;
-    WIDE.NPos(STR, FOX, p);
-  end;
-
-  procedure TWIDEPerformance.RPosStr;
-  const// 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: UnicodeString = 'fox';
-  var
-    p: Integer;
-  begin
-    WIDE.RPos(STR, FOX, p);
-  end;
 
 
 

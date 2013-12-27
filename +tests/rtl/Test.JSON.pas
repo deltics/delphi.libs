@@ -18,11 +18,12 @@ interface
                                       ICleanupTest)
     private
       fJSON: TJSONObject;
-    protected
+    private
       function NameForCase: UnicodeString;
       procedure Setup;
       procedure Cleanup;
-      procedure CleanupTest(const aTest: TDelegate);
+      procedure CleanupTest(const aTest: ITestMethod);
+
     public
       property JSON: TJSONObject read fJSON;
     published
@@ -85,7 +86,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TUnitTest_JSON.CleanupTest(const aTest: TDelegate);
+  procedure TUnitTest_JSON.CleanupTest(const aTest: ITestMethod);
   begin
     fJSON.Clear;
   end;

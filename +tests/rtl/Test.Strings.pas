@@ -12,6 +12,7 @@ interface
     TTestStrings = class(TTestCase, INameCase)
     private
       function NameForCase: UnicodeString;
+
     published
       procedure SizeOfChar;
     end;
@@ -51,9 +52,9 @@ implementation
 
   uses
     Test.Strings.ANSI,
-    Test.Strings.WIDE,
+    Test.Strings.STR,
     Test.Strings.UTF8,
-    Test.Strings.STR;
+    Test.Strings.WIDE;
 
 
 { TTestStrings ----------------------------------------------------------------------------------- }
@@ -84,7 +85,4 @@ initialization
   SRCU := UTF8.Encode('Unicode™');
 
   Smoketest.Add(TTestStrings, [TANSITests, TWIDETests, TSTRTests, TUTF8Tests]);
-  Smoketest.AverageTime([TANSIPerformance], 5).RunningFor(200).Iterations;
-  Smoketest.AverageTime([TWIDEPerformance], 5).RunningFor(200).Iterations;
-//  Smoketest.AverageTime([TUTF8Performance], 5).RunningFor(200).Iterations;
 end.

@@ -23,6 +23,7 @@ interface
     end;
 
 
+
 implementation
 
   uses
@@ -305,9 +306,6 @@ implementation
     for i := 0 to Pred(Length(VECTOR)) do
       TestUTF8.Expect(UTF8.Uppercase(VECTOR[i].A)).Equals(VECTOR[i].B);
   end;
-
-
-
 
 
 

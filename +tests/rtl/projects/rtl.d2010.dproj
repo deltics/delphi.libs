@@ -20,6 +20,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_Define>deltics_strings;NoDebugInfo;FASTSTRINGSX;deltics_smoketest;$(DCC_Define)</DCC_Define>
 			<DCC_BplOutput>$(bpl)</DCC_BplOutput>
 			<DCC_DcpOutput>$(bpl)</DCC_DcpOutput>
 			<DCC_DcuOutput>$(dcu)\$(config)</DCC_DcuOutput>
@@ -52,11 +53,16 @@
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
 			<DCCReference Include="..\Test.JSON.pas"/>
-			<DCCReference Include="..\Test.Strings.pas"/>
 			<DCCReference Include="..\Test.Strings.ANSI.pas"/>
+			<DCCReference Include="..\Test.Strings.pas"/>
+			<DCCReference Include="..\Test.Strings.STR.pas"/>
 			<DCCReference Include="..\Test.Strings.UTF8.pas"/>
 			<DCCReference Include="..\Test.Strings.WIDE.pas"/>
-			<DCCReference Include="..\Test.Strings.STR.pas"/>
+			<DCCReference Include="..\Benchmark.Strings.pas"/>
+			<DCCReference Include="..\Benchmark.Strings.ANSI.pas"/>
+			<DCCReference Include="..\Benchmark.Strings.UTF8.pas"/>
+			<DCCReference Include="..\Benchmark.Strings.WIDE.pas"/>
+			<DCCReference Include="..\Benchmark.Strings.STR.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

@@ -10,30 +10,20 @@ interface
   type
     TANSITests = class(TTestCase)
       procedure Transcoding;
+      procedure fn_Len;
       procedure fn_Pos;
+      procedure fn_PosText;
       procedure fn_NPos;
       procedure fn_RPos;
+      procedure fn_Split;
       procedure fn_Compare;
+      procedure fn_Contains;
+      procedure fn_ContainsText;
       procedure fn_IsLowercase;
       procedure fn_IsUppercase;
       procedure fn_SameText;
       procedure fn_Lowercase;
       procedure fn_Uppercase;
-    end;
-
-    TANSIPerformance = class(TPerformanceCase, ICompareResults)
-    private // IComparePerformance
-      procedure DefineComparisons(const aCompare: IDefineComparisons);
-
-    published
-      procedure SystemPosChar;
-      procedure SystemPosStr;
-      procedure PosChar;
-      procedure NPosChar;
-      procedure RPosChar;
-      procedure PosStr;
-      procedure NPosStr;
-      procedure RPosStr;
     end;
 
 
@@ -42,8 +32,11 @@ implementation
 
   uses
     Math,
+    Windows,
     Deltics.Strings,
     Test.Strings;
+
+
 
 
 { TANSITests ------------------------------------------------------------------------------------- }
@@ -59,12 +52,14 @@ implementation
 
 
   procedure TANSITests.fn_Pos;
-  const// 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
+  const            // 0         1         2         3         4
+    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!™';
   var
     p: Integer;
     pa: TCharIndexArray;
   begin
+    ANSI.Pos(STR, '™', p);      Test('FirstPos of ''™''').Expect(p).Equals(46);
+
     ANSI.Pos(STR, 'T', p);      Test('FirstPos of ''T''').Expect(p).Equals(1);
     ANSI.Pos(STR, '!', p);      Test('FirstPos of ''!''').Expect(p).Equals(21);
     ANSI.Pos(STR, 'q', p);      Test('FirstPos of ''q''').Expect(p).Equals(5);
@@ -134,6 +129,78 @@ implementation
   end;
 
 
+  procedure TANSITests.fn_Split;
+  const
+    STAR: ANSIChar = '*';
+  var
+    s: ANSIString;
+    left, right: ANSIString;
+    parts: TANSIStringArray;
+  begin
+    Test('Split('''', ''*'')').Expect(ANSI.Split('', STAR, left, right)).IsFALSE;
+    Test('')['left'].Expect(left).Equals('');
+    Test('')['right'].Expect(right).Equals('');
+
+    Test('Split(''left'', ''*'')').Expect(ANSI.Split('left', STAR, left, right)).IsFALSE;
+    Test('left')['left'].Expect(left).Equals('left');
+    Test('left')['right'].Expect(right).Equals('');
+
+    Test('Split(''*right'', ''*'')').Expect(ANSI.Split('*right', STAR, left, right)).IsTRUE;
+    Test('*right')['left'].Expect(left).Equals('');
+    Test('*right')['right'].Expect(right).Equals('right');
+
+    Test('Split(''left*right'', ''*'')').Expect(ANSI.Split('left*right', STAR, left, right)).IsTRUE;
+    Test('left*right')['left'].Expect(left).Equals('left');
+    Test('left*right')['right'].Expect(right).Equals('right');
+
+    s := 'left*mid-left*middle*mid-right*right';
+    Test('Split(''%s'', ''*'')', [s]).Expect(ANSI.Split(s, STAR, parts)).IsTRUE;
+    Test('Split(''%s'', ''*'')', [s])['no. of parts'].Expect(Length(parts)).Equals(5);
+    Test('part')[0].Expect(parts[0]).Equals('left');
+    Test('part')[1].Expect(parts[1]).Equals('mid-left');
+    Test('part')[2].Expect(parts[2]).Equals('middle');
+    Test('part')[3].Expect(parts[3]).Equals('mid-right');
+    Test('part')[4].Expect(parts[4]).Equals('right');
+  end;
+
+
+  procedure TANSITests.fn_PosText;
+  const// 0         1         2         3         4
+    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
+  var
+    p: Integer;
+    pa: TCharIndexArray;
+  begin
+    ANSI.PosText(STR, 'i', p);      Test('FirstPos of ''i''').Expect(p).Equals(7);
+    ANSI.PosText(STR, 'I', p);      Test('FirstPos of ''I''').Expect(p).Equals(7);
+
+    ANSI.PosText(STR, 't', p);      Test('FirstPos of ''t''').Expect(p).Equals(1);
+    ANSI.PosText(STR, '!', p);      Test('FirstPos of ''!''').Expect(p).Equals(21);
+    ANSI.PosText(STR, 'Q', p);      Test('FirstPos of ''Q''').Expect(p).Equals(5);
+    ANSI.PosText(STR, 'Z', p);      Test('FirstPos of ''Z''').Expect(p).Equals(0);
+
+    ANSI.PosText(STR, 'THE', p);    Test('FirstPos of ''THE''').Expect(p).Equals(1);
+    ANSI.PosText(STR, 'FOX!', p);   Test('FirstPos of ''FOX!''').Expect(p).Equals(18);
+    ANSI.PosText(STR, 'QUICK', p);  Test('FirstPos of ''QUICK''').Expect(p).Equals(5);
+    ANSI.PosText(STR, 'BROWN', p);  Test('FirstPos of ''BROWN''').Expect(p).Equals(0);
+
+    ANSI.PosText(STR, 'T', pa); Test('2 Positions of ''T''').Expect(Length(pa)).Equals(2).IsRequired;
+                                Test('First ''T''').Expect(pa[0]).Equals(1);
+                                Test('Second ''T''').Expect(pa[1]).Equals(32);
+
+    ANSI.PosText(STR, '!', pa); Test('2 Positions of ''!''').Expect(Length(pa)).Equals(2).IsRequired;
+                                Test('First ''!''').Expect(pa[0]).Equals(21);
+                                Test('Second ''!''').Expect(pa[1]).Equals(45);
+
+    ANSI.PosText(STR, 'q', pa); Test('3 Positions of ''q''').Expect(Length(pa)).Equals(3).IsRequired;
+                                Test('First ''q''').Expect(pa[0]).Equals(5);
+                                Test('Second ''q''').Expect(pa[1]).Equals(12);
+                                Test('Third ''q''').Expect(pa[2]).Equals(36);
+
+    ANSI.PosText(STR, 'z', pa); Test('No Positions of ''z''').Expect(Length(pa)).Equals(0);
+  end;
+
+
   procedure TANSITests.fn_Compare;
   const
     CASES: array[0..8] of TANSIStringAB = (
@@ -163,6 +230,42 @@ implementation
     for i := (NUM_LT + NUM_EQ) to Pred(Length(CASES)) do
       Test(WIDE.FromANSI(CASES[i].A + ' > ' + CASES[i].B + '!'))
         .Expect(ANSI.Compare(CASES[i].A, CASES[i].B)).Equals(1);
+  end;
+
+
+  procedure TANSITests.fn_Contains;
+  const
+    STR: ANSIString = 'The quick fox!';
+  begin
+    Test('contains ''T''').Expect(ANSI.Contains(STR, 'T')).IsTRUE;
+    Test('contains ''t''').Expect(ANSI.Contains(STR, 't')).IsFALSE;
+    Test('contains ''!''').Expect(ANSI.Contains(STR, '!')).IsTRUE;
+    Test('contains ''Q''').Expect(ANSI.Contains(STR, 'Q')).IsFALSE;
+    Test('contains ''q''').Expect(ANSI.Contains(STR, 'q')).IsTRUE;
+    Test('contains ''Z''').Expect(ANSI.Contains(STR, 'Z')).IsFALSE;
+
+    Test('contains ''The''').Expect(ANSI.Contains(STR, 'The')).IsTRUE;
+    Test('contains ''fox!''').Expect(ANSI.Contains(STR, 'fox!')).IsTRUE;
+    Test('contains ''quick''').Expect(ANSI.Contains(STR, 'quick')).IsTRUE;
+    Test('contains ''brown''').Expect(ANSI.Contains(STR, 'brown')).IsFALSE;
+  end;
+
+
+  procedure TANSITests.fn_ContainsText;
+  const
+    STR: ANSIString = 'The quick fox!';
+  begin
+    Test('contains ''T''').Expect(ANSI.ContainsText(STR, 'T')).IsTRUE;
+    Test('contains ''t''').Expect(ANSI.ContainsText(STR, 't')).IsTRUE;
+    Test('contains ''!''').Expect(ANSI.ContainsText(STR, '!')).IsTRUE;
+    Test('contains ''Q''').Expect(ANSI.ContainsText(STR, 'Q')).IsTRUE;
+    Test('contains ''q''').Expect(ANSI.ContainsText(STR, 'q')).IsTRUE;
+    Test('contains ''Z''').Expect(ANSI.ContainsText(STR, 'Z')).IsFALSE;
+
+    Test('contains ''the''').Expect(ANSI.ContainsText(STR, 'the')).IsTRUE;
+    Test('contains ''Fox!''').Expect(ANSI.ContainsText(STR, 'Fox!')).IsTRUE;
+    Test('contains ''QUICK''').Expect(ANSI.ContainsText(STR, 'QUICK')).IsTRUE;
+    Test('contains ''brown''').Expect(ANSI.ContainsText(STR, 'brown')).IsFALSE;
   end;
 
 
@@ -223,6 +326,21 @@ implementation
   end;
 
 
+  procedure TANSITests.fn_Len;
+  var
+    s: ANSIString;
+  begin
+    s := #0;
+    Test('Zero length').Expect(ANSI.Len(PANSIChar(s))).Equals(0);
+
+    s := 'short';
+    Test('Non-zero length').Expect(ANSI.Len(PANSIChar(s))).Equals(5);
+
+    s := 'Windows™';
+    Test('With MBCS Char').Expect(ANSI.Len(PANSIChar(s))).Equals(8);
+  end;
+
+
   procedure TANSITests.fn_Lowercase;
   const
     CASES: array[0..3] of TANSIStringAB = (
@@ -256,96 +374,7 @@ implementation
 
 
 
-  procedure TANSIPerformance.DefineComparisons(const aCompare: IDefineComparisons);
-  begin
-    aCompare.CompilerVersions;
-    aCompare.WithCase('WIDEPerformance');
-    aCompare.PreviousResults;
-  end;
 
-
-
-
-{ TANSIPerformance }
-
-  procedure TANSIPerformance.SystemPosChar;
-  const// 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIChar = 'f';
-  begin
-    Pos(FOX, STR);
-  end;
-
-  procedure TANSIPerformance.SystemPosStr;
-  const// 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIString = 'fox';
-  begin
-    Pos(FOX, STR);
-  end;
-
-  procedure TANSIPerformance.PosChar;
-  const// 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIChar = 'f';
-  var
-    p: Integer;
-  begin
-    ANSI.Pos(STR, FOX, p);
-  end;
-
-
-  procedure TANSIPerformance.NPosChar;
-  const               // 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIChar = 'f';
-  var
-    p: Integer;
-  begin
-    p := 18;
-    ANSI.NPos(STR, FOX, p);
-  end;
-
-  procedure TANSIPerformance.RPosChar;
-  const// 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIChar = 'f';
-  var
-    p: Integer;
-  begin
-    ANSI.RPos(STR, FOX, p);
-  end;
-
-  procedure TANSIPerformance.PosStr;
-  const// 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIString = 'fox';
-  var
-    p: Integer;
-  begin
-    ANSI.Pos(STR, FOX, p);
-  end;
-
-  procedure TANSIPerformance.NPosStr;
-  const               // 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIString = 'fox';
-  var
-    p: Integer;
-  begin
-    p := 18;
-    ANSI.NPos(STR, FOX, p);
-  end;
-
-  procedure TANSIPerformance.RPosStr;
-  const// 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIString = 'fox';
-  var
-    p: Integer;
-  begin
-    ANSI.RPos(STR, FOX, p);
-  end;
 
 
 end.

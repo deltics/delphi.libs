@@ -19,6 +19,7 @@ interface
     end;
 
 
+
 implementation
 
   uses
@@ -156,7 +157,6 @@ implementation
     for i := 0 to Pred(Length(CASES)) do
       Test(CASES[i].A).Expect(STR.Uppercase(CASES[i].A)).Equals(CASES[i].B);
   end;
-
 
 
 
