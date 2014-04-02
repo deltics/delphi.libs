@@ -456,7 +456,7 @@ implementation
     rc.Left := 0;
     rc.Top  := 0;
     DrawTextExW(Legend.Canvas.Handle, PWideChar(aLabel), Length(aLabel), rc,
-                DT_CALCRECT or DT_WORD_ELLIPSIS or DT_NOPREFIX, NIL);
+                DT_CALCRECT or DT_NOPREFIX, NIL);
 
     if rc.Right > fLegendLabelWidth then
       fLegendLabelWidth := rc.Right;
@@ -513,7 +513,9 @@ implementation
     DC.Font.Name := 'Tahoma';
     DC.Font.Size := 8;
 
-    cols := ClientWidth div (fLegendLabelWidth + 32); // left margin 8, box 12, gutter 4 right margin 8
+    w := fLegendLabelWidth + 32;
+
+    cols := ClientWidth div w; // left margin 8, box 12, gutter 4 right margin 8
     if cols = 0 then
       cols := 1;
 
@@ -523,15 +525,14 @@ implementation
     if (rows * cols) < numSeries then
       Inc(rows);
 
-    w := fLegendLabelWidth + 32;
-    for c := 1 to cols do
-    begin
-      boxRC.Top := 8;
-      txtRC.Top := 6;
+    boxRC.Top := 8;
+    txtRC.Top := 6;
 
-      for r := 1 to rows do
+    for r := 1 to rows do
+    begin
+      for c := 1 to cols do
       begin
-        s := ((c - 1) * rows) + (r - 1);
+        s := ((r - 1) * cols) + (c - 1);
         if (s >= numSeries) then
           BREAK;
 
@@ -540,7 +541,7 @@ implementation
         boxRC.Bottom  := boxRC.Top + 12;
 
         txtRC.Left    := boxRC.Right + 4;
-        txtRC.Right   := (w * c) - 8;
+        txtRC.Right   := (boxRC.Left - 8) + w;
         txtRC.Bottom  := txtRC.Top + 16;
 
         if txtRC.Right > (ClientWidth - 8) then
@@ -548,10 +549,10 @@ implementation
 
         fLegendBoxes[s]   := boxRC;
         fLegendLabels[s]  := txtRC;
-
-        Inc(boxRC.Top, 20);
-        Inc(txtRC.Top, 20);
       end;
+
+      Inc(boxRC.Top, 20);
+      Inc(txtRC.Top, 20);
     end;
 
     fLegendRows := rows;
