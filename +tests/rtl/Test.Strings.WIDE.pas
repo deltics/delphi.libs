@@ -235,41 +235,73 @@ implementation
 
   procedure TWIDETests.fn_IsLowercase;
   const
-    VECTOR: array[0..2] of TWIDEStringAB = (
-                                            (A: 'LowerCase';           B: 'lowercase'),
-                                            (A: '*NOT UPPERCASE*';     B: '*not uppercase*'),
-                                            (A: 'Microsoft Windows™';  B: 'microsoft windows™')
-                                           );
+    STR_VECTOR: array[0..2] of TWIDEStringAB = (
+                                                (A: 'LowerCase';           B: 'lowercase'),
+                                                (A: '*NOT LOWERCASE*';     B: '*not lowercase*'),
+                                                (A: 'Microsoft Windows™';  B: 'microsoft windows™')
+                                               );
+    CHAR_VECTOR: array[0..3] of TWIDECharAB = (
+                                               (A: ' ';   B: ' '),
+                                               (A: 'L';   B: 'l'),
+                                               (A: '*';   B: '*'),
+                                               (A: '™';   B: '™')
+                                              );
   var
     i: Integer;
   begin
+    Note('Tests for IsLowercase(UnicodeString)...');
+
     Test('Empty String is NOT considered lowercase!').Expect(WIDE.IsLowercase('')).IsFALSE;
 
-    for i := 0 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].A).Expect(WIDE.IsLowercase(VECTOR[i].A)).IsFALSE;
+    for i := 0 to Pred(Length(STR_VECTOR)) do
+      Test(STR_VECTOR[i].A).Expect(WIDE.IsLowercase(STR_VECTOR[i].A)).IsFALSE;
 
-    for i := 0 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].B).Expect(WIDE.IsLowercase(VECTOR[i].B)).IsTRUE;
+    for i := 0 to Pred(Length(STR_VECTOR)) do
+      Test(STR_VECTOR[i].B).Expect(WIDE.IsLowercase(STR_VECTOR[i].B)).IsTRUE;
+
+    Note('Tests for IsLowercase(WideChar)...');
+
+    for i := 0 to Pred(Length(CHAR_VECTOR)) do
+      Test(CHAR_VECTOR[i].A).Expect(WIDE.IsLowercase(CHAR_VECTOR[i].A)).IsFALSE;
+
+    for i := 0 to Pred(Length(CHAR_VECTOR)) do
+      Test(CHAR_VECTOR[i].B).Expect(WIDE.IsLowercase(CHAR_VECTOR[i].B)).Equals(i = 1);
   end;
 
 
   procedure TWIDETests.fn_IsUppercase;
   const
-    VECTOR: array[0..2] of TWIDEStringAB = (
-                                            (A: 'UpperCase';           B: 'UPPERCASE'),
-                                            (A: '*NOT lowercase*';     B: '*NOT LOWERCASE*'),
-                                            (A: 'Microsoft Windows™';  B: 'MICROSOFT WINDOWS™')
-                                           );
+    STR_VECTOR: array[0..2] of TWIDEStringAB = (
+                                                (A: 'UpperCase';           B: 'UPPERCASE'),
+                                                (A: '*NOT uppercase*';     B: '*NOT UPPERCASE*'),
+                                                (A: 'Microsoft Windows™';  B: 'MICROSOFT WINDOWS™')
+                                               );
+    CHAR_VECTOR: array[0..3] of TWIDECharAB = (
+                                               (A: ' ';   B: ' '),
+                                               (A: 'L';   B: 'l'),
+                                               (A: '*';   B: '*'),
+                                               (A: '™';   B: '™')
+                                              );
   var
     i: Integer;
   begin
+    Note('Tests for IsUppercase(UnicodeString)...');
+
     Test('Empty String is NOT considered uppercase!').Expect(WIDE.IsLowercase('')).IsFALSE;
 
-    for i := 0 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].A).Expect(WIDE.IsUppercase(VECTOR[i].A)).IsFALSE;
+    for i := 0 to Pred(Length(STR_VECTOR)) do
+      Test(STR_VECTOR[i].A).Expect(WIDE.IsUppercase(STR_VECTOR[i].A)).IsFALSE;
 
-    for i := 1 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].B).Expect(WIDE.IsUppercase(VECTOR[i].B)).IsTRUE;
+    for i := 1 to Pred(Length(STR_VECTOR)) do
+      Test(STR_VECTOR[i].B).Expect(WIDE.IsUppercase(STR_VECTOR[i].B)).IsTRUE;
+
+    Note('Tests for IsUppercase(WideChar)...');
+
+    for i := 0 to Pred(Length(CHAR_VECTOR)) do
+      Test(CHAR_VECTOR[i].A).Expect(WIDE.IsUppercase(CHAR_VECTOR[i].B)).IsFALSE;
+
+    for i := 0 to Pred(Length(CHAR_VECTOR)) do
+      Test(CHAR_VECTOR[i].B).Expect(WIDE.IsUppercase(CHAR_VECTOR[i].A)).Equals(i = 1);
   end;
 
 
@@ -338,17 +370,30 @@ implementation
 
   procedure TWIDETests.fn_Lowercase;
   const
-    VECTOR: array[0..3] of TWIDEStringAB = (
-                                            (A: '';                    B: ''),
-                                            (A: 'LowerCase';           B: 'lowercase'),
-                                            (A: '*NOT UPPERCASE*';     B: '*not uppercase*'),
-                                            (A: 'Microsoft Windows™';  B: 'microsoft windows™')
-                                           );
+    STR_VECTOR: array[0..3] of TWIDEStringAB = (
+                                                (A: '';                    B: ''),
+                                                (A: 'LowerCase';           B: 'lowercase'),
+                                                (A: '*NOT UPPERCASE*';     B: '*not uppercase*'),
+                                                (A: 'Microsoft Windows™';  B: 'microsoft windows™')
+                                               );
+    CHAR_VECTOR: array[0..3] of TWIDECharAB = (
+                                               (A: ' ';   B: ' '),
+                                               (A: 'L';   B: 'l'),
+                                               (A: '*';   B: '*'),
+                                               (A: '™';   B: '™')
+                                              );
   var
     i: Integer;
   begin
-    for i := 0 to Pred(Length(VECTOR)) do
-      Test(VECTOR[i].A).Expect(WIDE.Lowercase(VECTOR[i].A)).Equals(VECTOR[i].B);
+    Note('Tests for Lowercase(UnicodeString)...');
+
+    for i := 0 to Pred(Length(STR_VECTOR)) do
+      Test(STR_VECTOR[i].A).Expect(WIDE.Lowercase(STR_VECTOR[i].A)).Equals(STR_VECTOR[i].B);
+
+    Note('Tests for Lowercase(WideChar)...');
+
+    for i := 0 to Pred(Length(CHAR_VECTOR)) do
+      Test(CHAR_VECTOR[i].A).Expect(WIDE.Lowercase(CHAR_VECTOR[i].A)).Equals(CHAR_VECTOR[i].B);
   end;
 
 
@@ -356,15 +401,28 @@ implementation
   const
     VECTOR: array[0..3] of TWIDEStringAB = (
                                             (A: '';                    B: ''),
-                                            (A: 'UpperCase';           B: 'UPPERCASE'),
-                                            (A: '*NOT LOWERCASE*';     B: '*NOT LOWERCASE*'),
-                                            (A: 'Microsoft Windows™';  B: 'MICROSOFT WINDOWS™')
+                                            (A: 'upperCase';           B: 'UPPERCASE'),
+                                            (A: '*NOT UPPERCASE*';     B: '*NOT UPPERCASE*'),
+                                            (A: 'microsoft windows™';  B: 'MICROSOFT WINDOWS™')
                                            );
+    CHAR_VECTOR: array[0..3] of TWIDECharAB = (
+                                               (A: ' ';   B: ' '),
+                                               (A: 'l';   B: 'L'),
+                                               (A: '*';   B: '*'),
+                                               (A: '™';   B: '™')
+                                              );
   var
     i: Integer;
   begin
+    Note('Tests for Uppercase(UnicodeString)...');
+
     for i := 0 to Pred(Length(VECTOR)) do
       Test(VECTOR[i].A).Expect(WIDE.Uppercase(VECTOR[i].A)).Equals(VECTOR[i].B);
+
+    Note('Tests for Uppercase(WideChar)...');
+
+    for i := 0 to Pred(Length(CHAR_VECTOR)) do
+      Test(CHAR_VECTOR[i].A).Expect(WIDE.Uppercase(CHAR_VECTOR[i].A)).Equals(CHAR_VECTOR[i].B);
   end;
 
 

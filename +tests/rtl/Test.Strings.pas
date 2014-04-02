@@ -23,9 +23,19 @@ interface
       B: ANSIString;
     end;
 
+    TANSICharAB = record
+      A: ANSIChar;
+      B: ANSIChar;
+    end;
+
     TWIDEStringAB = record
       A: UnicodeString;
       B: UnicodeString;
+    end;
+
+    TWIDECharAB = record
+      A: WideChar;
+      B: WideChar;
     end;
 
     TStringAB = record

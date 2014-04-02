@@ -271,41 +271,73 @@ implementation
 
   procedure TANSITests.fn_IsLowercase;
   const
-    CASES: array[0..2] of TANSIStringAB = (
-                                       (A: 'LowerCase';           B: 'lowercase'),
-                                       (A: '*NOT UPPERCASE*';     B: '*not uppercase*'),
-                                       (A: 'Microsoft Windows™';  B: 'microsoft windows™')
-                                      );
+    STR_VECTOR: array[0..2] of TANSIStringAB = (
+                                                (A: 'LowerCase';           B: 'lowercase'),
+                                                (A: '*NOT LOWERCASE*';     B: '*not lowercase*'),
+                                                (A: 'Microsoft Windows™';  B: 'microsoft windows™')
+                                               );
+    CHAR_VECTOR: array[0..3] of TANSICharAB = (
+                                               (A: ' ';   B: ' '),
+                                               (A: 'L';   B: 'l'),
+                                               (A: '*';   B: '*'),
+                                               (A: '™';   B: '™')
+                                              );
   var
     i: Integer;
   begin
+    Note('Tests for IsLowercase(ANSIString)...');
+
     Test('Empty String is NOT considered lowercase!').Expect(ANSI.IsLowercase('')).IsFALSE;
 
-    for i := 0 to Pred(Length(CASES)) do
-      Test(CASES[i].A).Expect(ANSI.IsLowercase(CASES[i].A)).IsFALSE;
+    for i := 0 to Pred(Length(STR_VECTOR)) do
+      Test(STR_VECTOR[i].A).Expect(ANSI.IsLowercase(STR_VECTOR[i].A)).IsFALSE;
 
-    for i := 0 to Pred(Length(CASES)) do
-      Test(CASES[i].B).Expect(ANSI.IsLowercase(CASES[i].B)).IsTRUE;
+    for i := 0 to Pred(Length(STR_VECTOR)) do
+      Test(STR_VECTOR[i].B).Expect(ANSI.IsLowercase(STR_VECTOR[i].B)).IsTRUE;
+
+    Note('Tests for IsLowercase(ANSIChar)...');
+
+    for i := 0 to Pred(Length(CHAR_VECTOR)) do
+      Test(WIDE.FromANSI(CHAR_VECTOR[i].A)).Expect(ANSI.IsLowercase(CHAR_VECTOR[i].A)).IsFALSE;
+
+    for i := 0 to Pred(Length(CHAR_VECTOR)) do
+      Test(WIDE.FromANSI(CHAR_VECTOR[i].B)).Expect(ANSI.IsLowercase(CHAR_VECTOR[i].B)).Equals(i = 1);
   end;
 
 
   procedure TANSITests.fn_IsUppercase;
   const
-    CASES: array[0..2] of TANSIStringAB = (
-                                       (A: 'UpperCase';           B: 'UPPERCASE'),
-                                       (A: '*NOT lowercase*';     B: '*NOT LOWERCASE*'),
-                                       (A: 'Microsoft Windows™';  B: 'MICROSOFT WINDOWS™')
-                                      );
+    STR_VECTOR: array[0..2] of TANSIStringAB = (
+                                                (A: 'UpperCase';           B: 'UPPERCASE'),
+                                                (A: '*NOT uppercase*';     B: '*NOT UPPERCASE*'),
+                                                (A: 'Microsoft Windows™';  B: 'MICROSOFT WINDOWS™')
+                                               );
+    CHAR_VECTOR: array[0..3] of TANSICharAB = (
+                                               (A: ' ';   B: ' '),
+                                               (A: 'L';   B: 'l'),
+                                               (A: '*';   B: '*'),
+                                               (A: '™';   B: '™')
+                                              );
   var
     i: Integer;
   begin
+    Note('Tests for IsUppercase(ANSIString)...');
+
     Test('Empty String is NOT considered uppercase!').Expect(ANSI.IsLowercase('')).IsFALSE;
 
-    for i := 0 to Pred(Length(CASES)) do
-      Test(CASES[i].A).Expect(ANSI.IsUppercase(CASES[i].A)).IsFALSE;
+    for i := 0 to Pred(Length(STR_VECTOR)) do
+      Test(STR_VECTOR[i].A).Expect(ANSI.IsUppercase(STR_VECTOR[i].A)).IsFALSE;
 
-    for i := 1 to Pred(Length(CASES)) do
-      Test(CASES[i].B).Expect(ANSI.IsUppercase(CASES[i].B)).IsTRUE;
+    for i := 1 to Pred(Length(STR_VECTOR)) do
+      Test(STR_VECTOR[i].B).Expect(ANSI.IsUppercase(STR_VECTOR[i].B)).IsTRUE;
+
+    Note('Tests for IsUppercase(ANSIChar)...');
+
+    for i := 0 to Pred(Length(CHAR_VECTOR)) do
+      Test(CHAR_VECTOR[i].A).Expect(ANSI.IsUppercase(CHAR_VECTOR[i].B)).IsFALSE;
+
+    for i := 0 to Pred(Length(CHAR_VECTOR)) do
+      Test(CHAR_VECTOR[i].B).Expect(ANSI.IsUppercase(CHAR_VECTOR[i].A)).Equals(i = 1);
   end;
 
 
@@ -343,33 +375,59 @@ implementation
 
   procedure TANSITests.fn_Lowercase;
   const
-    CASES: array[0..3] of TANSIStringAB = (
-                                       (A: '';                    B: ''),
-                                       (A: 'LowerCase';           B: 'lowercase'),
-                                       (A: '*NOT UPPERCASE*';     B: '*not uppercase*'),
-                                       (A: 'Microsoft Windows™';  B: 'microsoft windows™')
-                                      );
+    STR_VECTOR: array[0..3] of TANSIStringAB = (
+                                                (A: '';                    B: ''),
+                                                (A: 'LowerCase';           B: 'lowercase'),
+                                                (A: '*NOT UPPERCASE*';     B: '*not uppercase*'),
+                                                (A: 'Microsoft Windows™';  B: 'microsoft windows™')
+                                               );
+    CHAR_VECTOR: array[0..3] of TANSICharAB = (
+                                               (A: ' ';   B: ' '),
+                                               (A: 'L';   B: 'l'),
+                                               (A: '*';   B: '*'),
+                                               (A: '™';   B: '™')
+                                              );
   var
     i: Integer;
   begin
-    for i := 0 to Pred(Length(CASES)) do
-      Test(CASES[i].A).Expect(ANSI.Lowercase(CASES[i].A)).Equals(CASES[i].B);
+    Note('Tests for Lowercase(ANSIString)...');
+
+    for i := 0 to Pred(Length(STR_VECTOR)) do
+      Test(STR_VECTOR[i].A).Expect(ANSI.Lowercase(STR_VECTOR[i].A)).Equals(STR_VECTOR[i].B);
+
+    Note('Tests for Lowercase(ANSIChar)...');
+
+    for i := 0 to Pred(Length(CHAR_VECTOR)) do
+      Test(CHAR_VECTOR[i].A).Expect(ANSI.Lowercase(CHAR_VECTOR[i].A)).Equals(CHAR_VECTOR[i].B);
   end;
 
 
   procedure TANSITests.fn_Uppercase;
   const
-    CASES: array[0..3] of TANSIStringAB = (
-                                       (A: '';                    B: ''),
-                                       (A: 'UpperCase';           B: 'UPPERCASE'),
-                                       (A: '*NOT LOWERCASE*';     B: '*NOT LOWERCASE*'),
-                                       (A: 'Microsoft Windows™';  B: 'MICROSOFT WINDOWS™')
-                                      );
+    STR_VECTOR: array[0..3] of TANSIStringAB = (
+                                                (A: '';                    B: ''),
+                                                (A: 'UpperCase';           B: 'UPPERCASE'),
+                                                (A: '*NOT LOWERCASE*';     B: '*NOT LOWERCASE*'),
+                                                (A: 'Microsoft Windows™';  B: 'MICROSOFT WINDOWS™')
+                                               );
+    CHAR_VECTOR: array[0..3] of TANSICharAB = (
+                                               (A: ' ';   B: ' '),
+                                               (A: 'l';   B: 'L'),
+                                               (A: '*';   B: '*'),
+                                               (A: '™';   B: '™')
+                                              );
   var
     i: Integer;
   begin
-    for i := 0 to Pred(Length(CASES)) do
-      Test(CASES[i].A).Expect(ANSI.Uppercase(CASES[i].A)).Equals(CASES[i].B);
+    Note('Tests for Uppercase(ANSIString)...');
+
+    for i := 0 to Pred(Length(STR_VECTOR)) do
+      Test(STR_VECTOR[i].A).Expect(ANSI.Uppercase(STR_VECTOR[i].A)).Equals(STR_VECTOR[i].B);
+
+    Note('Tests for Uppercase(ANSIChar)...');
+
+    for i := 0 to Pred(Length(CHAR_VECTOR)) do
+      Test(CHAR_VECTOR[i].A).Expect(ANSI.Uppercase(CHAR_VECTOR[i].A)).Equals(CHAR_VECTOR[i].B);
   end;
 
 
