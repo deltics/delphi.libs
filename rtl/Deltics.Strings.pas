@@ -1025,7 +1025,7 @@ implementation
   {$ifdef DELPHIXE4_OR_LATER}
     result := ANSIStrings.StrLen(PANSIChar(aString));
   {$else}
-    result := SysUtils.StrLen(aString);
+    result := SysUtils.StrLen(PANSIChar(aString));
   {$endif}
   end;
 
