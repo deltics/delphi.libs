@@ -912,8 +912,10 @@ interface
       //        declarations onto either the ANSIString or UnicodeString declared implementations
       //        according to whether the built-in 'String' type in the compiler version is
       //        ANSI or Unicode
+      function Inspect(aChar: ANSIChar): IInspector; overload;
       function Inspect(aName: String): IInspector; overload;
       function Inspect(aName: String; aArgs: array of const): IInspector; overload;
+      function Test(aChar: ANSIChar): ITest; overload;
       function Test(aName: String): ITest; overload;
       function Test(aName: String; aArgs: array of const): ITest; overload;
     {$ifdef UNICODE}
@@ -4018,6 +4020,13 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.Inspect(aChar: ANSIChar): IInspector;
+  begin
+    result := Inspect(WIDE.FromANSI(aChar));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTestCase.Inspect(aName: ANSIString): IInspector;
   begin
     result := Inspect(WIDE.FromANSI(aName));
@@ -4212,6 +4221,13 @@ implementation
   function TTestCase.Test: ITest;
   begin
     result := Test('{actual}');
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.Test(aChar: ANSIChar): ITest;
+  begin
+    result := Test(WIDE.FromANSI(aChar));
   end;
 
 
