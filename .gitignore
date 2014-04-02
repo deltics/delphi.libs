@@ -8,11 +8,14 @@
 *.map
 *.~dpr
 *.~pas
-*_MemoryManager_EventLog.txt
 *.~bpg
 *.~dsk
 *.~inc
 *.~dfm
+*_MemoryManager_EventLog.txt
 __history
 .DS_Store
 Thumbs.db
+bonjour.*.res
+rtl.*.res
+selftest.*.res
