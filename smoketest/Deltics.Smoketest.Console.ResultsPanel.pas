@@ -75,7 +75,7 @@ interface
       fLegendRows: Integer;
       fPanel: TPaintbox;
       fResults: TList;
-      fSeries: TStringList;
+      fSeries: array of UnicodeString;
       fUpdating: Integer;
       procedure Paint(aSender: TObject);
       procedure MeasureLegend;
@@ -199,14 +199,12 @@ implementation
     fPanel.OnMouseDown := DoMouseDown;
 
     fResults := TObjectList.Create(TRUE);
-    fSeries  := TStringList.Create;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   destructor TResultsPanel.Destroy;
   begin
-    FreeAndNIL(fSeries);
     FreeAndNIL(fResults);
 
     inherited;
@@ -238,7 +236,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TResultsPanel.get_SeriesCount: Integer;
   begin
-    result := fSeries.Count;
+    result := Length(fSeries);
   end;
 
 
@@ -316,7 +314,7 @@ implementation
 
     fPanel.Height := top;
 
-    if (fSeries.Count > 0) and Assigned(Legend) then
+    if (SeriesCount > 0) and Assigned(Legend) then
     begin
       MeasureLegend;
       Legend.Parent.Height  := (fLegendRows * 20) + 8;
@@ -439,15 +437,18 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TResultsPanel.AddSeries(const aLabel: UnicodeString);
   var
+    numSeries: Integer;
     rc: TRect;
   begin
-    fSeries.Add(aLabel);
+    numSeries := Length(fSeries) + 1;
+    SetLength(fSeries, numSeries);
+    fSeries[numSeries - 1] := aLabel;
 
     if NOT Assigned(Legend) then
       EXIT;
 
-    SetLength(fLegendBoxes, fSeries.Count);
-    SetLength(fLegendLabels, fSeries.Count);
+    SetLength(fLegendBoxes, numSeries);
+    SetLength(fLegendLabels, numSeries);
 
     Legend.Canvas.Font.Name := 'Tahoma';
     Legend.Canvas.Font.Size := 8;
@@ -477,8 +478,9 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TResultsPanel.Clear;
   begin
+    SetLength(fSeries, 0);
+    
     fResults.Clear;
-    fSeries.Clear;
     fPanel.Invalidate;
 
     if NOT Assigned(Legend) then
@@ -497,6 +499,7 @@ implementation
   procedure TResultsPanel.MeasureLegend;
   var
     DC: TCanvas;
+    numSeries: Integer;
     cols: Integer;
     rows: Integer;
     w: Integer;
@@ -514,8 +517,10 @@ implementation
     if cols = 0 then
       cols := 1;
 
-    rows := fSeries.Count div cols;
-    if (rows * cols) < fSeries.Count then
+    numSeries := SeriesCount;
+
+    rows := numSeries div cols;
+    if (rows * cols) < numSeries then
       Inc(rows);
 
     w := fLegendLabelWidth + 32;
@@ -527,7 +532,7 @@ implementation
       for r := 1 to rows do
       begin
         s := ((c - 1) * rows) + (r - 1);
-        if (s >= fSeries.Count) then
+        if (s >= numSeries) then
           BREAK;
 
         boxRC.Left    := (w * (c - 1)) + 8;
@@ -574,7 +579,7 @@ implementation
     DC.Font.Name := 'Tahoma';
     DC.Font.Size := 8;
 
-    for i := 0 to Pred(fSeries.Count) do
+    for i := 0 to Pred(SeriesCount) do
     begin
       DC.Brush.Color := TResultsPanel.SeriesColor(i);
       DC.Brush.Style := bsSolid;
