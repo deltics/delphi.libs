@@ -27,6 +27,7 @@ interface
     public
       property JSON: TJSONObject read fJSON;
     published
+      procedure EmptyJSON;
       procedure StringDecoding;
       procedure StringEncoding;
       procedure ValueAsJSON;
@@ -91,6 +92,32 @@ implementation
     fJSON.Clear;
   end;
 
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TUnitTest_JSON.EmptyJSON;
+  var
+    json: TJSONText;
+  begin
+    json := TJSONText.CreateFromString('{}');
+    try
+      Test('JSON instantiated').Expect(json).IsAssigned.IsRequired;
+      (Test('JSON is an object') as EnumTest).ForEnum(TypeInfo(TJSONValueType)).Expect(json.ValueType).Equals(Ord(jsObject));
+      Test('JSON object is empty').Expect(json.IsEmpty).Equals(TRUE);
+    finally
+      json.Free;
+    end;
+
+    json := TJSONText.CreateFromString('[]');
+    try
+      Test('JSON instantiated').Expect(json).IsAssigned.IsRequired;
+      (Test('JSON is an array') as EnumTest).ForEnum(TypeInfo(TJSONValueType)).Expect(json.ValueType).Equals(Ord(jsArray));
+      Test('JSON array is empty').Expect(json.IsEmpty).Equals(TRUE);
+
+    finally
+      json.Free;
+    end;
+  end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
