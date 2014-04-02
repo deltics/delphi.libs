@@ -102,8 +102,10 @@ interface
       class function IsUppercase(const aString: ANSIString): Boolean; overload;
       class function SameText(const S1, S2: ANSIString): Boolean;
       // Transformations
-      class function Lowercase(const aString: ANSIString): ANSIString;
-      class function Uppercase(const aString: ANSIString): ANSIString;
+      class function Lowercase(const aChar: ANSIChar): ANSIChar; overload;
+      class function Lowercase(const aString: ANSIString): ANSIString; overload;
+      class function Uppercase(const aChar: ANSIChar): ANSIChar; overload;
+      class function Uppercase(const aString: ANSIString): ANSIString; overload;
     end;
 
 
@@ -181,8 +183,10 @@ interface
       class function IsUppercase(const aString: UnicodeString): Boolean; overload;
       class function SameText(const S1, S2: UnicodeString): Boolean;
       // Transformations
-      class function Lowercase(const aString: UnicodeString): UnicodeString;
-      class function Uppercase(const aString: UnicodeString): UnicodeString;
+      class function Lowercase(const aChar: WideChar): WideChar; overload;
+      class function Lowercase(const aString: UnicodeString): UnicodeString; overload;
+      class function Uppercase(const aChar: WideChar): WideChar; overload;
+      class function Uppercase(const aString: UnicodeString): UnicodeString; overload;
     end;
 
 
@@ -222,6 +226,9 @@ implementation
     FastStrings,
   {$endif}
   { vcl: }
+  {$ifdef DELPHIXE4_OR_LATER}
+    ANSIStrings,
+  {$endif}
     SysUtils,
     Windows;
 
@@ -330,7 +337,11 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function ANSISupport.Len(const aString: PANSIChar): Integer;
   begin
+  {$ifdef DELPHIXE4_OR_LATER}
+    result := ANSIStrings.StrLen(aString);
+  {$else}
     result := SysUtils.StrLen(aString);
+  {$endif}
   end;
 
 
@@ -849,6 +860,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSISupport.Lowercase(const aChar: ANSIChar): ANSIChar;
+  begin
+    result := aChar;
+    CharLowerBuffA(@result, 1);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function ANSISupport.Lowercase(const aString: ANSIString): ANSIString;
   var
     len: Integer;
@@ -857,6 +876,14 @@ implementation
     SetString(result, PANSIChar(aString), len);
     if len > 0 then
       CharLowerBuffA(PANSIChar(result), len);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSISupport.Uppercase(const aChar: ANSIChar): ANSIChar;
+  begin
+    result := aChar;
+    CharUpperBuffA(@result, 1);
   end;
 
 
@@ -995,7 +1022,11 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function UTF8.Len(const aString: PUTF8Char): Integer;
   begin
-    result := SysUtils.StrLen(PANSIChar(aString));
+  {$ifdef DELPHIXE4_OR_LATER}
+    result := ANSIStrings.StrLen(PANSIChar(aString));
+  {$else}
+    result := SysUtils.StrLen(aString);
+  {$endif}
   end;
 
 
@@ -1818,7 +1849,12 @@ implementation
   end;
 
 
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  {class function WIDESupport.Uppercase(const aChar: WideChar): UnicodeString;
+begin
+
+end;
+
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function WIDESupport.BeginsWith(const aString, aLead: UnicodeString): Boolean;
   begin
     result := (Length(aLead) <= Length(aString))
@@ -1919,9 +1955,23 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDESupport.Lowercase(const aChar: WideChar): WideChar;
+  begin
+    result := WideLowerCase(aChar)[1];
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function WIDESupport.Lowercase(const aString: UnicodeString): UnicodeString;
   begin
     result := WideLowerCase(aString);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDESupport.Uppercase(const aChar: WideChar): WideChar;
+  begin
+    result := WideUpperCase(aChar)[1];
   end;
 
 
