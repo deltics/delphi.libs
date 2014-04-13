@@ -12,6 +12,9 @@
         <Projects Include="bonjour\projects\bonjour.xe4.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="tokeniser\projects\tokeniser.xe4.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -47,14 +50,23 @@
     <Target Name="bonjour_xe4:Make">
         <MSBuild Projects="bonjour\projects\bonjour.xe4.dproj" Targets="Make"/>
     </Target>
+    <Target Name="tokeniser_xe4">
+        <MSBuild Projects="tokeniser\projects\tokeniser.xe4.dproj"/>
+    </Target>
+    <Target Name="tokeniser_xe4:Clean">
+        <MSBuild Projects="tokeniser\projects\tokeniser.xe4.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="tokeniser_xe4:Make">
+        <MSBuild Projects="tokeniser\projects\tokeniser.xe4.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="rtl_xe4;selftest_xe4;bonjour_xe4"/>
+        <CallTarget Targets="rtl_xe4;selftest_xe4;bonjour_xe4;tokeniser_xe4"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="rtl_xe4:Clean;selftest_xe4:Clean;bonjour_xe4:Clean"/>
+        <CallTarget Targets="rtl_xe4:Clean;selftest_xe4:Clean;bonjour_xe4:Clean;tokeniser_xe4:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="rtl_xe4:Make;selftest_xe4:Make;bonjour_xe4:Make"/>
+        <CallTarget Targets="rtl_xe4:Make;selftest_xe4:Make;bonjour_xe4:Make;tokeniser_xe4:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

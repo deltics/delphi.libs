@@ -1,0 +1,819 @@
+{
+  * X11 (MIT) LICENSE *
+
+  Copyright © 2006 Jolyon Smith
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of
+   this software and associated documentation files (the "Software"), to deal in
+   the Software without restriction, including without limitation the rights to
+   use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+   of the Software, and to permit persons to whom the Software is furnished to do
+   so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+   copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+
+
+  * GPL and Other Licenses *
+
+  The FSF deem this license to be compatible with version 3 of the GPL.
+   Compatability with other licenses should be verified by reference to those
+   other license terms.
+
+
+  * Contact Details *
+
+  Original author : Jolyon Smith
+  skype           : deltics
+  e-mail          : <EXTLINK mailto: jsmith@deltics.co.nz>jsmith@deltics.co.nz</EXTLINK>
+  website         : <EXTLINK http://www.deltics.co.nz>www.deltics.co.nz</EXTLINK>
+
+  ----------------------------------------------------------------------------------------
+
+   Implements a dictionary driven tokeniser, designed to accept an input
+    string, stream or file and tokenise that input using an externally
+    specified lexicon (dictionary), consisting of token definitions that
+    may be, reserved words, delimited values or symbols composited from a
+    set of valid characters, optionally with a different set of valid
+    initial characters.
+
+   - Change History
+
+      Apr-14   Massively re-written and updated for Unicode support and reference
+                counted token lists, streams etc.
+
+    5-Jul-06   Renamed as Deltics.Tokeniser.pas
+
+   24-May-06   Renamed as DictParser.pas
+
+   25-Apr-06   Newly optimised version.
+   -
+      Mar-06   Optimised version lost in server crash.  Non-optimised
+                version restored
+   -
+      Jan-06   Initial version
+
+  ----------------------------------------------------------------------------------------
+}
+
+{$i deltics.tokeniser.inc}
+
+{$ifdef deltics_tokeniser}
+  {$debuginfo ON}
+{$else}
+  {$debuginfo OFF}
+{$endif}
+
+
+  unit Deltics.Tokeniser;
+
+
+interface
+
+  uses
+  { vcl: }
+    Classes,
+  { deltics: }
+    Deltics.Classes,
+    Deltics.Strings,
+  { deltics.tokeniser: }
+    Deltics.Tokeniser.Consts,
+    Deltics.Tokeniser.Dictionary;
+
+
+  type
+    TTokeniserOption = (
+                          toCaseSensitive,
+                          toConsumeWhitespace,
+                          toNormaliseKeywords,
+                          toNormaliseCase
+                         );
+    TTokeniserOptions = set of TTokeniserOption;
+
+
+    TTokenSource = class
+    private
+      fLineNo: Integer;
+      fLineSpan: Integer;
+      fStartPos: Integer;
+    protected
+      procedure SetLineSpan(const aSpan: Integer);
+    public
+      constructor Create(const aLine, aStart: Integer);
+      property LineNo: Integer read fLineNo;
+      property LineSpan: Integer read fLineSpan;
+      property StartPos: Integer read fStartPos;
+    end;
+
+
+    IToken = interface
+    ['{9DF5B974-DD3C-4CCF-A017-D15585663408}']
+      function get_Definition: TTokenDefinition;
+      function get_Length: Integer;
+      function get_Source: TTokenSource;
+      function get_Text: UnicodeString;
+
+       property Definition: TTokenDefinition read get_Definition;
+       property Length: Integer read get_Length;
+       property Source: TTokenSource read get_Source;
+       property Text: UnicodeString read get_Text;
+    end;
+
+
+    ITokenCursor = interface
+    ['{C4696924-5820-4CBB-A331-1BC615C93D44}']
+      function get_EOF: Boolean;
+      function get_Token: IToken;
+
+      function First: IToken; overload;
+      function First(const aID: TTokenID): IToken; overload;
+      function Next: IToken; overload;
+      function Next(const aID: TTokenID): IToken; overload;
+      function Prev: IToken; overload;
+      function Prev(const aID: TTokenID; const aGoto: Boolean = TRUE): IToken; overload;
+
+      property EOF: Boolean read get_EOF;
+      property Token: IToken read get_Token;
+    end;
+
+
+    ITokenList = interface
+    ['{218D0AF0-8D13-40BD-B6CD-AACD005F2C83}']
+      function get_Count: Integer;
+      function get_Item(const aIndex: Integer): IToken;
+
+      function IndexOf(const aToken: IToken): Integer;
+
+      property Count: Integer read get_Count;
+      property Item[const aIndex: Integer]: IToken read get_Item; default;
+    end;
+
+
+    ITokenStream = interface
+    ['{E73877DA-F97C-48F3-A8D4-FE60D6E29EF8}']
+      function get_EOF: Boolean;
+      function get_Token: IToken;
+
+      function Read: IToken;
+
+      property EOF: Boolean read get_EOF;
+      property Token: IToken read get_Token;
+    end;
+
+
+    TTokenListFileProc = procedure(const aFilename: String; const aTokenList: ITokenList; const aLines: Integer) of object;
+
+
+    TTokenList = class(TFlexInterfacedObject, ITokenList)
+    private
+      fItems: TInterfaceList;
+    public
+      constructor Create; overload;
+      constructor CreateManaged;
+      destructor Destroy; override;
+
+      class function Filter(const aSource: ITokenList; const aID: TTokenID): ITokenList; overload;
+      class function Create(const aSource: UnicodeString; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
+      class function Create(const aSource: TStream; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
+      class function Create(const aSource: TStream; var aLines: Integer; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
+      class procedure ForEachFile(const aFilePattern: UnicodeString; const aSubDirs: Boolean; const aCallback: TTokenListFileProc; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = []);
+      class function LoadFromFile(const aFilename: UnicodeString; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
+      class function LoadFromFile(const aFilename: UnicodeString; var aLines: Integer; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
+
+      procedure Add(const aToken: IToken);
+      procedure Clear;
+      procedure Delete(const aIndex: Integer);
+      procedure Remove(const aToken: IToken);
+
+    protected // ITokenList ---------------------------------------------------
+      function get_Count: Integer;
+      function get_Item(const aIndex: Integer): IToken;
+    public
+      function IndexOf(const aToken: IToken): Integer;
+      property Count: Integer read get_Count;
+      property Items[const aIndex: Integer]: IToken read get_Item; default;
+    end;
+
+
+    TTokenStream = class(TCOMInterfacedObject, ITokenStream)
+    protected
+      fToken: IToken;
+    public
+      class function Create(const aSource: ITokenList; const aInitialIndex: Integer = 0): ITokenStream; overload;
+      class function Create(const aSource: UnicodeString; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = []): ITokenStream; overload;
+      class function Create(const aSource: TStream; const aOwnsStream: Boolean; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = []): ITokenStream; overload;
+      class function LoadFromFile(const aFilename: UnicodeString; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = []): ITokenStream;
+
+    protected // ITokenStream -------------------------------------------------
+      function get_EOF: Boolean; virtual; abstract;
+      function get_Token: IToken;
+      function Read: IToken; virtual; abstract;
+    end;
+
+
+    TTokenCursor = class(TCOMInterfacedObject, ITokenCursor)
+    private
+      fEOFIndex: Integer;
+      fIndex: Integer;
+      fList: ITokenList;
+      fToken: IToken;
+    public
+      constructor Create(const aList: ITokenList);
+
+    protected // ITokenCursor -------------------------------------------------
+      function get_EOF: Boolean;
+      function get_Token: IToken;
+
+      function First: IToken; overload;
+      function First(const aID: TTokenID): IToken; overload;
+      function Next: IToken; overload;
+      function Next(const aID: TTokenID): IToken; overload;
+      function Prev: IToken; overload;
+      function Prev(const aID: TTokenID; const aGoto: Boolean = TRUE): IToken; overload;
+    end;
+
+
+
+implementation
+
+  uses
+  { vcl: }
+    SysUtils,
+  { deltics: }
+    Deltics.Streams,
+    Deltics.SysUtils,
+  { deltics.tokeniser: }
+    Deltics.Tokeniser.TokenReader;
+
+
+  { Concrete stream implementations -------------------------------------------------------------- }
+  type
+    TTokenListStream = class(TTokenStream)
+    private
+      fEOFIndex: Integer;
+      fIndex: Integer;
+      fList: ITokenList;
+    protected
+      constructor Create(const aList: ITokenList; const aIndex: Integer);
+
+    protected // ITokenStream
+      function get_EOF: Boolean; override;
+      function Read: IToken; override;
+    end;
+
+
+    TTokenReaderStream = class(TTokenStream)
+    private
+      fReader: TTokenReader;
+      fSource: TStream;
+    protected
+      constructor Create(const aReader: TTokenReader; const aSource: TStream);
+    public
+      destructor Destroy; override;
+
+    protected // ITokenStream
+      function get_EOF: Boolean; override;
+      function Read: IToken; override;
+    end;
+
+
+
+
+
+
+{ TTokenList ------------------------------------------------------------------------------------- }
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TTokenList.Create(const aSource: UnicodeString;
+                                   const aDictionary: TTokenDictionary;
+                                   const aOptions: TTokeniserOptions): ITokenList;
+  var
+    strm: TUnicodeStream;
+  begin
+    strm := TUnicodeStream.Create(aSource);
+    try
+      result := Create(strm, aDictionary, aOptions);
+
+    finally
+      strm.Free;
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TTokenList.Create(const aSource: TStream;
+                                   const aDictionary: TTokenDictionary;
+                                   const aOptions: TTokeniserOptions): ITokenList;
+  var
+    notUsed: Integer;
+  begin
+    result := Create(aSource, notUsed, aDictionary, aOptions);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TTokenList.Create(const aSource: TStream;
+                                   var aLines: Integer;
+                                   const aDictionary: TTokenDictionary;
+                                   const aOptions: TTokeniserOptions): ITokenList;
+  var
+    list: TTokenList;
+    reader: TTokenReader;
+  begin
+    list   := TTokenList.CreateManaged;
+    result := list;
+
+    reader := TTokenReader.Create(aSource, aDictionary, aOptions);
+    try
+      while NOT reader.EOF do
+        list.Add(reader.Next);
+
+      aLines := reader.LineNo;
+
+    finally
+      reader.Free;
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TTokenList.LoadFromFile(const aFilename: UnicodeString;
+                                         const aDictionary: TTokenDictionary;
+                                         const aOptions: TTokeniserOptions): ITokenList;
+  var
+    notUsed: Integer;
+  begin
+    result := LoadFromFile(aFilename, notUsed, aDictionary, aOptions);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TTokenList.LoadFromFile(const aFilename: UnicodeString;
+                                         var aLines: Integer;
+                                         const aDictionary: TTokenDictionary;
+                                         const aOptions: TTokeniserOptions): ITokenList;
+  var
+    strm: TUnicodeStream;
+  begin
+    strm := TUnicodeStream.Create;
+    try
+      strm.LoadFromFile(aFilename);
+      result := Create(strm, aLines, aDictionary, aOptions);
+
+    finally
+      strm.Free;
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TTokenList.Filter(const aSource: ITokenList; const aID: TTokenID): ITokenList;
+  var
+    i: Integer;
+    list: TTokenList;
+    token: IToken;
+  begin
+    list    := TTokenList.CreateManaged;
+    result  := list;
+
+    for i := 0 to Pred(aSource.Count) do
+    begin
+      token := aSource[i];
+      if token.Definition.ID = aID then
+        list.Add(token);
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class procedure TTokenList.ForEachFile(const aFilePattern: UnicodeString;
+                                         const aSubDirs: Boolean;
+                                         const aCallback: TTokenListFileProc;
+                                         const aDictionary: TTokenDictionary;
+                                         const aOptions: TTokeniserOptions = []);
+  var
+    rec: TSearchRec;
+    path: UnicodeString;
+    filename: UnicodeString;
+    tokens: ITokenList;
+    lines: Integer;
+  begin
+    path      := ExtractFilePath(aFilePattern);
+    filename  := ExtractFileName(aFilePattern);
+
+    if FindFirst(aFilePattern, faAnyfile - faDirectory, rec) = 0 then
+    try
+      repeat
+        tokens := LoadFromFile(path + rec.Name, lines, aDictionary, aOptions);
+        aCallback(path + rec.Name, tokens, lines);
+
+      until FindNext(rec) <> 0;
+
+    finally
+      FindClose(rec);
+    end;
+
+    if NOT aSubDirs then
+      EXIT;
+
+    if FindFirst(path + '\*.*', faDirectory, rec) = 0 then
+    try
+      repeat
+        if (rec.Name = '.') or (rec.Name = '..') then
+          CONTINUE;
+
+        ForEachFile(path + rec.Name + '\' + filename, aSubDirs, aCallback, aDictionary, aOptions);
+      until FindNext(rec) <> 0;
+
+    finally
+      FindClose(rec);
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TTokenList.Create;
+  begin
+    DisableRefCount;
+    CreateManaged;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TTokenList.CreateManaged;
+  begin
+    inherited Create;
+
+    fItems := TInterfaceList.Create;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  destructor TTokenList.Destroy;
+  begin
+    FreeAndNIL(fItems);
+
+    inherited;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTokenList.get_Count: Integer;
+  begin
+    result := fItems.Count;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTokenList.get_Item(const aIndex: Integer): IToken;
+  begin
+    result := fItems[aIndex] as IToken;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenList.Add(const aToken: IToken);
+  begin
+    if Assigned(aToken) then
+      fItems.Add(aToken as IUnknown);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenList.Clear;
+  begin
+    fItems.Clear;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenList.Delete(const aIndex: Integer);
+  begin
+    fItems.Delete(aIndex);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTokenList.IndexOf(const aToken: IToken): Integer;
+  begin
+    result := fItems.IndexOf(aToken as IUnknown);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenList.Remove(const aToken: IToken);
+  var
+    idx: Integer;
+  begin
+    idx := fItems.IndexOf(aToken as IUnknown);
+    if idx <> -1 then
+      fItems.Delete(idx);
+  end;
+
+
+
+
+{ TTokenStream ----------------------------------------------------------------------------------- }
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TTokenStream.Create(const aSource: ITokenList;
+                                     const aInitialIndex: Integer): ITokenStream;
+  begin
+    result := TTokenListStream.Create(aSource, aInitialIndex);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TTokenStream.Create(const aSource: UnicodeString;
+                                     const aDictionary: TTokenDictionary;
+                                     const aOptions: TTokeniserOptions): ITokenStream;
+  begin
+    result := Create(TUnicodeStream.Create(aSource), TRUE, aDictionary, aOptions);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TTokenStream.Create(const aSource: TStream;
+                                     const aOwnsStream: Boolean;
+                                     const aDictionary: TTokenDictionary;
+                                     const aOptions: TTokeniserOptions): ITokenStream;
+  var
+    reader: TTokenReader;
+  begin
+    reader := TTokenReader.Create(aSource, aDictionary, aOptions);
+
+    if aOwnsStream then
+      result := TTokenReaderStream.Create(reader, aSource)
+    else
+      result := TTokenReaderStream.Create(reader, NIL);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TTokenStream.LoadFromFile(const aFilename: UnicodeString;
+                                           const aDictionary: TTokenDictionary;
+                                           const aOptions: TTokeniserOptions): ITokenStream;
+  begin
+
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTokenStream.get_Token: IToken;
+  begin
+    result := fToken;
+  end;
+
+
+
+
+
+
+
+
+
+
+
+{ TTokenListStream ------------------------------------------------------------------------------- }
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TTokenListStream.Create(const aList: ITokenList;
+                                      const aIndex: Integer);
+  begin
+    inherited Create;
+
+    fEOFIndex := aList.Count - 1;
+    fList     := aList;
+    fIndex    := Min(aIndex - 1, fEOFIndex);
+
+    Read;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTokenListStream.get_EOF: Boolean;
+  begin
+    result := (fIndex = fEOFIndex);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTokenListStream.Read: IToken;
+  begin
+    if (fIndex < fEOFIndex) then
+    begin
+      Inc(fIndex);
+      fToken := fList[fIndex] as IToken;
+    end
+    else
+      fToken := NIL;
+
+    result := fToken;
+  end;
+
+
+
+
+
+
+
+
+
+
+{ TTokenReaderStream ----------------------------------------------------------------------------- }
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TTokenReaderStream.Create(const aReader: TTokenReader; const aSource: TStream);
+  begin
+    inherited Create;
+
+    fReader := aReader;
+    fSource := aSource;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  destructor TTokenReaderStream.Destroy;
+  begin
+    FreeAndNIL(fReader);
+    FreeAndNIL(fSource);
+
+    inherited;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTokenReaderStream.get_EOF: Boolean;
+  begin
+    result := fReader.EOF;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTokenReaderStream.Read: IToken;
+  begin
+    fToken := fReader.Next;
+    result := fToken;
+  end;
+
+
+
+
+
+
+
+
+{ TTokenSource }
+
+  constructor TTokenSource.Create(const aLine, aStart: Integer);
+  begin
+    inherited Create;
+
+    fLineNo   := aLine;
+    fStartPos := aStart;
+  end;
+
+
+  procedure TTokenSource.SetLineSpan(const aSpan: Integer);
+  begin
+    fLineSpan := aSpan;
+    Dec(fLineNo, aSpan);
+  end;
+
+
+
+
+{ TTokenCursor }
+
+  constructor TTokenCursor.Create(const aList: ITokenList);
+  begin
+    inherited Create;
+
+    fIndex    := -1;
+    fEOFIndex := aList.Count;
+    fList     := aList;
+  end;
+
+
+  function TTokenCursor.get_EOF: Boolean;
+  begin
+    result := (fIndex = fEOFIndex);
+  end;
+
+
+  function TTokenCursor.get_Token: IToken;
+  begin
+    result := fToken;
+  end;
+
+
+  function TTokenCursor.First: IToken;
+  begin
+    fIndex := 0;
+    result := fList[0];
+  end;
+
+
+  function TTokenCursor.First(const aID: TTokenID): IToken;
+  var
+    i: Integer;
+  begin
+    for i := 0 to Pred(fList.Count) do
+    begin
+      result := fList[i];
+      if result.Definition.ID = aID then
+      begin
+        fIndex := i;
+        EXIT;
+      end;
+    end;
+
+    result := NIL;
+    fIndex := fEOFIndex;
+  end;
+
+
+  function TTokenCursor.Next: IToken;
+  begin
+    if get_EOF then
+      raise Exception.Create('No more tokens');
+
+    Inc(fIndex);
+    result := fList[fIndex];
+    fToken := fList[fIndex];
+  end;
+
+
+  function TTokenCursor.Next(const aID: TTokenID): IToken;
+  var
+    i: Integer;
+  begin
+    for i := Succ(fIndex) to Pred(fList.Count) do
+    begin
+      result := fList[i];
+      if result.Definition.ID = aID then
+      begin
+        fIndex := i;
+        fToken := result;
+        EXIT;
+      end;
+    end;
+
+    result := NIL;
+    fIndex := fEOFIndex;
+    fToken := NIL;
+  end;
+
+
+  function TTokenCursor.Prev: IToken;
+  begin
+    if fIndex = 0 then
+      raise Exception.Create('No more tokens');
+
+    Dec(fIndex);
+    result := fList[fIndex];
+    fToken := fList[fIndex];
+  end;
+
+
+  function TTokenCursor.Prev(const aID: TTokenID;
+                             const aGoto: Boolean): IToken;
+  var
+    i: Integer;
+  begin
+    for i := Pred(fIndex) downto 0 do
+    begin
+      result := fList[i];
+      if result.Definition.ID = aID then
+      begin
+        if aGoto then
+        begin
+          fIndex := i;
+          fToken := result;
+        end;
+        EXIT;
+      end;
+    end;
+
+    result := NIL;
+
+    if aGoto then
+    begin
+      fIndex := fEOFIndex;
+      fToken := NIL;
+    end;
+  end;
+
+
+
+end.
+
+
