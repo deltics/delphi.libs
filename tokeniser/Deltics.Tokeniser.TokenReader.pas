@@ -54,28 +54,30 @@ interface
 
 
   type
+    TCharStack = class;
     TReadCharProc = procedure(var aChar: WideChar) of object;
 
 
     TTokenReader = class
     private
       fCandidateTokens: TTokenDefinitions;
-      fPreviousCandidateTokens: TTokenDefinitions;
+      fInvalidTokens: TTokenDefinitions;
       fDictionary: TTokenDictionary;
 
       fEOF: Boolean;
-      fNextChar: WideChar;
+      fReplay: TCharStack;
+      fRewind: TCharStack;
       fNextCharReady: Boolean;
       fNextDefinition: TTokenDefinition;
+      fNextToken: IToken;
 
       fCaseSensitive: Boolean;
       fConsumeWhitespace: Boolean;
       fNormaliseCase: Boolean;
       fNormaliseKeywords: Boolean;
 
-      fNewLine: Boolean;
       fCharPos: Integer;
-      fPrevCharPos: Integer;
+      fStartLine: Integer;
       fStartPos: Integer;
       fCompareBuffer: PWideCharArray;
       fTokenBuffer: PWideCharArray;
@@ -87,6 +89,9 @@ interface
       fStream: TUnicodeStream;
 
       ReadChar: TReadCharProc;
+
+      procedure UnreadChar; overload;
+      procedure UnreadChar(const aList: TTokenDefinitions); overload;
 
       function get_EOF: Boolean;
       function get_Stream: TStream;
@@ -101,6 +106,7 @@ interface
       function CreateToken(const aDefinition: TTokenDefinition;
                            const aText: UnicodeString): TToken;
       function NextTokenDefinition: TTokenDefinition;
+      function ReadToken: IToken;
       function TokenText(const aDefinition: TTokenDefinition): UnicodeString;
 
       property NextCharReady: Boolean read fNextCharReady;
@@ -110,17 +116,55 @@ interface
       property NormaliseCase: Boolean read fNormaliseCase;
       property NormaliseKeywords: Boolean read fNormaliseKeywords;
 
+      constructor Create(const aStream: TStream); overload;
+
     public
       constructor Create(const aStream: TStream;
                          const aDictionary: TTokenDictionary;
-                         const aOptions: TTokeniserOptions = [toConsumeWhitespace]);
+                         const aOptions: TTokeniserOptions = [toConsumeWhitespace]); overload;
       destructor Destroy; override;
       property LineNo: Integer read fLineNo;
-      function Next: TToken; overload;
+      function Next: IToken;
       property EOF: Boolean read get_EOF;
       property Dictionary: TTokenDictionary read fDictionary;
       property Stream: TStream read get_Stream write set_Stream;
     end;
+
+
+    PCharInfo = ^TCharInfo;
+    TCharInfo = record
+      Char: WideChar;
+      LineNo: Integer;
+      Pos: Integer;
+      Candidates: TTokenDefinitions;
+    end;
+
+
+    TCharStack = class
+    private
+      fCapacity: Integer;
+      fCount: Integer;
+      fIsEmpty: Boolean;
+      fItems: array of TCharInfo;
+      fMark: Integer;
+      fMarked: Boolean;
+      procedure SetCapacity(const aCapacity: Integer);
+      function get_IsMarked: Boolean;
+    public
+      constructor Create;
+      destructor Destroy; override;
+      procedure Clear;
+      procedure Peek(const aList: TTokenDefinitions);
+      procedure Poke(const aList: TTokenDefinitions);
+      procedure Mark;
+//      procedure Pop(var aChar: WideChar; var aLineNo, aCharPos: Integer; const aList: TTokenDefinitions); overload;
+      function Pop(var aChar: WideChar; var aLineNo, aCharPos: Integer): Boolean; overload;
+      procedure Push(const aChar: WideChar; const aLineNo, aCharPos: Integer); overload;
+//      procedure Push(const aChar: WideChar; const aLineNo, aCharPos: Integer; const aList: TTokenDefinitions); overload;
+      property IsEmpty: Boolean read fIsEmpty;
+      property IsMarked: Boolean read get_IsMarked;
+    end;
+
 
 
 implementation
@@ -129,12 +173,139 @@ implementation
     Deltics.SysUtils;
 
 
-  const
+  constructor TCharStack.Create;
+  begin
+    inherited Create;
+
+    fIsEmpty := TRUE;
+
+    SetCapacity(64);
+  end;
+
+
+  destructor TCharStack.Destroy;
+  var
+    i: Integer;
+  begin
+    for i := 0 to Pred(fCapacity) do
+      fItems[i].Candidates.Free;
+
+    inherited;
+  end;
+
+
+  function TCharStack.get_IsMarked: Boolean;
+  begin
+    fMarked := fMarked and (fCount > fMark);
+    result  := fMarked;
+  end;
+
+
+  procedure TCharStack.Mark;
+  begin
+    fMark   := fCount;
+    fMarked := TRUE;
+  end;
+
+
+  procedure TCharStack.Clear;
+  var
+    i: Integer;
+  begin
+    for i := Pred(fCount) downto 0 do
+    begin
+      fItems[i].Char    := #0;
+      fItems[i].LineNo  := 0;
+      fItems[i].Pos     := 0;
+    end;
+
+    fCount    := 0;
+    fIsEmpty  := TRUE;
+    fMarked   := FALSE;
+    fMark     := 0;
+  end;
+
+
+  procedure TCharStack.Peek(const aList: TTokenDefinitions);
+  begin
+    CloneList(fItems[fCount - 1].Candidates, aList);
+  end;
+
+
+  procedure TCharStack.Poke(const aList: TTokenDefinitions);
+  begin
+    CloneList(aList, fItems[fCount - 1].Candidates);
+  end;
+
+
+  function TCharStack.Pop(var aChar: WideChar; var aLineNo, aCharPos: Integer): Boolean;
+  var
+    ci: PCharInfo;
+  begin
+    ASSERT(NOT fIsEmpty);
+
+    ci := @fItems[fCount - 1];
+
+    aChar     := ci.Char;
+    aLineNo   := ci.LineNo;
+    aCharPos  := ci.Pos;
+
+    Dec(fCount);
+
+    fIsEmpty := (fCount = 0);
+    result   := (fCount > 0);
+  end;
+
+
+  procedure TCharStack.Push(const aChar: WideChar;
+                            const aLineNo, aCharPos: Integer);
+  var
+    ci: PCharInfo;
+  begin
+    if fCount = fCapacity - 1 then
+      SetCapacity(2 * fCapacity);
+
+    ci := @fItems[fCount];
+    ci.Char   := aChar;
+    ci.LineNo := aLineNo;
+    ci.Pos    := aCharPos;
+
+    Inc(fCount);
+
+    fIsEmpty := FALSE;
+  end;
+
+
+  procedure TCharStack.SetCapacity(const aCapacity: Integer);
+  var
+    i: Integer;
+  begin
+    SetLength(fItems, aCapacity);
+
+    for i := fCapacity to Pred(aCapacity) do
+      fItems[i].Candidates := TTokenDefinitions.Create(FALSE);
+
+    fCapacity := aCapacity;
+  end;
+
+
+
+
+const
     BUFSIZE = 1024;
 
 
   type
     TTokenHelper = class(TToken);
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TTokenReader.Create(const aStream: TStream);
+  begin
+    Create(NIL, NIL, [toConsumeWhitespace]);
+
+    Stream := aStream;
+  end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
@@ -144,12 +315,10 @@ implementation
   begin
     inherited Create;
 
-    fNewLine      := TRUE;
-
-    fCharPos      := 0;
-    fPrevCharPos  := 0;
-    fStartPos     := 1;
-    fLineNo       := 1;
+    fRewind   := TCharStack.Create;
+    fReplay   := TCharStack.Create;
+    fCharPos  := 0;
+    fLineNo   := 1;
 
     fCaseSensitive      := toCaseSensitive in aOptions;
     fConsumeWhitespace  := toConsumeWhitespace in aOptions;
@@ -166,8 +335,8 @@ implementation
     else
       ReadChar := ASCIIReadCharNoCase;
 
-    fCandidateTokens          := TTokenDefinitions.Create(FALSE);
-    fPreviousCandidateTokens  := TTokenDefinitions.Create(FALSE);
+    fCandidateTokens  := TTokenDefinitions.Create(FALSE);
+    fInvalidTokens    := TTokenDefinitions.Create(FALSE);
   end;
 
 
@@ -176,10 +345,13 @@ implementation
   begin
     Stream := NIL;
 
-    FreeAndNIL([@fCandidateTokens,
-                @fPreviousCandidateTokens]);
+    FreeAndNIL(fInvalidTokens);
+    FreeAndNIL(fCandidateTokens);
 
     FreeTokenBuffers;
+
+    fRewind.Free;
+    fReplay.Free;
 
     inherited;
   end;
@@ -194,12 +366,11 @@ implementation
      yet to be read (FALSE).
   }
   var
-    endpos: Integer;
+    token: TTokenHelper absolute result;
+    sub: TTokenReader;
+    strm: TReadMemoryStream;
   begin
     result := NIL;
-
-    // TODO: Optimisation: Find a way to avoid position tracking calculations
-    //        for situations when position information isn't required
 
     // The current character position identifies the END of the
     //  token being added.  If the NextCharReady flag is TRUE,
@@ -207,56 +378,49 @@ implementation
     //  positioned on the first character of the next token, so
     //  in that case the true end of the current token is the
     //  last character but one.
-    if NextCharReady then
-      endpos := fPrevCharPos
-    else
-      endpos := fCharPos;
 
-    try
-      if NOT Assigned(aDefinition) then
-      begin
-        result := TTokenHelper.CreateUnknown(WideString(fTokenBuffer^),
-                                             fStartPos,
-                                             fTokenLength,
-                                             fLineNo,
-                                             fNewLine);
-        fNewLine := FALSE;
-        EXIT;
-      end;
-
-      // If we can add a token of the specified kind, then create a
-      //  token.  If the token is a delimited token that needs to be
-      //  tokenised itself, then we do that here before adding the
-      //  token to the token list and firing the appropriate
-      //  notification event.
-
-      if NOT (ConsumeWhitespace and (aDefinition.TokenType = ttWhitespace)) then
-      begin
-        if (aDefinition.ID = tkLF) then
-          result := TTokenHelper.Create(aDefinition, aText, fStartPos, fTokenLength, fLineNo - 1, fNewLine)
-        else
-          result := TTokenHelper.Create(aDefinition, aText, fStartPos, fTokenLength, fLineNo, fNewLine);
-
-        if (aDefinition.ClassID = dcDelimited) then
-        begin
-          // TODO: Tokenise tokens with subdictionaries...
-
-  //          if TDtxDelimitedToken(TokenDefinition).Tokenise then
-  //            token.Tokenise;
-
-  //          if TDelimitedTokenKind(kind).CanSpanLines then
-  //            Inc(fLineNo, token.LineSpan);
-        end;
-
-        fNewLine := FALSE;
-      end;
-
-    finally
-      if Assigned(aDefinition) and (aDefinition.ID = tkLF) then
-        fStartPos := fCharPos
-      else
-        fStartPos := endpos;
+    if NOT Assigned(aDefinition) then
+    begin
+      result := TTokenHelper.CreateUnknown(WideString(fTokenBuffer^),
+                                           fStartPos,
+                                           fTokenLength,
+                                           fStartLine);
+      EXIT;
     end;
+
+    // If we can add a token of the specified kind, then create a
+    //  token.  If the token is a delimited token that needs to be
+    //  tokenised itself, then we do that here before adding the
+    //  token to the token list and firing the appropriate
+    //  notification event.
+
+    if (aDefinition.ClassID = dcDelimited) and Assigned(aDefinition.SubDictionary) then
+    begin
+      if aDefinition.SubDictionarySubstitution then
+      begin
+        // TODO: Figure out how token substitution can/should work...
+
+        result := TTokenHelper.Create(aDefinition, aText, fStartPos, fTokenLength, fStartLine);
+      end
+      else
+        result := TTokenHelper.Create(aDefinition, aText, fStartPos, fTokenLength, fStartLine);
+
+      strm  := TReadMemoryStream.Create(fTokenBuffer, fTokenLength * 2);
+      sub   := TTokenReader.Create(strm, aDefinition.SubDictionary);
+      try
+        sub.fLineNo   := 1;
+        sub.fCharPos  := fStartPos;
+
+        while NOT sub.EOF do
+          token.Add(sub.Next);
+
+      finally
+        sub.Free;
+        strm.Free;
+      end;
+    end
+    else
+      result := TTokenHelper.Create(aDefinition, aText, fStartPos, fTokenLength, fStartLine);
   end ;
 
 
@@ -265,41 +429,34 @@ implementation
   var
     c: WideChar absolute aChar;
   begin
-    if NOT NextCharReady then
+    if NOT fNextCharReady then
     begin
-      fPrevCharPos := fCharPos;
+      fStream.ReadChar(c);
       Inc(fCharPos);
 
-      fStream.ReadChar(c);
+      fRewind.Push(aChar, fLineNo, fCharPos);
+
+      if (fTokenLength = fMaxTokenLength) then
+        AllocTokenBuffers(fMaxTokenLength + BUFSIZE);
+
+      fTokenBuffer^[fTokenLength] := aChar;
+
+      fEOF := fStream.EOF;
     end
     else
-      aChar := fNextChar;
-
-    // If the token is a line feed then we increment the line count
-    //  and reset the character position, being careful again to
-    //  take account of whether or not the first character of the
-    //  next token has already been read.  If it has then the new
-    //  character position is already 1 (one).  If it hasn't then
-    //  the new character position is 0 (zero), i.e. the start of
-    //  the new line.
+    begin
+      fNextCharReady := fReplay.Pop(aChar, fLineNo, fCharPos);
+      fRewind.Push(aChar, fLineNo, fCharPos);
+      fTokenBuffer^[fTokenLength] := aChar;
+    end;
 
     if (aChar = #10) then
     begin
       Inc(fLineNo);
-      fCharPos  := 1;
-      fNewLine  := TRUE;
+      fCharPos := 0;
     end;
 
-    fNextCharReady := FALSE;
-
-    if (fTokenLength = fMaxTokenLength) then
-      AllocTokenBuffers(fMaxTokenLength + BUFSIZE);
-
-    fTokenBuffer^[fTokenLength] := aChar;
-
     Inc(fTokenLength);
-
-    fEOF := fStream.EOF;
   end;
 
 
@@ -360,18 +517,52 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTokenReader.Next: TToken;
+  function TTokenReader.Next: IToken;
   var
     def: TTokenDefinition;
     part: TTokenDefinition;
     s: UnicodeString;
   begin
+    if Assigned(fNextToken) then
+    begin
+      result := fNextToken;
+      fNextToken := NIL;
+    end
+    else
+      result := ReadToken;
+
+    // To handle whitespace at the end of the file, we now need to look-ahead to the
+    //  next valid token.  This ensures that when we are consuming whitespace we correctly
+    //  indicate EOF after reading the last NON-whitespace token as this look-ahead
+    //  will consume all of the whitespace that follows it.
+
+    repeat
+      fNextToken := ReadToken;
+    until NOT Assigned(fNextToken) or NOT ConsumeWhitespace or NOT fNextToken.IsWhitespace;
+
+    if Assigned(fNextToken) and ConsumeWhitespace and fNextToken.IsWhitespace then
+      fNextToken := NIL;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTokenReader.ReadToken: IToken;
+  var
+    def: TTokenDefinition;
+    part: TTokenDefinition;
+    s: UnicodeString;
+  begin
+    result := NIL;
+
     repeat
       def := NextTokenDefinition;
-    until NOT Assigned(def) or NOT (ConsumeWhitespace and (def.TokenType = ttWhitespace)) or EOF;
+    until EOF or NOT Assigned(def) or NOT ConsumeWhitespace or (def.TokenType <> ttWhitespace);
 
     if Assigned(def) then
     begin
+      if EOF and ConsumeWhitespace and (def.TokenType = ttWhitespace) then
+        EXIT;
+
       s := TokenText(def);
 
       if def.IsCompoundable then
@@ -386,245 +577,221 @@ implementation
         fNextDefinition := part;
       end;
 
-      result  := CreateToken(def, s);
+      result := CreateToken(def, s);
     end
-    else
+    else if NOT EOF then
     begin
+      // We expected to have a token definition but didn't - create an 'unknown' token
+
       s := TokenText(def);
-      result  := CreateToken(def, s);
+      result := CreateToken(def, s);
     end;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTokenReader.NextTokenDefinition: TTokenDefinition;
-  var
-    i: Integer;
-    chr: WideChar;
-    countLines: Boolean;
-    defs: TTokenDefinitions;
-  begin
-    if Assigned(fNextDefinition) then
+
+    function CompleteToken(const aDef: TTokenDefinition): Boolean;
+    var
+      chr: WideChar;
     begin
-      result := fNextDefinition;
-      fNextDefinition := NIL;
-      EXIT;
-    end;
+      result := FALSE;
 
-    result := NIL;
+      fRewind.Mark;
+      try
+        case aDef.ClassID of
+          dcString        : begin
+                              while NOT EOF and (fTokenLength < aDef.Length) do
+                                ReadChar(chr);
 
-(*
-    while NOT Assigned(result) and (NOT EOF or NextCharReady) do
-    begin
-*)
-//      if (fPreviousCandidateTokens.Count > 0) then
-        fPreviousCandidateTokens.Clear;
-
-      fTokenLength := 0;
-      ReadChar(chr);
-
-      // Get initial list of candidate token kinds
-      CloneList(Dictionary.GetDefinitions(chr), fCandidateTokens);
-
-      // Now try and whittle down the fCandidateTokens by building up the
-      //  token one char at a time, re-applying the dictionary to filter
-      //  the candidate definitions as we do so...
-
-      while NOT EOF and (fCandidateTokens.Count > 1) do
-      begin
-        ReadChar(chr);
-
-        // If the list has changed (number of entries has reduced), store the new list of
-        //  compatible kinds to avoid having to look them up again later....
-
-        if (fCandidateTokens.Count <> fPreviousCandidateTokens.Count) then
-          CloneList(fCandidateTokens, fPreviousCandidateTokens);
-
-        // Ask the dictionary to remove any definitions that are no longer compatible
-        //  with the contents of the compare buffer
-
-        Dictionary.FilterDefinitions(fCandidateTokens, fCompareBuffer, fTokenLength);
-      end;
-
-      // Too far?  If we have no candidate definitions but have built up a token
-      //  then we need to back track 1 character
-
-      if (fCandidateTokens.Count = 0) and (fTokenLength > 1) then
-      begin
-        Dec(fTokenLength);
-
-        if (chr = #10) then
-        begin
-          Dec(fLineNo);
-          fCharPos := fPrevCharPos;
-        end;
-
-        fNextChar      := chr;
-        fNextCharReady := TRUE;
-
-        // We ran out of candidate definitions so we use the previously saved list
-        //  of candidates to find a most compatible match ...
-        //
-        // (the previous candidate list is the list compatible with the token before
-        //  we back tracked, removing the most recently added char)
-
-        defs := fPreviousCandidateTokens;
-      end
-      else
-        defs := fCandidateTokens;
-
-      for i := Pred(defs.Count) downto 0 do
-      begin
-        if defs[i].ClassID <> dcCharacterSet then
-          CONTINUE;
-
-        if NOT defs[i].IsComplete(fCompareBuffer, fTokenLength) then
-          defs.Delete(i);
-      end;
-
-      case defs.Count of
-        0: { NO-OP};
-        1: result := defs[0];
-      else
-        result := Dictionary.MostCompatible(defs, fCompareBuffer, fTokenLength);
-      end;
-
-      // We have a candidate token definition, but the token itself may not yet
-      //  be complete.  What determines whether and when the token is compeleted
-      //  depends on the type of token definition we are dealing with...
-
-      if Assigned(result) then
-      begin
-        case result.ClassID of
-          dcString        : { NO-OP };
+                              result := (fTokenLength = aDef.Length);
+                            end;
 
           dcLineEnd       : while NOT EOF do
                             begin
                               ReadChar(chr);
 
-                              if result.IsComplete(fCompareBuffer, fTokenLength) then
+                              if aDef.IsComplete(fCompareBuffer, fTokenLength) then
                               begin
-                                if (chr = #10) then
-                                begin
-                                  Dec(fLineNo);
-                                  fCharPos := fPrevCharPos;
-                                end;
-
-                                fNextChar       := chr;
-                                fNextCharReady  := TRUE;
-                                fEOF            := FALSE; // ?
+                                UnreadChar;
+                                result := TRUE;
                                 BREAK;
                               end;
 
-                              if NOT result.IsCompatible(fCompareBuffer, fTokenLength) then
+                              if NOT aDef.IsCompatible(fCompareBuffer, fTokenLength) then
                               begin
-                                Dec(fTokenLength);
-
-                                if (chr = #10) then
-                                begin
-                                  Dec(fLineNo);
-                                  fCharPos := fPrevCharPos;
-                                end;
-
-                                fNextChar       := chr;
-                                fNextCharReady  := TRUE;
-                                fEOF            := FALSE; // ?
-                                result          := NIL;
+                                UnreadChar;
+                                result := FALSE;
                                 BREAK;
                               end;
                             end;
 
-          dcPrefixed,
+          dcPrefixed      : while NOT EOF do
+                            begin
+                              ReadChar(chr);
+
+                              if NOT aDef.IsCompatible(fCompareBuffer, fTokenLength) then
+                              begin
+                                UnreadChar;
+                                result := TRUE;
+                                BREAK;
+                              end;
+                            end;
+
           dcDelimited     : while NOT EOF do
                             begin
                               ReadChar(chr);
 
-                              if result.IsComplete(fCompareBuffer, fTokenLength) then
+                              if aDef.IsComplete(fCompareBuffer, fTokenLength) then
                               begin
+                                result := TRUE;
+                                fReplay.Clear;
                                 fNextCharReady := FALSE;
                                 BREAK;
                               end;
 
-                              if NOT result.IsCompatible(fCompareBuffer, fTokenLength) then
+                              if NOT aDef.IsCompatible(fCompareBuffer, fTokenLength) then
                               begin
-                                Dec(fTokenLength);
-
-                                if (chr = #10) then
-                                begin
-                                  Dec(fLineNo);
-                                  fCharPos := fPrevCharPos;
-                                end;
-
-                                fNextChar       := chr;
-                                fNextCharReady  := TRUE;
-                                fEOF            := FALSE; // ?
-                                result          := NIL;
+                                result := FALSE;
+                                UnreadChar;
                                 BREAK;
                               end;
                             end;
 
-          dcCharacterSet  : if NOT NextCharReady then
-                              while NOT EOF do
+          dcCharacterSet,
+          dcRange         : begin
+                              if NOT EOF then
                               begin
-                                ReadChar(chr);
-
-                                if NOT result.IsCompatible(fCompareBuffer, fTokenLength) then
+                                while NOT EOF do
                                 begin
-                                  Dec(fTokenLength);
+                                  ReadChar(chr);
 
-                                  if (chr = #10) then
-                                  begin
-                                    Dec(fLineNo);
-                                    fCharPos := fPrevCharPos;
-                                  end;
-
-                                  fNextChar       := chr;
-                                  fNextCharReady  := TRUE;
-                                  fEOF            := FALSE;
-                                  BREAK;
+                                  if NOT aDef.IsCompatible(fCompareBuffer, fTokenLength) then
+                                    BREAK;
                                 end;
-                              end;
 
+                                repeat
+                                  UnreadChar;
+                                  result := aDef.IsComplete(fCompareBuffer, fTokenLength);
+                                until result or (NOT fRewind.IsMarked);
+                              end
+                              else
+                                result := aDef.IsComplete(fCompareBuffer, fTokenLength);
+                            end;
         else
-          if (result.Length <> fTokenLength) then
-          begin
-            while NOT EOF do
-            begin
-              ReadChar(chr);
+          ASSERT(FALSE, 'WTF?!');
+        end;
 
-              if NOT result.IsCompatible(fCompareBuffer, fTokenLength) then
-              begin
-                Dec(fTokenLength);
+      finally
+        if NOT result then
+          while fRewind.IsMarked do
+            UnreadChar(fCandidateTokens);
+      end;
+    end;
 
-                if (chr = #10) then
-                begin
-                  Dec(fLineNo);
-                  fCharPos := fPrevCharPos;
-                end;
+  var
+    i: Integer;
+    chr: WideChar;
+    countLines: Boolean;
+    def: TTokenDefinition;
+  begin
+    result        := NIL;
+    fTokenLength  := 0;
+    ReadChar(chr);
 
-                fNextChar       := chr;
-                fNextCharReady  := TRUE;
-                fEOF            := FALSE;
+    fStartPos   := fCharPos;
+    fStartLine  := fLineNo;
+
+    // Get initial list of candidate token kinds
+    CloneList(Dictionary.GetDefinitions(fStartPos, chr), fCandidateTokens);
+    fRewind.Poke(fCandidateTokens);
+
+    // Now try and whittle down the fCandidateTokens by building up the
+    //  token one char at a time, re-applying the dictionary to filter
+    //  the candidate definitions as we do so...
+
+    while NOT EOF and (fCandidateTokens.Count > 1) do
+    begin
+      ReadChar(chr);
+
+      // Ask the dictionary to remove any definitions that are no longer compatible
+      //  with the contents of the compare buffer
+
+      Dictionary.FilterDefinitions(fCandidateTokens, fCompareBuffer, fTokenLength);
+      fRewind.Poke(fCandidateTokens);
+    end;
+
+    // Too far?  If we have no candidate definitions but have built up a token
+    //  then we need to back track
+
+    repeat
+      case fCandidateTokens.Count of
+        0 : begin
+              if fTokenLength = 1 then
                 BREAK;
-              end;
+
+              UnreadChar(fCandidateTokens);
             end;
+
+        1 : begin
+              def := fCandidateTokens[0];
+
+              if NOT CompleteToken(def) then
+              begin
+                fInvalidTokens.Add(def);
+                fCandidateTokens.Delete(0);
+              end
+              else
+                result := def;
+            end;
+
+      else
+        for i := Pred(fCandidateTokens.Count) downto 0 do
+        begin
+          def := fCandidateTokens[i];
+          if fInvalidTokens.IndexOf(def) <> -1 then
+            fCandidateTokens.Delete(i)
+          else if NOT def.IsComplete(fCompareBuffer, fTokenLength) then
+          begin
+            fInvalidTokens.Add(def);
+            fCandidateTokens.Delete(i);
+          end;
+        end;
+
+        while fCandidateTokens.Count > 1 do
+        begin
+          def := Dictionary.MostCompatible(fCandidateTokens, fCompareBuffer, fTokenLength);
+          if NOT CompleteToken(def) then
+          begin
+            fInvalidTokens.Add(def);
+            fCandidateTokens.Remove(def);
+          end
+          else
+          begin
+            result := def;
+            BREAK;
           end;
         end;
       end;
+    until Assigned(result) or EOF;
 
-      fCompareBuffer^[fTokenLength] := WideChar(0);
-      fTokenBuffer^[fTokenLength]   := WideChar(0);
+    fRewind.Clear;
+    fInvalidTokens.Clear;
 
-      fPreviousCandidateTokens.Clear;
+    // We have a candidate token definition, but the token itself may not yet
+    //  be complete.  What determines whether and when the token is compeleted
+    //  depends on the type of token definition we are dealing with...
 
-//    end;
+    fCompareBuffer^[fTokenLength] := WideChar(0);
+    fTokenBuffer^[fTokenLength]   := WideChar(0);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTokenReader.get_EOF: Boolean;
   begin
-    result := fEOF and (NOT fNextCharReady);
+    result := fEOF and (NOT fNextCharReady) and NOT Assigned(fNextToken);
   end;
 
 
@@ -668,6 +835,32 @@ implementation
       result := WideString(fTokenBuffer^);
   end;
 
+
+
+
+
+  procedure TTokenReader.UnreadChar(const aList: TTokenDefinitions);
+  begin
+    UnreadChar;
+    if NOT fRewind.IsEmpty then
+      fRewind.Peek(aList)
+    else
+      aList.Clear;
+  end;
+
+
+  procedure TTokenReader.UnreadChar;
+  var
+    c: WideChar;
+    l, p: Integer;
+  begin
+    Dec(fTokenLength);
+
+    fRewind.Pop(c, l, p);
+    fReplay.Push(c, l, p);
+
+    fNextCharReady := TRUE;
+  end;
 
 
 
