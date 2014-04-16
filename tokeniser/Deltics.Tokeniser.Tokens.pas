@@ -63,14 +63,6 @@ interface
 
 
   type
-    TToken = class;
-//    TTokenList = class;
-
-//    ITokenCursor = interface;
-//    ITokenList = interface;
-
-
-
     TToken = class(TCOMInterfacedObject, IToken)
     private
       fLength: Integer;
@@ -79,10 +71,7 @@ interface
       fDefinition: TTokenDefinition;
       fSource: TTokenSource;
       fText: UnicodeString;
-      fTokens: TObjectList;
-
-      function get_Count: Integer;
-      function get_Token(const aIndex: Integer): TToken;
+      fTokens: TTokenList;
 
       procedure DetermineLineSpan;
 //      function get_Line(const aIndex: Integer): UnicodeString;
@@ -94,21 +83,19 @@ interface
                          const aString: UnicodeString;
                          const aStartPos: Integer;
                          const aLength: Integer;
-                         const aLineNo: Integer;
-                         const aLineHead: Boolean); overload;
+                         const aLineNo: Integer); overload;
 
       constructor Create(const aDefinition: TTokenDefinition;
                          const aChar: WideChar;
                          const aPos: Integer;
-                         const aLineNo: Integer;
-                         const aLineHead: Boolean); overload;
+                         const aLineNo: Integer); overload;
 
       constructor CreateUnknown(const aString: UnicodeString;
                                 const aStartPos: Integer;
                                 const aLength: Integer;
-                                const aLineNo: Integer;
-                                const aLineHead: Boolean);
+                                const aLineNo: Integer);
 
+      procedure Add(const aToken: IToken);
       procedure Append(const aText: String; const aLength: Integer);
       property Lines: Classes.TStringList read get_Lines;
 
@@ -122,9 +109,7 @@ interface
                           var OtherMap: ANSIString;
                           var CharsTheSame: Integer;
                           var CharsTotal: Integer): Integer;
-*)      procedure Tokenise;
-
-      property Count: Integer read get_Count;
+*)
       property Dictionary: TTokenDictionary read get_Dictionary;
 //      property Index: Integer read fIndex;
 //      property Line[const aIndex: Integer]: UnicodeString read get_Line;
@@ -132,20 +117,26 @@ interface
 //      property LineNo: Integer read fLineNo;
 //      property LineSpan: Integer read fLineSpan;
 //      property StartPos: Integer read fStartPos;
-      property Tokens[const aIndex: Integer]: TToken read get_Token;
 
     protected // IToken
       function get_Definition: TTokenDefinition;
+      function get_ID: TTokenID;
+      function get_IsWhitespace: Boolean;
       function get_Length: Integer;
       function get_Source: TTokenSource;
       function get_Text: UnicodeString;
+      function get_TokenCount: Integer;
+      function get_Tokens: ITokenList;
     public
-      property Definition: TTokenDefinition read fDefinition;
+      property Definition: TTokenDefinition read fDefinition write fDefinition;
+      property ID: TTokenID read get_ID;
+      property IsWhitespace: Boolean read get_IsWhitespace;
       property Length: Integer read fLength;
       property Source: TTokenSource read fSource;
       property Text: UnicodeString read fText;
+      property TokenCount: Integer read get_TokenCount;
+      property Tokens: ITokenList read get_Tokens;
     end;
-
 
 
 (*
@@ -189,6 +180,11 @@ implementation
 
 
 
+
+
+
+
+
 { TToken ----------------------------------------------------------------------------------------- }
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
@@ -196,8 +192,7 @@ implementation
                             const aString: UnicodeString;
                             const aStartPos: Integer;
                             const aLength: Integer;
-                            const aLineNo: Integer;
-                            const aLineHead: Boolean);
+                            const aLineNo: Integer);
   begin
     inherited Create;
 
@@ -212,9 +207,6 @@ implementation
     begin
       if aDefinition.MultiLine then
         DetermineLineSpan;
-
-//      if TDelimitedTokenKind(aTokenKind).Tokenise then
-//        fTokens := TObjectList.Create(TRUE);
     end;
   end;
 
@@ -223,10 +215,9 @@ implementation
   constructor TToken.Create(const aDefinition: TTokenDefinition;
                             const aChar: WideChar;
                             const aPos: Integer;
-                            const aLineNo: Integer;
-                            const aLineHead: Boolean);
+                            const aLineNo: Integer);
   begin
-    Create(aDefinition, UnicodeString(aChar), 1, aPos, aLineNo, aLineHead);
+    Create(aDefinition, UnicodeString(aChar), 1, aPos, aLineNo);
   end;
 
 
@@ -234,10 +225,9 @@ implementation
   constructor TToken.CreateUnknown(const aString: UnicodeString;
                                    const aStartPos: Integer;
                                    const aLength: Integer;
-                                   const aLineNo: Integer;
-                                   const aLineHead: Boolean);
+                                   const aLineNo: Integer);
   begin
-    Create(NIL, aString, aStartPos, aLength, aLineNo, aLineHead);
+    Create(NIL, aString, aStartPos, aLength, aLineNo);
 
     DetermineLineSpan;
   end;
@@ -255,6 +245,15 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TToken.Add(const aToken: IToken);
+  begin
+    if NOT Assigned(fTokens) then
+      fTokens := TTokenList.Create;
+
+    fTokens.Add(aToken);
+  end;
+
+
   procedure TToken.Append(const aText: String; const aLength: Integer);
   begin
     fText := fText + Copy(aText, 1, aLength);
@@ -332,16 +331,6 @@ implementation
   end;
 
 
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TToken.get_Count: Integer;
-  begin
-    if Assigned(fTokens) then
-      result := fTokens.Count
-    else
-      result := 0;
-  end;
-
-
 (*
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TToken.get_Line(const aIndex: Integer): UnicodeString;
@@ -387,6 +376,23 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TToken.get_ID: TTokenID;
+  begin
+    if Assigned(fDefinition) then
+      result := fDefinition.ID
+    else
+      result := tkUnknown;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TToken.get_IsWhitespace: Boolean;
+  begin
+    result := Assigned(fDefinition) and (fDefinition.TokenType = ttWhitespace);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TToken.get_Source: TTokenSource;
   begin
     result := fSource;
@@ -401,45 +407,17 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TToken.get_Token(const aIndex: Integer): TToken;
+  function TToken.get_TokenCount: Integer;
   begin
-    ASSERT(Assigned(fTokens));
-    result := TToken(fTokens[aIndex]);
+    if Assigned(fTokens) then
+      result := fTokens.Count
+    else
+      result := 0;
   end;
 
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TToken.Tokenise;
-//  var
-//    inner: TTokeniser;
+  function TToken.get_Tokens: ITokenList;
   begin
-    ASSERT((Definition is TDelimitedToken), 'Can only tokenise delimited tokens');
-
-//    inner := NIL;
-    try
-      // The tokens created by tokenising the token will be owned by the
-      //  original tokeniser of that token (if it owns the tokens), not by
-      //  the tokenise we are creating for the purpose
-
-(*
-      if Assigned(Definition.SubDictionary) then
-        inner := TTokeniser.Create(Definition.SubDictionary, TTokeniser(Owner).Options - [toOwnsTokens])
-      else
-        inner := TTokeniser.Create(Definition.SubDictionary, TTokeniser(Owner).Options - [toOwnsTokens]) ;
-*)
-
-      {$ifdef Deltics_Progress}
-      ProgressMeter.CreateProcess(0, Text, System.Length(Text));
-      {$endif}
-
-//      inner.Tokenise(Text);
-
-//      fLineSpan := inner.LineCount - 1;
-
-//      CloneList(TDtxTokeniserHelper(inner).List, fTokens);
-    finally
-//      inner.Free;
-    end;
+    result := fTokens;
   end;
 
 
@@ -450,6 +428,7 @@ implementation
 
     ASSERT(Assigned(result));
   end;
+
 
 
 
@@ -526,6 +505,8 @@ implementation
     end;
   end;
 *)
+
+
 
 
 
