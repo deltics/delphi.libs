@@ -172,8 +172,9 @@ interface
 
     TReadMemoryStream = class(TCustomMemoryStream)
     public
-      constructor Create(const aBase: Pointer;
-                         const aBytes: Int64);
+      constructor Create; overload;
+      constructor Create(const aBase: Pointer; const aBytes: Int64); overload;
+      procedure Overlay(const aBase: Pointer; const aBytes: Int64); overload;
       function Write(const Buffer; Count: Longint): Longint; override;
     end;
 
@@ -754,12 +755,23 @@ implementation
 
 { TReadMemoryStream }
 
+  constructor TReadMemoryStream.Create;
+  begin
+    inherited Create;
+  end;
+
+
   constructor TReadMemoryStream.Create(const aBase: Pointer; const aBytes: Int64);
   begin
     inherited Create;
     SetPointer(aBase, aBytes);
   end;
 
+
+  procedure TReadMemoryStream.Overlay(const aBase: Pointer; const aBytes: Int64);
+  begin
+    SetPointer(aBase, aBytes);
+  end;
 
   function TReadMemoryStream.Write(const Buffer; Count: Integer): Longint;
   begin
