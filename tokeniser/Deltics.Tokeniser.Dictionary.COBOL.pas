@@ -50,6 +50,8 @@ interface
 
   var
     COBOLLanguage: TTokenDictionary = NIL;
+    EXECInterfaces: TTokenDictionary = NIL;
+    EmbeddedSQL: TTokenDictionary = NIL;
 
 
   const
@@ -61,6 +63,7 @@ interface
     ttOperator      = #7;
     ttLiteral       = #8;
     ttSymbol        = #9;
+    ttEmbeddedSQL   = #10;
 
     // Simple synonyms for built-in ASCII char tokens
     cblLeftParenthesis    = tkLeftParenthesis;
@@ -78,11 +81,13 @@ interface
     cblEOL                = 100;
     cblWhitespace         = 1000;
 
+    cblLineNo             = 140;
     cblComment            = 150;
     cblFormFeed           = 151;
     cblContinuation       = 152;
     cblDebug              = 153;
     cblDirective          = 154;
+    cblEmbeddedSQL        = 155;
 
     cblLineComment        = 160;
 
@@ -93,43 +98,112 @@ interface
     //  the dialect defined for the dictionary
     // --------------------------------------------------------------
 
-    cblAs                       = 200;
-    cblAssign                   = 201;
-    cblAuthor                   = 202;
-    cblCall                     = 204;
-    cblCommon                   = 205;
-    cblCompute                  = 206;
-    cblConfiguration            = 207;
-    cblCopy                     = 208;
-    cblData                     = 209;
-    cblDisplay                  = 210;
-    cblDivision                 = 211;
-    cblEndExec                  = 212;
-    cblEnvironment              = 213;
-    cblExec                     = 214;
-    cblFD                       = 215;
-    cblFile                     = 216;
-    cblFileControl              = 217;
-    cblIdentificationDivision   = 218;
-    cblInitial                  = 219;
-    cblInputOutput              = 220;
-    cblIs                       = 221;
-    cblLinkage                  = 222;
-    cblLocalStorage             = 223;
-    cblMove                     = 224;
-    cblObjectComputer           = 225;
-    cblPIC                      = 226;
-    cblProcedure                = 227;
-    cblProgram                  = 228;
-    cblProgramID                = 229;
-    cblSection                  = 230;
-    cblSelect                   = 231;
-    cblSet                      = 232;
-    cblSourceComputer           = 233;
-    cblTo                       = 234;
-    cblUsing                    = 235;
-    cblValue                    = 236;
-    cblWorkingStorage           = 237;
+    {#DI 200}
+    cblAccept                   = 200;
+    cblAdd                      = 201;
+    cblAfter                    = 202;
+    cblAll                      = 203;
+    cblAlphanumeric             = 204;
+    cblAre                      = 205;
+    cblAs                       = 206;
+    cblAssign                   = 207;
+    cblAt                       = 208;
+    cblAuthor                   = 209;
+    cblBlock                    = 210;
+    cblBy                       = 211;
+    cblCall                     = 212;
+    cblClose                    = 213;
+    cblCommon                   = 214;
+    cblComp                     = 215;
+    cblComp3                    = 216;
+    cblComp5                    = 217;
+    cblCompute                  = 218;
+    cblConfiguration            = 219;
+    cblContains                 = 220;
+    cblCopy                     = 221;
+    cblCorresponding            = 222;
+    cblData                     = 223;
+    cblDelimited                = 224;
+    cblDisplay                  = 225;
+    cblDivision                 = 225;
+    cblElse                     = 226;
+    cblEnd                      = 227;
+    cblEndEvaluate              = 228;
+    cblEndExec                  = 229;
+    cblEndIf                    = 230;
+    cblEndPerform               = 231;
+    cblEnvironment              = 232;
+    cblEvaluate                 = 233;
+    cblEXEC                     = 234;
+    cblExit                     = 235;
+    cblFalse                    = 236;
+    cblFD                       = 237;
+    cblFile                     = 238;
+    cblFileControl              = 239;
+    cblFiller                   = 240;
+    cblFrom                     = 241;
+    cblGo                       = 242;
+    cblIdentification           = 243;
+    cblIf                       = 244;
+    cblIndexed                  = 245;
+    cblInitial                  = 246;
+    cblInitialize               = 247;
+    cblInput                    = 248;
+    cblInputOutput              = 249;
+    cblInspect                  = 250;
+    cblInto                     = 251;
+    cblIs                       = 252;
+    cblLabel                    = 253;
+    cblLeading                  = 254;
+    cblLine                     = 255;
+    cblLinkage                  = 256;
+    cblLocalStorage             = 257;
+    cblMode                     = 258;
+    cblMove                     = 259;
+    cblNot                      = 260;
+    cblObjectComputer           = 261;
+    cblOccurs                   = 262;
+    cblOf                       = 263;
+    cblOpen                     = 264;
+    cblOrganization             = 265;
+    cblOther                    = 266;
+    cblOutput                   = 267;
+    cblPerform                  = 268;
+    cblPIC                      = 269;
+    cblProcedure                = 270;
+    cblProgram                  = 271;
+    cblProgramID                = 272;
+    cblRead                     = 273;
+    cblRedefines                = 274;
+    cblRecording                = 275;
+    cblRecords                  = 276;
+    cblReplacing                = 277;
+    cblRounded                  = 278;
+    cblRun                      = 279;
+    cblSection                  = 280;
+    cblSelect                   = 281;
+    cblSequential               = 282;
+    cblSet                      = 283;
+    cblSize                     = 284;
+    cblSpace                    = 285;
+    cblSpaces                   = 286;
+    cblSourceComputer           = 287;
+    cblStandard                 = 288;
+    cblStop                     = 289;
+    cblSubtract                 = 290;
+    cblTimes                    = 291;
+    cblTo                       = 292;
+    cblTrue                     = 293;
+    cblUntil                    = 294;
+    cblUsing                    = 295;
+    cblValue                    = 296;
+    cblWhen                     = 297;
+    cblWorkingStorage           = 298;
+    cblWrite                    = 299;
+    cblZero                     = 300;
+    cblZeroes                   = 301;
+    cblZeros                    = 302;
+    {#ENDDI}
 
     // Literal tokens
     cblString                   = 600;
@@ -164,6 +238,28 @@ interface
     cblOpOr               = 809;
 
 
+    execSQL               = 200;
+
+    sqlString                     = 500;
+
+    sqlIdentifier                 = 600;
+    sqlHostVariable               = 601;
+    sqlHostVariableWithIndicator  = 602;
+
+    sqlBegin              = 202;
+    sqlCursor             = 204;
+    sqlDeclare            = 206;
+    sqlDelete             = 209;
+    sqlEndExec            = 201;
+    sqlExec               = 200;
+    sqlInclude            = 208;
+    sqlInsert             = 207;
+    sqlJoin               = 210;
+    sqlPrepare            = 205;
+    sqlSection            = 207;
+    sqlSelect             = 209;
+    sqlUpdate             = 208;
+
 
     cdCOBOL2002 = 202;
 
@@ -171,11 +267,21 @@ interface
 
 implementation
 
+  uses
+    Deltics.Tokeniser.Tokens;
+
   type
     TCOBOLLanguage = class(TTokenDictionary)
       procedure Initialise; override;
     end;
 
+    TEXECInterfaces = class(TTokenDictionary)
+      procedure Initialise; override;
+    end;
+
+    TEmbeddedSQL = class(TTokenDictionary)
+      procedure Initialise; override;
+    end;
 
 
   procedure TCOBOLLanguage.Initialise;
@@ -192,52 +298,126 @@ implementation
     AddString(cblEOL, '[CRLF]',  #13#10);
 
     TokenType := ttComment;
-    AddLineEnd(cblComment,     'Comment',           '*');
-    AddLineEnd(cblFormFeed,    'Form Feed Comment', '/');
-    AddLineEnd(cblLineComment, 'Line Comment',      '*>',  [cdCOBOL2002]);
+    AddRange(cblLineNo,        'Line No', 1, 6);
+    AddLineEnd(cblComment,     'Comment',      '*', 7);
+    AddLineEnd(cblLineComment, 'Line Comment', '*>',  [cdCOBOL2002]);
+    AddString(cblFormFeed,     'Form Feed',               '/', 7);
+    AddLineEnd(cblFormFeed,    'Form Feed with Comment',  '/', 7);
 
     TokenType := ttDirective;
-    AddCharset(cblDebug,            'DEBUG',          ['D','d']);
-    AddLineEnd(cblDirective,        'Directive',      '$');
-//    AddPositional(cblContinuation,  'Continuation',   '-', 7);
+    AddString(cblDebug,         'DEBUG',          'D', 7);
+    AddString(cblContinuation,  'Continuation',   '-', 7);
+    AddLineEnd(cblDirective,    'Directive',      '$', 7);
+
+    TokenType := ttEmbeddedSQL;
+    AddDelimited(cblEXEC, 'EXEC Interface', 'exec', 'end-exec', TRUE);
+    SetSubDictionary(cblEXEC, EXECInterfaces);
 
     TokenType := ttReservedWord;
+    AddString(cblAccept,                  'accept');
+    AddString(cblAdd,                     'add');
+    AddString(cblAfter,                   'after');
+    AddString(cblAll,                     'all');
+    AddString(cblAlphanumeric,            'alphanumeric');
+    AddString(cblAre,                     'are');
     AddString(cblAs,                      'as');
     AddString(cblAssign,                  'assign');
+    AddString(cblAt,                      'at');
     AddString(cblAuthor,                  'author');
+    AddString(cblBlock,                   'block');
+    AddString(cblBy,                      'by');
     AddString(cblCall,                    'call');
+    AddString(cblClose,                   'close');
     AddString(cblCommon,                  'common');
+    AddString(cblComp,                    'comp');
+    AddString(cblComp3,                   'comp-3');
+    AddString(cblComp5,                   'comp-5');
     AddString(cblCompute,                 'compute');
     AddString(cblConfiguration,           'configuration');
+    AddString(cblContains,                'contains');
     AddString(cblCopy,                    'copy');
+    AddString(cblCorresponding,           'corresponding');
     AddString(cblData,                    'data');
+    AddString(cblDelimited,               'delimited');
     AddString(cblDisplay,                 'display');
     AddString(cblDivision,                'division');
+    AddString(cblElse,                    'else');
+    AddString(cblEnd,                     'end');
+    AddString(cblEndEvaluate,             'end-evaluate');
+    AddString(cblEndIf,                   'end-if');
+    AddString(cblEndPerform,              'end-perform');
     AddString(cblEnvironment,             'environment');
+    AddString(cblEvaluate,                'evaluate');
+    AddString(cblExit,                    'exit');
     AddString(cblFD,                      'fd');
+    AddString(cblFalse,                   'false');
     AddString(cblFile,                    'file');
     AddString(cblFileControl,             'file-control');
-    AddString(cblIdentificationDivision,  'identification');
+    AddString(cblFiller,                  'filler');
+    AddString(cblFrom,                    'from');
+    AddString(cblGo,                      'go');
+    AddString(cblIdentification,          'identification');
+    AddString(cblIf,                      'if');
+    AddString(cblIndexed,                 'indexed');
     AddString(cblInitial,                 'initial');
+    AddString(cblInitialize,              'initialize');
+    AddString(cblInspect,                 'inspect');
+    AddString(cblInput,                   'input');
     AddString(cblInputOutput,             'input-output');
+    AddString(cblInto,                    'into');
     AddString(cblIs,                      'is');
+    AddString(cblLabel,                   'label');
+    AddString(cblLeading,                 'leading');
+    AddString(cblLine,                    'line');
     AddString(cblLinkage,                 'linkage');
     AddString(cblLocalStorage,            'local-storage');
+    AddString(cblMode,                    'mode');
     AddString(cblMove,                    'move');
+    AddString(cblNot,                     'not');
     AddString(cblObjectComputer,          'object-computer');
+    AddString(cblOccurs,                  'occurs');
+    AddString(cblOf,                      'of');
+    AddString(cblOpen,                    'open');
+    AddString(cblOrganization,            'organization');
+    AddString(cblOther,                   'other');
+    AddString(cblOutput,                  'output');
+    AddString(cblPerform,                 'perform');
     AddString(cblPIC,                     'pic');
     AddString(cblPIC,                     'picture');
     AddString(cblProcedure,               'procedure');
     AddString(cblProgram,                 'program');
     AddString(cblProgramID,               'program-id');
+    AddString(cblRead,                    'read');
+    AddString(cblRecording,               'recording');
+    AddString(cblRecords,                 'records');
+    AddString(cblRedefines,               'redefines');
+    AddString(cblReplacing,               'replacing');
+    AddString(cblRounded,                 'rounded');
+    AddString(cblRun,                     'run');
     AddString(cblSection,                 'section');
     AddString(cblSelect,                  'select');
+    AddString(cblSequential,              'sequential');
     AddString(cblSet,                     'set');
+    AddString(cblSize,                    'size');
     AddString(cblSourceComputer,          'source-computer');
+    AddString(cblSpace,                   'space');
+    AddString(cblSpaces,                  'spaces');
+    AddString(cblStandard,                'standard');
+    AddString(cblStop,                    'stop');
+    AddString(cblString,                  'string');
+    AddString(cblSubtract,                'subtract');
+    AddString(cblTimes,                   'times');
     AddString(cblTo,                      'to');
+    AddString(cblTrue,                    'true');
+    AddString(cblUntil,                   'until');
     AddString(cblUsing,                   'using');
     AddString(cblValue,                   'value');
+    AddString(cblWhen,                    'when');
     AddString(cblWorkingStorage,          'working-storage');
+    AddString(cblWrite,                   'write');
+    AddString(cblZero,                    'zero');
+    AddString(cblZeroes,                  'zeroes');
+    AddString(cblZeros,                   'zeros');
 
     AddString(cblExec,    'exec');
     AddString(cblEndExec, 'end-exec');
@@ -252,7 +432,6 @@ implementation
     AddDelimited(cblNationalLiteral,      'National Literal', 'N"',   '"');
     AddDelimited(cblNullTerminatedString, 'Null-terminated',  'Z''',  '''');
     AddDelimited(cblNullTerminatedString, 'Null-terminated',  'Z"',   '"');
-//    AddQualifiedCharSet(cblFloat,         'Float',       ['-', '+', '0'..'9'], ['0'..'9', '.', '-', '+', 'e']);
     AddDelimitedCharSet(cblHexLiteral,    'Hex Literal', 'X''', '''', ['a'..'f', '0'..'9']);
     AddDelimitedCharSet(cblHexLiteral,    'Hex Literal', 'X"',  '"',  ['a'..'f', '0'..'9']);
 
@@ -269,21 +448,33 @@ implementation
     charSets[4] := ['e'];
     charSets[5] := ['+', '-', '0'..'9'];
     charSets[6] := ['0'..'9'];
-    AddCharSet(cblFloat, 'Float', charSets, 3);
+    AddCharSet(cblFloat, 'Float', charSets, [3,6]);
 
-    SetLength(charSets, 2);
-    charSets[0] := ['A', 'B', 'G', 'N', 'P', 'X', 'Z', '9',
-                    '/', ',', '+', '–', '*', '$',
-                    'E', 'S', 'V', '.', 'C', 'R', 'D'];
+    SetLength(charSets, 6);
+    charSets[0] := ['A', 'B', 'G', 'N', 'P', 'X', 'Z', '9', 'S',
+                    '/', ',', '+', '-', '*', '$'];
     charSets[1] := ['A', 'B', 'G', 'N', 'P', 'X', 'Z', '0'..'9',
-                    '/', ',', '+', '–', '*', '$',
+                    '/', ',', '+', '-', '*', '$',
                     'E', 'S', 'V', '.', 'C', 'R', 'D',
                     '(', ')'];
-    AddCharSet(cblPictureString, 'Picture', charSets);
+    charSets[2] := ['.', 'V'];
+    charSets[3] := ['A', 'B', 'G', 'N', 'P', 'X', 'Z', '0'..'9',
+                    '/', ',', '+', '-', '*', '$',
+                    'E', 'S', 'C', 'R', 'D',
+                    '(', ')'];
+    charSets[4] := ['A', 'G', 'N', 'P', 'X', 'Z', '9',
+                    '/', '+', '-', '*', '$',
+                    'E', 'S', 'R', 'D'];
+    charSets[5] := ['A', 'G', 'N', 'P', 'X', 'Z', '9',
+                    '/', '+', '-', '*', '$',
+                    'E', 'S', 'R', 'D',
+                    ')'];
+    AddCharSet(cblPictureString, 'Picture', charSets, [0,1,4,5]);
+//    AddMutator(cblPIC, TPictureStringValidator);
 
 
     TokenType := ttIdentifier;
-    AddQualifiedCharSet(cblIdentifier,      'identifier',       ['0'..'9', 'a'..'z'], ['a'..'z', '0'..'9', '-'], ['a'..'z'], uaNowhere);
+    AddQualifiedCharSet(cblIdentifier,      'identifier',       ['0'..'9', 'a'..'z'], ['a'..'z', '0'..'9', '-', '_'], uaNowhere);
     AddQualifiedCharSet(cblHostIdentifier,  'host identifier',  [':'], ['a'..'z', '0'..'9', '-'], uaNowhere);
 
     TokenType := ttOperator;
@@ -316,10 +507,78 @@ implementation
 
 
 
-initialization
-  COBOLLanguage := TCOBOLLanguage.Create;
+{ TEXECInterfaces }
 
+  procedure TEXECInterfaces.Initialise;
+  begin
+    SetCaseSensitivity(FALSE);
+    SetName('EXEC Interface');
+
+    TokenType := ttWhitespace;
+    AddCharSet(cblWhitespace, '[whitespace]', [' ', #9]);
+    AddString(cblEOL, '[CR]',    #13);
+    AddString(cblEOL, '[LF]',    #10);
+    AddString(cblEOL, '[CRLF]',  #13#10);
+
+    TokenType := ttLiteral;
+    AddString(cblEXEC,      'exec');
+    AddDelimited(execSQL,   'SQL', 'sql', 'end-exec');
+    SetSubDictionary(execSQL, EmbeddedSQL, TRUE);
+  end;
+
+
+
+{ TEmbeddedSQL }
+
+  procedure TEmbeddedSQL.Initialise;
+  begin
+    SetCaseSensitivity(FALSE);
+    SetName('Embedded SQL');
+
+    TokenType := ttWhitespace;
+    AddCharSet(cblWhitespace, '[whitespace]', [' ', #9]);
+    AddString(cblEOL, '[CR]',    #13);
+    AddString(cblEOL, '[LF]',    #10);
+    AddString(cblEOL, '[CRLF]',  #13#10);
+
+    TokenType := ttComment;
+    AddRange(cblLineNo,        'Line No', 1, 6);
+    AddLineEnd(cblComment,     'Comment',      '*', 7);
+    AddLineEnd(cblLineComment, 'Line Comment', '*>',  [cdCOBOL2002]);
+    AddString(cblFormFeed,     'Form Feed',               '/', 7);
+    AddLineEnd(cblFormFeed,    'Form Feed with Comment',  '/', 7);
+
+    TokenType := ttIdentifier;
+    AddQualifiedCharSet(sqlHostVariable,               'host variable',             [':'], ['0'..'9', 'a'..'z', '-']);
+    AddQualifiedCharSet(sqlHostVariableWithIndicator,  'host variable : indicator', [':'], ['0'..'9', 'a'..'z', '-', ':']);
+    AddCharSet(sqlIdentifier, 'identifier', ['a'..'z', '0'..'9',  '_']);
+
+    TokenType := ttLiteral;
+    AddDelimited(sqlString,   'string', '''', '''');
+
+    TokenType := ttReservedWord;
+    AddString(sqlExec,     'exec');
+    AddString(sqlEndExec,  'end-exec');
+    AddString(sqlBegin,    'begin');
+    AddString(sqlDeclare,  'declare');
+    AddString(sqlSection,  'section');
+    AddString(sqlInclude,  'include');
+    AddString(sqlSelect,   'select');
+    AddString(sqlInsert,   'insert');
+    AddString(sqlUpdate,   'update');
+    AddString(sqlDelete,   'delete');
+  end;
+
+
+
+
+initialization
+  EmbeddedSQL     := TEmbeddedSQL.Create;
+  EXECInterfaces  := TEXECInterfaces.Create;
+  COBOLLanguage   := TCOBOLLanguage.Create;
 
 finalization
   COBOLLanguage.Free;
+  EXECInterfaces.Free;
+  EmbeddedSQL.Free;
 end.
