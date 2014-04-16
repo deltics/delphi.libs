@@ -90,6 +90,9 @@ interface
 
 
   type
+    ITokenList = interface;
+    ITokenStream = interface;
+
     TTokeniserOption = (
                           toCaseSensitive,
                           toConsumeWhitespace,
@@ -117,11 +120,19 @@ interface
     IToken = interface
     ['{9DF5B974-DD3C-4CCF-A017-D15585663408}']
       function get_Definition: TTokenDefinition;
+      function get_ID: TTokenID;
+      function get_IsWhitespace: Boolean;
       function get_Length: Integer;
       function get_Source: TTokenSource;
       function get_Text: UnicodeString;
+      function get_TokenCount: Integer;
+      function get_Tokens: ITokenList;
 
        property Definition: TTokenDefinition read get_Definition;
+      property ID: TTokenID read get_ID;
+      property IsWhitespace: Boolean read get_IsWhitespace;
+      property TokenCount: Integer read get_TokenCount;
+      property Tokens: ITokenList read get_Tokens;
        property Length: Integer read get_Length;
        property Source: TTokenSource read get_Source;
        property Text: UnicodeString read get_Text;
@@ -135,10 +146,14 @@ interface
 
       function First: IToken; overload;
       function First(const aID: TTokenID): IToken; overload;
+      function First(const aID: TTokenID; const aText: String): IToken; overload;
       function Next: IToken; overload;
       function Next(const aID: TTokenID): IToken; overload;
+      function Next(const aID: TTokenID; const aText: String): IToken; overload;
       function Prev: IToken; overload;
       function Prev(const aID: TTokenID; const aGoto: Boolean = TRUE): IToken; overload;
+
+      function Clone: ITokenCursor;
 
       property EOF: Boolean read get_EOF;
       property Token: IToken read get_Token;
@@ -226,7 +241,8 @@ interface
       fList: ITokenList;
       fToken: IToken;
     public
-      constructor Create(const aList: ITokenList);
+      constructor Create(const aList: ITokenList); overload;
+      constructor Create(const aList: ITokenList; const aInitialIndex: Integer); overload;
 
     protected // ITokenCursor -------------------------------------------------
       function get_EOF: Boolean;
@@ -234,10 +250,14 @@ interface
 
       function First: IToken; overload;
       function First(const aID: TTokenID): IToken; overload;
+      function First(const aID: TTokenID; const aText: String): IToken; overload;
       function Next: IToken; overload;
       function Next(const aID: TTokenID): IToken; overload;
+      function Next(const aID: TTokenID; const aText: String): IToken; overload;
       function Prev: IToken; overload;
       function Prev(const aID: TTokenID; const aGoto: Boolean = TRUE): IToken; overload;
+
+      function Clone: ITokenCursor;
     end;
 
 
@@ -700,6 +720,25 @@ implementation
     fIndex    := -1;
     fEOFIndex := aList.Count;
     fList     := aList;
+
+    if (fEOFIndex > 0) then
+      First;
+  end;
+
+
+  constructor TTokenCursor.Create(const aList: ITokenList;
+                                  const aInitialIndex: Integer);
+  begin
+    Create(aList);
+
+    fIndex := aInitialIndex;
+  end;
+
+
+  function TTokenCursor.First(const aID: TTokenID; const aText: String): IToken;
+  begin
+    First;
+    result := Next(aID, aText);
   end;
 
 
@@ -718,7 +757,8 @@ implementation
   function TTokenCursor.First: IToken;
   begin
     fIndex := 0;
-    result := fList[0];
+    fToken := fList[0];
+    result := fToken;
   end;
 
 
@@ -729,8 +769,9 @@ implementation
     for i := 0 to Pred(fList.Count) do
     begin
       result := fList[i];
-      if result.Definition.ID = aID then
+      if Assigned(result.Definition) and (result.Definition.ID = aID) then
       begin
+        fToken := result;
         fIndex := i;
         EXIT;
       end;
@@ -743,12 +784,15 @@ implementation
 
   function TTokenCursor.Next: IToken;
   begin
-    if get_EOF then
-      raise Exception.Create('No more tokens');
+    if NOT get_EOF then
+    begin
+      Inc(fIndex);
+      fToken := fList[fIndex];
+    end
+    else
+      fToken := NIL;
 
-    Inc(fIndex);
-    result := fList[fIndex];
-    fToken := fList[fIndex];
+    result := fToken;
   end;
 
 
@@ -759,7 +803,35 @@ implementation
     for i := Succ(fIndex) to Pred(fList.Count) do
     begin
       result := fList[i];
-      if result.Definition.ID = aID then
+      if Assigned(result.Definition) and (result.Definition.ID = aID) then
+      begin
+        fIndex := i;
+        fToken := result;
+        EXIT;
+      end;
+    end;
+
+    fIndex := fEOFIndex;
+    result := NIL;
+    fToken := NIL;
+  end;
+
+
+  function TTokenCursor.Clone: ITokenCursor;
+  begin
+    result := TTokenCursor.Create(fList, fIndex);
+  end;
+
+
+  function TTokenCursor.Next(const aID: TTokenID; const aText: String): IToken;
+  var
+    i: Integer;
+  begin
+    for i := Succ(fIndex) to Pred(fList.Count) do
+    begin
+      result := fList[i];
+      if Assigned(result.Definition) and (result.Definition.ID = aID)
+       and (result.Text = aText) then
       begin
         fIndex := i;
         fToken := result;
@@ -792,7 +864,7 @@ implementation
     for i := Pred(fIndex) downto 0 do
     begin
       result := fList[i];
-      if result.Definition.ID = aID then
+      if Assigned(result.Definition) and (result.Definition.ID = aID) then
       begin
         if aGoto then
         begin
@@ -811,6 +883,7 @@ implementation
       fToken := NIL;
     end;
   end;
+
 
 
 
