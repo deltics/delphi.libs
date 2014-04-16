@@ -350,7 +350,6 @@ implementation
 
     AddString(tk_program, 'program');
     AddString(tk_library, 'library');
-    AddString(tk_unit,    'unit');
 
     AddString(tk_absolute,        'absolute');
     AddString(tk_abstract,        'abstract');
