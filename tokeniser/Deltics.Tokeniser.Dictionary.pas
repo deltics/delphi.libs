@@ -66,8 +66,12 @@ type
   TTokenDefinition = class;
   TTokenDefinitions = class;
 
+  TTokenDefinitionArray = array of TTokenDefinition;
+
   TDefinitionClassID = (
+                        dcUnknown,
                         dcCharacterSet,
+                        dcRange,
                         dcString,
                         dcPrefixed,
                         dcLineEnd,
@@ -82,6 +86,7 @@ type
                     );
 
   TANSICharSet        = set of ANSIChar;
+  TIntegerSet         = set of Byte;
   TArrayOfANSICharSet = array of TANSICharSet;
 
   WideCharArray     = array of WideChar;
@@ -104,13 +109,10 @@ type
     fIsCaseSensitive: Boolean;
     fTokenType: TTokenType;
 
+    fColumnDefinitions: array[1..80, 9..127] of TTokenDefinitions;
     fInitialDefinitions: array[WideChar] of TTokenDefinitions;
     fItems: TTokenDefinitions;
     fEmptyDefinitionList: TTokenDefinitions;
-
-//    fDialects: array[TDialectID] of String;
-//    fTokenTypes: array[TTokenType] of String;
-//    fUnknown: TTokenDefinition;
 
     function get_Items(const aIndex: Integer): TTokenDefinition;
     function get_ItemCount: Integer;
@@ -134,10 +136,20 @@ type
                          const aCharSets: TArrayOfANSICharSet;
                          const aRequiredSequences: Integer = 0;
                          const aDialects: TDialects = []); overload;
+    procedure AddCharSet(const aID: TTokenID;
+                         const aName: String;
+                         const aCharSets: TArrayOfANSICharSet;
+                         const aValidEndSequences: TIntegerSet;
+                         const aDialects: TDialects = []); overload;
     procedure AddLineEnd(const aID: TTokenID;
                          const aName: String;
                          const aPrefix: String;
-                         const aDialects: TDialects = []);
+                         const aDialects: TDialects = []); overload;
+    procedure AddLineEnd(const aID: TTokenID;
+                         const aName: String;
+                         const aPrefix: String;
+                         const aStartAt: Integer;
+                         const aDialects: TDialects = []); overload;
     procedure AddDelimited(const aID: TTokenID;
                            const aName: String;
                            const aPrefix: UnicodeString;
@@ -164,6 +176,17 @@ type
                                   const aRequiredChars: TANSICharSet;
                                   const aUnicodeAllowed: TUnicodeAllowed = uaNowhere;
                                   const aDialects: TDialects = []); overload;
+    procedure AddRange(const aID: TTokenID;
+                       const aName: String;
+                       const aStartPos: Integer;
+                       const aMinLength: Integer;
+                       const aMaxLength: Integer;
+                       const aDialects: TDialects = []); overload;
+    procedure AddRange(const aID: TTokenID;
+                       const aName: String;
+                       const aStartPos: Integer;
+                       const aMaxLength: Integer;
+                       const aDialects: TDialects = []); overload;
     procedure AddString(const aID: TTokenID;
                         const aName: String;
                         const aDialects: TDialects = []); overload;
@@ -171,10 +194,14 @@ type
                         const aName: String;
                         const aText: UnicodeString;
                         const aDialects: TDialects = []); overload;
+    procedure AddString(const aID: TTokenID;
+                        const aName: String;
+                        const aText: UnicodeString;
+                        const aStartAt: Integer;
+                        const aDialects: TDialects = []); overload;
     procedure SetCaseSensitivity(const aIsSensitive: Boolean);
     procedure SetCompoundable(const aIDs: array of TTokenID);
-    procedure SetSubDictionary(const aID: TTokenID;
-                               const aDictionary: TTokenDictionary);
+    procedure SetSubDictionary(const aID: TTokenID; const aDictionary: TTokenDictionary; const aIsSubstitution: Boolean = FALSE);
   public
     constructor Create;
     destructor Destroy; override;
@@ -182,8 +209,9 @@ type
     procedure FilterDefinitions(const aList: TTokenDefinitions;
                                 const aBuffer: PWideCharArray;
                                 const aLength: Integer);
-    function GetDefinitions(const aInitialChar: WideChar): TTokenDefinitions;
-    function MostCompatible(const aDefinitions: TTokenDefinitions; const aBuffer: PWideCharArray; const aTokenLength: Integer): TTokenDefinition; virtual;
+    function GetDefinitions(const aStartPos: Integer; const aInitialChar: WideChar): TTokenDefinitions;
+    function BestPrefixedMatch(const aDefinitions: TTokenDefinitionArray): TTokenDefinition;
+    function MostCompatible(const aDefinitions: TTokenDefinitions; const aBuffer: PWideCharArray; const aTokenLength: Integer): TTokenDefinition;
 
     property IsCaseSensitive: Boolean read fIsCaseSensitive;
     property Items[const aIndex: Integer]: TTokenDefinition read get_Items;
@@ -202,10 +230,10 @@ type
     fMultiLine: Boolean;
     fName: String;
     fSubDictionary: TTokenDictionary;
+    fSubDictionarySubstitution: Boolean;
     fTokenType: TTokenType;
     fClassID: TDefinitionClassID;
-    fMaxStartPos: Integer;
-    fMinStartPos: Integer;
+    fStartPos: Integer;
   protected
     constructor Create(const aDictionary: TTokenDictionary;
                        const aID: Integer;
@@ -213,10 +241,11 @@ type
                        const aMultiLine: Boolean;
                        const aDialects: TDialects);
     function get_InitialChars: WideCharArray; virtual; abstract;
+    procedure PrepareCharSet(var aCharSet: TANSICharSet);
+    procedure SetSubDictionary(const aDictionary: TTokenDictionary; const aIsSubstitution: Boolean);
     property InitialChars: WideCharArray read get_InitialChars;
     property SetIsCompoundable: Boolean write fIsCompoundable;
     property SetLength: Integer write fLength;
-    property SetSubDictionary: TTokenDictionary write fSubDictionary;
   public
     function IsCompatible(const aBuffer: PWideCharArray;
                           const aLength: Integer): Boolean; virtual; abstract;
@@ -230,8 +259,31 @@ type
     property Length: Integer read fLength;
     property MultiLine: Boolean read fMultiLine;
     property Name: String read fName;
+    property StartPos: Integer read fStartPos;
     property SubDictionary: TTokenDictionary read fSubDictionary;
+    property SubDictionarySubstitution: Boolean read fSubDictionarySubstitution;
     property TokenType: TTokenType read fTokenType;
+  end;
+
+
+  TRangeToken = class(TTokenDefinition)
+  private
+    fMinLength: Integer;
+    fMaxLength: Integer;
+  protected
+    constructor Create(const aDictionary: TTokenDictionary;
+                       const aID: Integer;
+                       const aName: String;
+                       const aStartPos: Integer;
+                       const aMinLength: Integer;
+                       const aMaxLength: Integer;
+                       const aDialects: TDialects);
+    function get_InitialChars: WideCharArray; override;
+  public
+    function IsCompatible(const aBuffer: PWideCharArray;
+                          const aLength: Integer): Boolean; override;
+    function IsComplete(const aBuffer: PWideCharArray;
+                        const aLength: Integer): Boolean; override;
   end;
 
 
@@ -290,6 +342,7 @@ type
 
     TQualifiedCharSetToken = class(TCharSetToken)
     private
+      fRequiredChars: TANSICharSet;
       fUnicode: TUnicodeAllowed;
     public
       constructor Create(const aDictionary: TTokenDictionary;
@@ -302,6 +355,8 @@ type
                          const aDialects: TDialects);
       function IsCompatible(const aBuffer: PWideCharArray;
                             const aLength: Integer): Boolean; override;
+      function IsComplete(const aBuffer: PWideCharArray;
+                          const aLength: Integer): Boolean; override;
     end;
 
 
@@ -309,6 +364,7 @@ type
     private
       fCharSets: TArrayOfANSICharSet;
       fRequired: Integer;
+      fValidEndSequences: TIntegerSet;
       fCurrSeq: Integer;
     public
       constructor Create(const aDictionary: TTokenDictionary;
@@ -316,10 +372,17 @@ type
                          const aName: String;
                          const aCharSets: TArrayOfANSICharSet;
                          const aRequiredSequences: Integer;
-                         const aDialects: TDialects);
+                         const aDialects: TDialects); overload;
+      constructor Create(const aDictionary: TTokenDictionary;
+                         const aID: Integer;
+                         const aName: String;
+                         const aCharSets: TArrayOfANSICharSet;
+                         const aValidEndSequences: TIntegerSet;
+                         const aDialects: TDialects); overload;
       function IsCompatible(const aBuffer: PWideCharArray;
                             const aLength: Integer): Boolean; override;
-      function IsComplete(const aBuffer: PWideCharArray; const aLength: Integer): Boolean; override;
+      function IsComplete(const aBuffer: PWideCharArray;
+                          const aLength: Integer): Boolean; override;
     end;
 
 
@@ -426,6 +489,7 @@ implementation
      objects in those lists are also free'd).
   }
   var
+    i, j: Integer;
     c: WideChar;
   begin
     for c := Low(fInitialDefinitions) to High(fInitialDefinitions) do
@@ -433,6 +497,13 @@ implementation
         fInitialDefinitions[c] := NIL
       else
         FreeAndNIL(fInitialDefinitions[c]);
+
+    for i := 1 to 80 do
+      for j := 9 to 127 do
+        if fColumnDefinitions[i][j] = fEmptyDefinitionList then
+          fColumnDefinitions[i][j] := NIL
+      else
+        FreeAndNIL(fColumnDefinitions[i][j]);
 
     FreeAndNIL([@fItems,
                 @fEmptyDefinitionList]);
@@ -483,9 +554,9 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenDictionary.AddCharSet(const aID: TTokenID;
-                                      const aName: String;
-                                      const aValidChars: TANSICharSet;
-                                      const aDialects: TDialects);
+                                        const aName: String;
+                                        const aValidChars: TANSICharSet;
+                                        const aDialects: TDialects);
   begin
     AddQualifiedCharSet(aID, aName, aValidChars, aValidChars, uaNowhere, aDialects);
   end;
@@ -503,12 +574,35 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenDictionary.AddCharSet(const aID: TTokenID;
+                                        const aName: String;
+                                        const aCharSets: TArrayOfANSICharSet;
+                                        const aValidEndSequences: TIntegerSet;
+                                        const aDialects: TDialects);
+  begin
+    TCharSetSequenceToken.Create(self, aID, aName, aCharSets, aValidEndSequences, aDialects);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenDictionary.AddLineEnd(const aID: TTokenID;
                                         const aName: String;
                                         const aPrefix: String;
                                         const aDialects: TDialects);
   begin
     TLineEndToken.Create(self, aID, aName, aPrefix, aDialects);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenDictionary.AddLineEnd(const aID: TTokenID;
+                                        const aName: String;
+                                        const aPrefix: String;
+                                        const aStartAt: Integer;
+                                        const aDialects: TDialects);
+  begin
+    with TLineEndToken.Create(self, aID, aName, aPrefix, aDialects) do
+      fStartPos := aStartAt;
   end;
 
 
@@ -563,6 +657,29 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenDictionary.AddRange(const aID: TTokenID;
+                                      const aName: String;
+                                      const aStartPos: Integer;
+                                      const aMinLength: Integer;
+                                      const aMaxLength: Integer;
+                                      const aDialects: TDialects);
+  begin
+    TRangeToken.Create(self, aID, aName, aStartPos, aMinLength, aMaxLength, aDialects);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenDictionary.AddRange(const aID: TTokenID;
+                                      const aName: String;
+                                      const aStartPos: Integer;
+                                      const aMaxLength: Integer;
+                                      const aDialects: TDialects);
+  begin
+    TRangeToken.Create(self, aID, aName, aStartPos, 1, aMaxLength, aDialects);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenDictionary.AddString(const aID: TTokenID;
                                        const aName: String;
                                        const aDialects: TDialects);
@@ -581,16 +698,70 @@ implementation
   end;
 
 
+  procedure TTokenDictionary.AddString(const aID: TTokenID;
+                                       const aName: String;
+                                       const aText: UnicodeString;
+                                       const aStartAt: Integer;
+                                       const aDialects: TDialects);
+  begin
+    with TStringToken.Create(self, aID, aName, aText, aDialects) do
+      fStartPos := aStartAt;
+  end;
+
+
+  function TTokenDictionary.BestPrefixedMatch(const aDefinitions: TTokenDefinitionArray): TTokenDefinition;
+  var
+    i: Integer;
+  begin
+    result := aDefinitions[0];
+
+    for i := High(aDefinitions) downto 1 do
+      if (aDefinitions[i].Length > result.Length) then
+        result := aDefinitions[i];
+  end;
+
+
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenDictionary.FilterDefinitions(const aList: TTokenDefinitions;
                                                const aBuffer: PWideCharArray;
                                                const aLength: Integer);
   var
     i: Integer;
+    def: TTokenDefinition;
+    prefixed: TTokenDefinitionArray;
+    prefixedCount: Integer;
   begin
+    prefixedCount := 0;
+
+    SetLength(prefixed, aList.Count);
+
     for i := Pred(aList.Count) downto 0 do
-      if NOT aList[i].IsCompatible(aBuffer, aLength) then
+    begin
+      def := aList[i];
+
+      if def.IsCompatible(aBuffer, aLength) then
+      begin
+        if def.ClassID in [dcPrefixed, dcDelimited] then
+        begin
+          prefixed[prefixedCount] := def;
+          Inc(prefixedCount);
+        end;
+      end
+      else
         aList.Delete(i);
+    end;
+
+    if prefixedCount = 0 then
+      EXIT;
+
+    SetLength(prefixed, prefixedCount);
+    def := BestPrefixedMatch(prefixed);
+
+    for i := 0 to Pred(prefixedCount) do
+    begin
+      if prefixed[i] <> def then
+        aList.Remove(prefixed[i]);
+    end;
   end;
 
 
@@ -619,78 +790,115 @@ implementation
   var
     i: Integer;
     def: TTokenDefinition;
-    prefixed: TList;
+    prefixed: TTokenDefinitionArray;
+    prefixedCount: Integer;
   begin
-    result := NIL;
+    result        := NIL;
+    prefixedCount := 0;
 
     // Create a list to hold any delimited Candidates we find - to avoid
     //  memory reallocations set the capacity the same as the original
     //  list (which is the maximum capacity likely to be required, i.e if
     //  all candidate kinds are delimited kinds)
-    prefixed := TList.Create;
-    try
-      prefixed.Capacity := aDefinitions.Count;
+    SetLength(prefixed, aDefinitions.Count);
 
-      for i := Pred(aDefinitions.Count) downto 0 do
-      begin
-        def := TTokenDefinition(aDefinitions[i]);
+    for i := Pred(aDefinitions.Count) downto 0 do
+    begin
+      def := TTokenDefinition(aDefinitions[i]);
 
-        // Try and match to a character set or string definition
+      // Try and match to a character set or string definition
 
-        case def.ClassID of
-          dcCharacterSet  : if NOT Assigned(result)
-                             or (def.Length < result.Length) then
-                              result := def;
+      case def.ClassID of
+        dcCharacterSet  : if NOT Assigned(result)
+                           or (def.Length < result.Length) then
+                            result := def;
 
-          dcString        : if (def.Length = aTokenLength) then
-                            begin
-                              result := def;
-                              BREAK;
-                            end;
+        dcString        : if (def.Length = aTokenLength) then
+                          begin
+                            result := def;
+                            BREAK;
+                          end;
 
-          dcPrefixed,
-          dcDelimited     : prefixed.Add(def);
+        dcPrefixed,
+        dcDelimited     : begin
+                            prefixed[prefixedCount] := def;
+                            Inc(prefixedCount);
+                          end;
 
-          dcLineEnd       : begin
-                              result := def;
-                              BREAK;
-                            end;
-        end;
+        dcLineEnd       : begin
+                            result := def;
+                            BREAK;
+                          end;
       end;
-
-      // If we have a result or have no delimited definitions to test, our
-      //  work is done
-
-      if Assigned(result) or (prefixed.Count = 0) then
-        EXIT;
-
-      // Find the best match from these (best match = MOST delimiter
-      //  information required)
-
-      result := TTokenDefinition(prefixed[0]);
-
-      for i := Pred(prefixed.Count) downto 1 do
-      begin
-        def := TTokenDefinition(prefixed[i]);
-        if (def.Length > result.Length) then
-          result := def;
-      end;
-    finally
-      prefixed.Free;
     end;
+
+    // If we have a result or have no delimited definitions to test, our
+    //  work is done
+
+    if Assigned(result) or (prefixedCount = 0) then
+      EXIT;
+
+    // Find the best match from these (best match = MOST delimiter
+    //  information required)
+
+    result := BestPrefixedMatch(prefixed);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenDictionary.Prepare;
 
+    procedure AddColumn(const aStartPos: Integer;
+                        const aChar: Integer;
+                        const aDef: TTokenDefinition); overload;
+    var
+      list: TTokenDefinitions;
+    begin
+      if (aChar <> 9) and ((aChar < 32) or (aChar > 127)) then
+        EXIT;
+
+      list := fColumnDefinitions[aStartPos][aChar];
+      if NOT Assigned(list) then
+      begin
+        list := TTokenDefinitions.Create(FALSE);
+        fColumnDefinitions[aStartPos][aChar] := list;
+      end;
+
+      if list.IndexOf(aDef) = -1 then
+        list.Add(aDef);
+    end;
+
+
+    procedure AddColumn(const aStartPos: Integer;
+                        const aDef: TTokenDefinition); overload;
+    var
+      i: Integer;
+      initial: WideCharArray;
+      c: Integer;
+    begin
+      initial := aDef.InitialChars;
+
+      for i := 0 to Pred(Length(initial)) do
+      begin
+        c := Ord(initial[i]);
+        AddColumn(aStartPos, c, aDef);
+      end;
+    end;
+
     procedure AddInitial(const aChar: WideChar;
                          const aDef: TTokenDefinition);
+    var
+      i: Integer;
     begin
       if NOT Assigned(fInitialDefinitions[aChar]) then
         fInitialDefinitions[aChar] := TTokenDefinitions.Create(FALSE);
 
-      fInitialDefinitions[aChar].Add(aDef);
+      if fInitialDefinitions[aChar].IndexOf(aDef) = -1 then
+        fInitialDefinitions[aChar].Add(aDef);
+
+      if (aChar = ' ') or (aChar = #9) then
+        for i := 1 to 80 do
+          AddColumn(i, Ord(aChar), aDef);
     end;
 
   var
@@ -708,6 +916,13 @@ implementation
       for i := 0 to Pred(ItemCount) do
       begin
         def := Items[i];
+
+        if def.StartPos <> 0 then
+        begin
+          AddColumn(def.StartPos, def);
+          CONTINUE;
+        end;
+
         initialChars := def.InitialChars;
 
         for j := 0 to Pred(Length(initialChars)) do
@@ -754,13 +969,19 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTokenDictionary.GetDefinitions(const aInitialChar: WideChar): TTokenDefinitions;
+  function TTokenDictionary.GetDefinitions(const aStartPos: Integer;
+                                           const aInitialChar: WideChar): TTokenDefinitions;
   var
-    i: Integer;
+    c: Integer;
   begin
-    result := TTokenDefinitions(fInitialDefinitions[aInitialChar]);
+    result := NIL;
+
+    c := ord(aInitialChar);
+    if (aStartPos > 0) and (c >= 32) and (c <= 127) then
+      result := TTokenDefinitions(fColumnDefinitions[aStartPos][c]);
+
     if NOT Assigned(result) then
-      result := fEmptyDefinitionList;
+      result := TTokenDefinitions(fInitialDefinitions[aInitialChar]);
   end;
 
 
@@ -785,13 +1006,16 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenDictionary.SetSubDictionary(const aID: TTokenID;
-                                              const aDictionary: TTokenDictionary);
+                                              const aDictionary: TTokenDictionary;
+                                              const aIsSubstitution: Boolean);
   var
     i: Integer;
   begin
     for i := 0 to Pred(ItemCount) do
       if (Items[i].ID = aID) then
-        Items[i].SetSubDictionary := aDictionary;
+      begin
+        Items[i].SetSubDictionary(aDictionary, aIsSubstitution);
+      end;
   end;
 
 
@@ -817,22 +1041,54 @@ implementation
     fName       := aName;
 
     fDictionary := aDictionary;
-    fTokenType  := aDictionary.TokenType;
+    if Assigned(aDictionary) then
+    begin
+      fTokenType  := aDictionary.TokenType;
 
-    if (self is TStringToken) then
-      fClassID := dcString
-    else if (self is TDelimitedToken) then
-      fClassID := dcDelimited
-    else if (self is TLineEndToken) then
-      fClassID := dcLineEnd
-    else if (self is TPrefixedToken) then
-      fClassID := dcPrefixed
-    else if (self is TCharSetToken) then
-      fClassID := dcCharacterSet
-    else
-      raise Exception.Create('Unknown/unsupported token definition class');
+      if (self is TRangeToken) then
+        fClassID := dcRange
+      else if (self is TStringToken) then
+        fClassID := dcString
+      else if (self is TDelimitedToken) then
+        fClassID := dcDelimited
+      else if (self is TLineEndToken) then
+        fClassID := dcLineEnd
+      else if (self is TPrefixedToken) then
+        fClassID := dcPrefixed
+      else if (self is TCharSetToken) then
+        fClassID := dcCharacterSet
+      else
+        raise Exception.Create('Unknown/unsupported token definition class');
 
       fDictionary.fItems.Add(self);
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenDefinition.PrepareCharSet(var aCharSet: TANSICharSet);
+  var
+    c: ANSIChar;
+  begin
+    if fDictionary.IsCaseSensitive then
+      EXIT;
+
+    for c := ANSIChar(65) to ANSIChar(91) do
+      if c in aCharSet then
+        aCharSet := aCharSet + [ANSIChar(Ord(c) + 32)];
+
+    for c := ANSIChar(97) to ANSIChar(122) do
+      if c in aCharSet then
+        aCharSet := aCharSet + [ANSIChar(Ord(c) - 32)];
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenDefinition.SetSubDictionary(const aDictionary: TTokenDictionary;
+                                              const aIsSubstitution: Boolean);
+  begin
+    fSubDictionary              := aDictionary;
+    fSubDictionarySubstitution  := aIsSubstitution;
   end;
 
 
@@ -842,6 +1098,75 @@ implementation
   begin
     result := TRUE;
   end;
+
+
+
+
+
+
+
+
+
+
+{ TRangeToken }
+
+  constructor TRangeToken.Create(const aDictionary: TTokenDictionary;
+                                 const aID: Integer;
+                                 const aName: String;
+                                 const aStartPos: Integer;
+                                 const aMinLength: Integer;
+                                 const aMaxLength: Integer;
+                                 const aDialects: TDialects);
+  begin
+    inherited Create(aDictionary, aID, aName, FALSE, aDialects);
+
+    fStartPos   := aStartPos;
+    fMinLength  := aMinLength;
+    fMaxLength  := aMaxLength;
+  end;
+
+
+  function TRangeToken.get_InitialChars: WideCharArray;
+  var
+    i: Integer;
+    c: ANSIChar;
+  begin
+    System.SetLength(result, 97);
+    result[0] := WideChar(9);
+
+    i := 1;
+    for c := ANSIChar(32) to ANSIChar(127) do
+    begin
+      result[i] := WideChar(c);
+      Inc(i);
+    end;
+  end;
+
+
+  function TRangeToken.IsCompatible(const aBuffer: PWideCharArray; const aLength: Integer): Boolean;
+  begin
+    result := (aLength <= fMaxLength);
+  end;
+
+
+  function TRangeToken.IsComplete(const aBuffer: PWideCharArray; const aLength: Integer): Boolean;
+  var
+    i: Integer;
+  begin
+    result := (aLength >= fMinLength) and (aLength <= fMaxLength);
+
+    if NOT result then
+      EXIT;
+
+    result := FALSE;
+    for i := 0 to Pred(aLength) do
+    begin
+      result := NOT (ANSIChar(Ord(aBuffer[i])) in [' ', ANSIChar(9)]);
+      if result then
+        EXIT;
+    end;
+  end;
+
 
 
 
@@ -956,10 +1281,13 @@ implementation
   begin
     inherited Create(aDictionary, aID, aName, FALSE, aDialects);
 
-    fCharSet  := aChars;
-    fUnicode  := aUnicodeAllowed;
+    fCharSet        := aChars;
+    fRequiredChars  := aRequiredChars;
+    fUnicode        := aUnicodeAllowed;
 
     SetLength := CountValidChars;
+
+    PrepareCharSet(fRequiredChars);
   end;
 
 
@@ -983,6 +1311,28 @@ implementation
       else
         {uaNowhere} result := FALSE;
       end;
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TQualifiedCharSetToken.IsComplete(const aBuffer: PWideCharArray;
+                                             const aLength: Integer): Boolean;
+  var
+    i: Integer;
+    c: ANSIChar;
+  begin
+    result := (fRequiredChars = []);
+
+    if result then
+      EXIT;
+
+    for i := 0 to Pred(aLength) do
+    begin
+      c := ANSIChar(Ord(aBuffer[i]));
+      result := (c in fRequiredChars);
+      if result then
+        EXIT;
     end;
   end;
 
@@ -1061,6 +1411,7 @@ implementation
   function TDelimitedCharSetToken.IsCompatible(const aBuffer: PWideCharArray;
                                                const aLength: Integer): Boolean;
   begin
+    result := TRUE;
   end;
 
 
@@ -1075,7 +1426,6 @@ implementation
                                            const aCharSets: TArrayOfANSICharSet;
                                            const aRequiredSequences: Integer;
                                            const aDialects: TDialects);
-
     procedure AddInitialChars;
     var
       c: ANSIChar;
@@ -1085,6 +1435,8 @@ implementation
           AddInitialChar(WideChar(c));
     end;
 
+  var
+    i: Integer;
   begin
     inherited Create(aDictionary, aID, aName, FALSE, aDialects);
 
@@ -1092,6 +1444,23 @@ implementation
     fRequired := aRequiredSequences;
 
     AddInitialChars;
+
+    for i := 0 to Pred(System.Length(fCharSets)) do
+      PrepareCharSet(fCharSets[i]);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TCharSetSequenceToken.Create(const aDictionary: TTokenDictionary;
+                                           const aID: Integer;
+                                           const aName: String;
+                                           const aCharSets: TArrayOfANSICharSet;
+                                           const aValidEndSequences: TIntegerSet;
+                                           const aDialects: TDialects);
+  begin
+    Create(aDictionary, aID, aName, aCharSets, 0, aDialects);
+
+    fValidEndSequences := aValidEndSequences;
   end;
 
 
@@ -1101,10 +1470,15 @@ implementation
   var
     c: ANSIChar;
   begin
-    c := ANSIChar(Ord(aBuffer[Pred(aLength)]));
-
     if (aLength = 2) then
+    begin
+      c := ANSIChar(Ord(aBuffer[0]));
       fCurrSeq := 0;
+      while (fCurrSeq < High(fCharSets)) and (c in fCharSets[Succ(fCurrSeq)]) do
+        Inc(fCurrSeq);
+    end;
+
+    c := ANSIChar(Ord(aBuffer[Pred(aLength)]));
 
     result := c in fCharSets[fCurrSeq];
     if result then
@@ -1127,12 +1501,35 @@ implementation
   function TCharSetSequenceToken.IsComplete(const aBuffer: PWideCharArray;
                                             const aLength: Integer): Boolean;
   var
+    i: Integer;
     c: ANSIChar;
   begin
-    c := ANSIChar(Ord(aBuffer[Pred(aLength)]));
+    result    := FALSE;
+    fCurrSeq  := 0;
 
-    result := (fRequired = 0) or
-              ((fCurrSeq = fRequired) and (c in fCharSets[fCurrSeq]));
+    for i := 0 to Pred(aLength) do
+    begin
+      c := ANSIChar(Ord(aBuffer[i]));
+
+      if (c in fCharSets[fCurrSeq]) then
+        while (fCurrSeq < High(fCharSets)) and (c in fCharSets[Succ(fCurrSeq)]) do
+          Inc(fCurrSeq)
+      else if (fCurrSeq < High(fCharSets))
+       and (c in fCharSets[Succ(fCurrSeq)]) then
+        repeat
+          Inc(fCurrSeq);
+        until (fCurrSeq = High(fCharSets)) or NOT (c in fCharSets[Succ(fCurrSeq)])
+      else
+        EXIT;
+    end;
+
+    if fValidEndSequences = [] then
+    begin
+      result := (fRequired = 0) or
+                ((fCurrSeq = fRequired) and (c in fCharSets[fCurrSeq]))
+    end
+    else
+      result := fCurrSeq in fValidEndSequences;
   end;
 
 
@@ -1226,19 +1623,31 @@ implementation
                                       const aLength: Integer): Boolean;
   var
     i: Integer;
+    c: WideChar;
+    sc: WideChar;
   begin
     result := (aLength >= Length);
 
-    if result then
+    if NOT result then
+      EXIT;
+
+    for i := SuffixLength downto 1 do
     begin
-      for i := SuffixLength downto 1 do
-      begin
-        result := fSuffix[i] = aBuffer^[aLength - (SuffixLength - i) - 1];
-        if NOT result then
-          EXIT;
-      end;
-    end
+try   c   := aBuffer^[aLength - (SuffixLength - i) - 1];
+      sc  := fSuffix[i];
+except
+  on e: Exception do
+    raise;
+end;
+      result := (c = sc);
+      if NOT result then
+        EXIT;
+    end;
   end;
+
+
+
+
 
 
 
@@ -1291,4 +1700,7 @@ implementation
 
 
 
+
 end.
+
+
