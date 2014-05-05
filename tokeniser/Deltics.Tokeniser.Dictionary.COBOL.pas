@@ -45,13 +45,14 @@ interface
 
   uses
     Deltics.Tokeniser.Consts,
-    Deltics.Tokeniser.Dictionary;
+    Deltics.Tokeniser.Dictionary,
+    Deltics.Tokeniser.Dictionary.SQL;
 
 
   var
     COBOLLanguage: TTokenDictionary = NIL;
     EXECInterfaces: TTokenDictionary = NIL;
-    EmbeddedSQL: TTokenDictionary = NIL;
+    COBOLEmbeddedSQL: TTokenDictionary = NIL;
 
 
   const
@@ -77,7 +78,6 @@ interface
     cblCircumflex         = tkCircumflex;
 
     // Symbolic Constants for Token IDs - these may be used in constant expressions
-//    cblSymbol             = 100;
     cblEOL                = 100;
     cblWhitespace         = 1000;
 
@@ -238,28 +238,18 @@ interface
     cblOpOr               = 809;
 
 
-    execSQL               = 200;
+    cblEXECSQL            = 200;
 
-    sqlString                     = 500;
+    // COBOL SQL extensions
 
-    sqlIdentifier                 = 600;
-    sqlHostVariable               = 601;
-    sqlHostVariableWithIndicator  = 602;
+    sqlEndExec                    = 700;
+    sqlExec                       = 701;
+    sqlInclude                    = 702;
+    sqlHostVariable               = 703;
+    sqlHostVariableWithIndicator  = 704;
+    sqlParagraph                  = 705;
 
-    sqlBegin              = 202;
-    sqlCursor             = 204;
-    sqlDeclare            = 206;
-    sqlDelete             = 209;
-    sqlEndExec            = 201;
-    sqlExec               = 200;
-    sqlInclude            = 208;
-    sqlInsert             = 207;
-    sqlJoin               = 210;
-    sqlPrepare            = 205;
-    sqlSection            = 207;
-    sqlSelect             = 209;
-    sqlUpdate             = 208;
-
+    sqlString                     = Deltics.Tokeniser.Dictionary.SQL.sqlString;
 
     cdCOBOL2002 = 202;
 
@@ -270,6 +260,7 @@ implementation
   uses
     Deltics.Tokeniser.Tokens;
 
+
   type
     TCOBOLLanguage = class(TTokenDictionary)
       procedure Initialise; override;
@@ -279,7 +270,7 @@ implementation
       procedure Initialise; override;
     end;
 
-    TEmbeddedSQL = class(TTokenDictionary)
+    TCOBOLEmbeddedSQL = class(TSQLDictionary)
       procedure Initialise; override;
     end;
 
@@ -422,7 +413,6 @@ implementation
     AddString(cblExec,    'exec');
     AddString(cblEndExec, 'end-exec');
 
-
     TokenType := ttLiteral;
     AddDelimited(cblString,               'String',           '''',   '''');
     AddDelimited(cblString,               'String',           '"',    '"');
@@ -470,8 +460,6 @@ implementation
                     'E', 'S', 'R', 'D',
                     ')'];
     AddCharSet(cblPictureString, 'Picture', charSets, [0,1,4,5]);
-//    AddMutator(cblPIC, TPictureStringValidator);
-
 
     TokenType := ttIdentifier;
     AddQualifiedCharSet(cblIdentifier,      'identifier',       ['0'..'9', 'a'..'z'], ['a'..'z', '0'..'9', '-', '_'], uaNowhere);
@@ -521,25 +509,19 @@ implementation
     AddString(cblEOL, '[CRLF]',  #13#10);
 
     TokenType := ttLiteral;
-    AddString(cblEXEC,      'exec');
-    AddDelimited(execSQL,   'SQL', 'sql', 'end-exec');
-    SetSubDictionary(execSQL, EmbeddedSQL, TRUE);
+    AddString(cblEXEC,        'exec');
+    AddDelimited(cblEXECSQL,  'SQL', 'sql', 'end-exec');
+    SetSubDictionary(cblEXECSQL, COBOLEmbeddedSQL);
   end;
 
 
 
 { TEmbeddedSQL }
 
-  procedure TEmbeddedSQL.Initialise;
+  procedure TCOBOLEmbeddedSQL.Initialise;
   begin
-    SetCaseSensitivity(FALSE);
-    SetName('Embedded SQL');
-
-    TokenType := ttWhitespace;
-    AddCharSet(cblWhitespace, '[whitespace]', [' ', #9]);
-    AddString(cblEOL, '[CR]',    #13);
-    AddString(cblEOL, '[LF]',    #10);
-    AddString(cblEOL, '[CRLF]',  #13#10);
+    inherited;
+    SetName('COBOL Embedded SQL');
 
     TokenType := ttComment;
     AddRange(cblLineNo,        'Line No', 1, 6);
@@ -547,38 +529,28 @@ implementation
     AddLineEnd(cblLineComment, 'Line Comment', '*>',  [cdCOBOL2002]);
     AddString(cblFormFeed,     'Form Feed',               '/', 7);
     AddLineEnd(cblFormFeed,    'Form Feed with Comment',  '/', 7);
+    AddRange(sqlParagraph,     'Paragraph', 8, 72);
 
     TokenType := ttIdentifier;
-    AddQualifiedCharSet(sqlHostVariable,               'host variable',             [':'], ['0'..'9', 'a'..'z', '-']);
-    AddQualifiedCharSet(sqlHostVariableWithIndicator,  'host variable : indicator', [':'], ['0'..'9', 'a'..'z', '-', ':']);
-    AddCharSet(sqlIdentifier, 'identifier', ['a'..'z', '0'..'9',  '_']);
-
-    TokenType := ttLiteral;
-    AddDelimited(sqlString,   'string', '''', '''');
+    AddQualifiedCharSet(sqlHostVariable,               'host variable',             [':'], ['0'..'9', 'a'..'z', '-', '.']);
+    AddQualifiedCharSet(sqlHostVariableWithIndicator,  'host variable : indicator', [':'], ['0'..'9', 'a'..'z', '-', '.', ':']);
 
     TokenType := ttReservedWord;
-    AddString(sqlExec,     'exec');
+    AddString(cblEXECSQL,  'sql');
     AddString(sqlEndExec,  'end-exec');
-    AddString(sqlBegin,    'begin');
-    AddString(sqlDeclare,  'declare');
-    AddString(sqlSection,  'section');
     AddString(sqlInclude,  'include');
-    AddString(sqlSelect,   'select');
-    AddString(sqlInsert,   'insert');
-    AddString(sqlUpdate,   'update');
-    AddString(sqlDelete,   'delete');
   end;
 
 
 
 
 initialization
-  EmbeddedSQL     := TEmbeddedSQL.Create;
-  EXECInterfaces  := TEXECInterfaces.Create;
-  COBOLLanguage   := TCOBOLLanguage.Create;
+  COBOLEmbeddedSQL  := TCOBOLEmbeddedSQL.Create;
+  EXECInterfaces    := TEXECInterfaces.Create;
+  COBOLLanguage     := TCOBOLLanguage.Create;
 
 finalization
   COBOLLanguage.Free;
   EXECInterfaces.Free;
-  EmbeddedSQL.Free;
+  COBOLEmbeddedSQL.Free;
 end.
