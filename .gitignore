@@ -19,3 +19,4 @@ Thumbs.db
 bonjour.*.res
 rtl.*.res
 selftest.*.res
+/+tests/tokeniser/projects/*.res
