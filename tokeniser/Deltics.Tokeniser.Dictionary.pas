@@ -201,6 +201,7 @@ type
                         const aDialects: TDialects = []); overload;
     procedure SetCaseSensitivity(const aIsSensitive: Boolean);
     procedure SetCompoundable(const aIDs: array of TTokenID);
+    procedure SetInnerDictionary(const aID: TTokenID; const aDictionary: TTokenDictionary; const aIsSubstitution: Boolean = FALSE);
     procedure SetSubDictionary(const aID: TTokenID; const aDictionary: TTokenDictionary; const aIsSubstitution: Boolean = FALSE);
   public
     constructor Create;
@@ -229,6 +230,7 @@ type
     fLength: Integer;
     fMultiLine: Boolean;
     fName: String;
+    fInnerDictionary: Boolean;
     fSubDictionary: TTokenDictionary;
     fSubDictionarySubstitution: Boolean;
     fTokenType: TTokenType;
@@ -242,7 +244,7 @@ type
                        const aDialects: TDialects);
     function get_InitialChars: WideCharArray; virtual; abstract;
     procedure PrepareCharSet(var aCharSet: TANSICharSet);
-    procedure SetSubDictionary(const aDictionary: TTokenDictionary; const aIsSubstitution: Boolean);
+    procedure SetSubDictionary(const aDictionary: TTokenDictionary; const aIsInner: Boolean; const aIsSubstitution: Boolean);
     property InitialChars: WideCharArray read get_InitialChars;
     property SetIsCompoundable: Boolean write fIsCompoundable;
     property SetLength: Integer write fLength;
@@ -255,6 +257,7 @@ type
     property Dialects: TDialects read fDialects;
     property Dictionary: TTokenDictionary read fDictionary;
     property ID: TTokenID read fID;
+    property InnerDictionary: Boolean read fInnerDictionary;
     property IsCompoundable: Boolean read fIsCompoundable;
     property Length: Integer read fLength;
     property MultiLine: Boolean read fMultiLine;
@@ -730,8 +733,10 @@ implementation
     def: TTokenDefinition;
     prefixed: TTokenDefinitionArray;
     prefixedCount: Integer;
+    needMorePrefix: Boolean;
   begin
-    prefixedCount := 0;
+    prefixedCount   := 0;
+    needMorePrefix  := FALSE;
 
     SetLength(prefixed, aList.Count);
 
@@ -741,8 +746,9 @@ implementation
 
       if def.IsCompatible(aBuffer, aLength) then
       begin
-        if def.ClassID in [dcPrefixed, dcDelimited] then
+        if NOT needMorePrefix and (def.ClassID in [dcPrefixed, dcDelimited]) then
         begin
+          needMorePrefix := needMorePrefix or (TPrefixedToken(def).PrefixLength > aLength);
           prefixed[prefixedCount] := def;
           Inc(prefixedCount);
         end;
@@ -751,7 +757,7 @@ implementation
         aList.Delete(i);
     end;
 
-    if prefixedCount = 0 then
+    if (prefixedCount = 0) or needMorePrefix then
       EXIT;
 
     SetLength(prefixed, prefixedCount);
@@ -977,7 +983,7 @@ implementation
     result := NIL;
 
     c := ord(aInitialChar);
-    if (aStartPos > 0) and (c >= 32) and (c <= 127) then
+    if (aStartPos in [1..80]) and (c >= 32) and (c <= 127) then
       result := TTokenDefinitions(fColumnDefinitions[aStartPos][c]);
 
     if NOT Assigned(result) then
@@ -1005,6 +1011,21 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenDictionary.SetInnerDictionary(const aID: TTokenID;
+                                                const aDictionary: TTokenDictionary;
+                                                const aIsSubstitution: Boolean);
+  var
+    i: Integer;
+  begin
+    for i := 0 to Pred(ItemCount) do
+      if (Items[i].ID = aID) then
+      begin
+        Items[i].SetSubDictionary(aDictionary, TRUE, aIsSubstitution);
+      end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenDictionary.SetSubDictionary(const aID: TTokenID;
                                               const aDictionary: TTokenDictionary;
                                               const aIsSubstitution: Boolean);
@@ -1014,7 +1035,7 @@ implementation
     for i := 0 to Pred(ItemCount) do
       if (Items[i].ID = aID) then
       begin
-        Items[i].SetSubDictionary(aDictionary, aIsSubstitution);
+        Items[i].SetSubDictionary(aDictionary, FALSE, aIsSubstitution);
       end;
   end;
 
@@ -1085,8 +1106,10 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenDefinition.SetSubDictionary(const aDictionary: TTokenDictionary;
+                                              const aIsInner: Boolean;
                                               const aIsSubstitution: Boolean);
   begin
+    fInnerDictionary            := aIsInner;
     fSubDictionary              := aDictionary;
     fSubDictionarySubstitution  := aIsSubstitution;
   end;
@@ -1108,7 +1131,8 @@ implementation
 
 
 
-{ TRangeToken }
+
+{ TRangeToken }
 
   constructor TRangeToken.Create(const aDictionary: TTokenDictionary;
                                  const aID: Integer;
