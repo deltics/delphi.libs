@@ -73,7 +73,6 @@ interface
       fText: UnicodeString;
       fTokens: TTokenList;
 
-      procedure DetermineLineSpan;
 //      function get_Line(const aIndex: Integer): UnicodeString;
       function get_Lines: Classes.TStringList;
       function get_Dictionary: TTokenDictionary;
@@ -83,19 +82,23 @@ interface
                          const aString: UnicodeString;
                          const aStartPos: Integer;
                          const aLength: Integer;
-                         const aLineNo: Integer); overload;
+                         const aLineFrom: Integer;
+                         const aLineTo: Integer); overload;
 
       constructor Create(const aDefinition: TTokenDefinition;
                          const aChar: WideChar;
                          const aPos: Integer;
-                         const aLineNo: Integer); overload;
+                         const aLineFrom: Integer;
+                         const aLineTo: Integer); overload;
 
       constructor CreateUnknown(const aString: UnicodeString;
                                 const aStartPos: Integer;
                                 const aLength: Integer;
-                                const aLineNo: Integer);
+                                const aLineFrom: Integer;
+                                const aLineTo: Integer); overload;
 
       procedure Add(const aToken: IToken);
+      procedure SetLineTo(const aLineNo: Integer);
       procedure Append(const aText: String; const aLength: Integer);
       property Lines: Classes.TStringList read get_Lines;
 
@@ -192,22 +195,18 @@ implementation
                             const aString: UnicodeString;
                             const aStartPos: Integer;
                             const aLength: Integer;
-                            const aLineNo: Integer);
+                            const aLineFrom: Integer;
+                            const aLineTo: Integer);
   begin
     inherited Create;
 
-    fSource := TTokenSource.Create(aLineNo, aStartPos);
+    fSource := TTokenSource.Create(aLineFrom, aStartPos);
+    TTokenSourceHelper(fSource).SetLineTo(aLineTo);
 
     fLength     := aLength;
     fDefinition := aDefinition;
 
     fText := aString;
-
-    if (aDefinition is TDelimitedToken) then
-    begin
-      if aDefinition.MultiLine then
-        DetermineLineSpan;
-    end;
   end;
 
 
@@ -215,9 +214,10 @@ implementation
   constructor TToken.Create(const aDefinition: TTokenDefinition;
                             const aChar: WideChar;
                             const aPos: Integer;
-                            const aLineNo: Integer);
+                            const aLineFrom: Integer;
+                            const aLineTo: Integer);
   begin
-    Create(aDefinition, UnicodeString(aChar), 1, aPos, aLineNo);
+    Create(aDefinition, UnicodeString(aChar), 1, aPos, aLineFrom, aLineTo);
   end;
 
 
@@ -225,11 +225,10 @@ implementation
   constructor TToken.CreateUnknown(const aString: UnicodeString;
                                    const aStartPos: Integer;
                                    const aLength: Integer;
-                                   const aLineNo: Integer);
+                                   const aLineFrom: Integer;
+                                   const aLineTo: Integer);
   begin
-    Create(NIL, aString, aStartPos, aLength, aLineNo);
-
-    DetermineLineSpan;
+    Create(NIL, aString, aStartPos, aLength, aLineFrom, aLineTo);
   end;
 
 
@@ -308,27 +307,6 @@ implementation
   end;
 *)
 
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TToken.DetermineLineSpan;
-  var
-    i: Integer;
-    ch: PWideChar;
-  begin
-    ch := PWideChar(Text);
-    for i := 1 to System.Length(Text) do
-    begin
-      if (ch^ = #10) then
-        Inc(fLineSpan);
-      Inc(ch);
-    end;
-
-    TTokenSourceHelper(Source).SetLineSpan(fLineSpan);
-
-//    if (LineSpan > 0) then
-//      Lines;
-  end;
 
 
 (*
@@ -418,6 +396,12 @@ implementation
   function TToken.get_Tokens: ITokenList;
   begin
     result := fTokens;
+  end;
+
+
+  procedure TToken.SetLineTo(const aLineNo: Integer);
+  begin
+    TTokenSourceHelper(fSource).SetLineTo(aLineNo);
   end;
 
 
