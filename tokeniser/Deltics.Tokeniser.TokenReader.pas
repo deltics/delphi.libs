@@ -299,6 +299,7 @@ const
     TTokenHelper = class(TToken);
 
 
+
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TTokenReader.Create(const aStream: TStream);
   begin
@@ -366,6 +367,7 @@ const
      yet to be read (FALSE).
   }
   var
+    aDelimited: TDelimitedToken absolute aDefinition;
     token: TTokenHelper absolute result;
     sub: TTokenReader;
     strm: TReadMemoryStream;
@@ -384,7 +386,8 @@ const
       result := TTokenHelper.CreateUnknown(WideString(fTokenBuffer^),
                                            fStartPos,
                                            fTokenLength,
-                                           fStartLine);
+                                           fStartLine,
+                                           fLineNo);
       EXIT;
     end;
 
@@ -400,19 +403,31 @@ const
       begin
         // TODO: Figure out how token substitution can/should work...
 
-        result := TTokenHelper.Create(aDefinition, aText, fStartPos, fTokenLength, fStartLine);
+        result := TTokenHelper.Create(aDefinition, aText, fStartPos, fTokenLength, fStartLine, fLineNo);
       end
       else
-        result := TTokenHelper.Create(aDefinition, aText, fStartPos, fTokenLength, fStartLine);
+        result := TTokenHelper.Create(aDefinition, aText, fStartPos, fTokenLength, fStartLine, fLineNo);
 
-      strm  := TReadMemoryStream.Create(fTokenBuffer, fTokenLength * 2);
-      sub   := TTokenReader.Create(strm, aDefinition.SubDictionary);
+      // If the subdictionary is an 'Inner' dictionary then we create a memory stream to read
+      //  only the part of the token that is WITHIN the identified delimiters, otherwise
+      //  the subdictionary will also take account of the delimiters (which is sometimes
+      //  desirable or even necessary!)
+
+      if aDefinition.InnerDictionary then
+        strm  := TReadMemoryStream.Create(@fTokenBuffer[Length(aDelimited.Prefix)],
+                                           (fTokenLength - (Length(aDelimited.Prefix) + Length(aDelimited.Suffix)) + 1) * 2)
+      else
+        strm  := TReadMemoryStream.Create(fTokenBuffer, fTokenLength * 2);
+
+      sub := TTokenReader.Create(strm, aDefinition.SubDictionary);
       try
-        sub.fLineNo   := 1;
+        sub.fLineNo   := fStartLine;
         sub.fCharPos  := fStartPos;
 
         while NOT sub.EOF do
           token.Add(sub.Next);
+
+        TTokenHelper(result).SetLineTo(sub.LineNo);
 
       finally
         sub.Free;
@@ -420,7 +435,7 @@ const
       end;
     end
     else
-      result := TTokenHelper.Create(aDefinition, aText, fStartPos, fTokenLength, fStartLine);
+      result := TTokenHelper.Create(aDefinition, aText, fStartPos, fTokenLength, fStartLine, fLineNo);
   end ;
 
 
@@ -554,9 +569,15 @@ const
   begin
     result := NIL;
 
-    repeat
-      def := NextTokenDefinition;
-    until EOF or NOT Assigned(def) or NOT ConsumeWhitespace or (def.TokenType <> ttWhitespace);
+    if Assigned(fNextDefinition) then
+    begin
+      def := fNextDefinition;
+      fNextDefinition := NIL;
+    end
+    else
+      repeat
+        def := NextTokenDefinition;
+      until EOF or NOT Assigned(def) or NOT ConsumeWhitespace or (def.TokenType <> ttWhitespace);
 
     if Assigned(def) then
     begin
