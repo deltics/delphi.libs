@@ -231,8 +231,8 @@ interface
       constructor CreateUTF8(const aString: UTF8String);
       procedure CheckEncoding(const aEncoding: TCharEncoding);
       function DetectEncoding(const aDefault: TCharEncoding): TCharEncoding;
-      procedure LoadFromFile(const aFileName: String;
-                             const aDefaultEncoding: TCharEncoding = ceUTF8);
+      procedure LoadFromFile(const aFileName: String); overload;
+      procedure LoadFromFile(const aFileName: String; const aDefaultEncoding: TCharEncoding); overload;
       function ReadChar(var aChar: ANSIChar): Boolean; overload;
       function ReadChar(var aChar: WideChar): Boolean; overload;
       function ReadLine: String;
@@ -931,6 +931,13 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TUnicodeStream.LoadFromFile(const aFileName: String);
+  begin
+    LoadFromFile(aFilename, fEncoding);
+  end;
+
+
   procedure TUnicodeStream.LoadFromFile(const aFileName: String;
                                         const aDefaultEncoding: TCharEncoding);
   begin
