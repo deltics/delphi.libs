@@ -1908,8 +1908,11 @@ implementation
   begin
     qc := aString[1];
     if (aString[Length(aString)] <> qc)
-     or ((qc <> '''') and (qc <> '"')) then
-      raise Exception.Create(aString + ' is not an enquoted string');
+     or ((qc <> '''') and (qc <> '"') and (qc <> '`')) then
+    begin
+      result := aString;
+      EXIT;
+    end;
 
     s := Copy(aString, 2, Length(aString) - 2);
     SetLength(result, Length(s));
@@ -2026,10 +2029,6 @@ implementation
     result := aString;
   end;
 {$endif}
-
-
-
-
 
 
 
