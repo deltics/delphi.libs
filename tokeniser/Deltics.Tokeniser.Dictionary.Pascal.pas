@@ -56,6 +56,7 @@ interface
                      );
 
   var
+    DFMContent: TTokenDictionary = NIL;
     PascalLanguage: TTokenDictionary = NIL;
     PascalCompilerDirectives: TTokenDictionary = NIL;
 
@@ -157,6 +158,8 @@ interface
     tk_nodefault        = 271;
     tk_platform         = 272;
     tk_delayed          = 273;
+    tk_contains         = 274;
+    tk_requires         = 275;
 
     tk_final            = 280;
     tk_helper           = 281;
@@ -302,10 +305,38 @@ interface
 
 
 
+  const
+    dfmObject           = 200;
+    dfmEnd              = 201;
+    dfmItem             = 202;
+    dfmCollection       = 203;
+    dfmString           = 204;
+    dfmIdentifier       = 205;
+    dfmBeginStringList  = 206;
+    dfmEndStringList    = 207;
+    dfmFalse            = 208;
+    dfmTrue             = 209;
+    dfmBeginSet         = 210;
+    dfmEndSet           = 211;
+    dfmInteger          = 212;
+    dfmFloat            = 213;
+    dfmTStoredProc      = 214;
+    dfmStoredProcName   = 215;
+    dfmSQLStrings       = 216;
+
+    dfmConcat           = tkPlus;
+
+
+
 
 implementation
 
   type
+    TDFMContent = class(TTokenDictionary)
+      procedure Initialise; override;
+    end;
+
+
     TPascalLanguage = class(TTokenDictionary)
       procedure Initialise; override;
     end;
@@ -314,6 +345,53 @@ implementation
       procedure Initialise; override;
     end;
 
+
+
+  procedure TDFMContent.Initialise;
+  begin
+    SetCaseSensitivity(FALSE);
+    SetName('DFM Content');
+
+    TokenType := ttWhitespace;
+    AddCharSet(tk_whitespace, '[whitespace]', [' ', #9]);
+    AddString(tkEOL, '[CR]',    #13);
+    AddString(tkEOL, '[LF]',    #10);
+    AddString(tkEOL, '[CRLF]',  #13#10);
+
+    TokenType := ttReservedWord;
+    AddString(dfmObject,          'object');
+    AddString(dfmEnd,             'end');
+    AddString(dfmItem,            'item');
+    AddString(dfmFalse,           'false');
+    AddString(dfmTrue,            'true');
+    AddString(dfmTStoredProc,     'tstoredproc');
+    AddString(dfmStoredProcName,  'storedprocname');
+    AddString(dfmSQLStrings,      'SQL.Strings = (');
+    AddString(dfmSQLStrings,      'ModifySQL.Strings = (');
+    AddString(dfmSQLStrings,      'InsertSQL.Strings = (');
+    AddString(dfmSQLStrings,      'DeleteSQL.Strings = (');
+
+    TokenType := ttLiteral;
+    AddDelimited(dfmString,         'String',   '''', '''');
+    AddQualifiedCharSet(dfmInteger, 'Integer',  ['-', '+', '0'..'9'], ['0'..'9']);
+    AddQualifiedCharSet(dfmFloat,   'Float',    ['-', '+', '0'..'9'], ['0'..'9', '.', '-', '+', 'e']);
+
+    TokenType := ttIdentifier;
+    AddQualifiedCharSet(dfmIdentifier, 'identifier', ['_', 'a'..'z'], ['a'..'z', '0'..'9', '_', '.'], uaAnywhere);
+
+    TokenType := ttOperator;
+    AddString(tkEquals,         '=');
+
+    TokenType := ttSymbol;
+    AddString(dfmBeginStringList, '(');
+    AddString(dfmEndStringList,   ')');
+    AddString(dfmBeginSet,        '[');
+    AddString(dfmEndSet,          ']');
+    AddASCII(tkColon);
+    AddASCII(tkPlus);
+
+    SetCompoundable([dfmString]);
+  end;
 
 
   procedure TPascalLanguage.Initialise;
@@ -360,6 +438,7 @@ implementation
     AddString(tk_class,           'class');
     AddString(tk_const,           'const');
     AddString(tk_constructor,     'constructor');
+    AddString(tk_contains,        'contains');
     AddString(tk_default,         'default');
     AddString(tk_delayed,         'delayed');
     AddString(tk_deprecated,      'deprecated');
@@ -407,6 +486,7 @@ implementation
     AddString(tk_reference,       'reference');
     AddString(tk_register,        'register');
     AddString(tk_reintroduce,     'reintroduce');
+    AddString(tk_requires,        'requires');
     AddString(tk_resident,        'resident');
     AddString(tk_resourcestring,  'resourcestring');
     AddString(tk_safecall,        'safecall');
@@ -560,12 +640,17 @@ implementation
 
 
 
+{ TDFMContent }
+
+
 initialization
+  DFMContent                := TDFMContent.Create;
   PascalLanguage            := TPascalLanguage.Create;
   PascalCompilerDirectives  := TPascalCompilerDirectives.Create;
 
 
 finalization
+  DFMContent.Free;
   PascalLanguage.Free;
   PascalCompilerDirectives.Free;
 end.
