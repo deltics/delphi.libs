@@ -202,8 +202,8 @@ type
                         const aDialects: TDialects = []); overload;
     procedure SetCaseSensitivity(const aIsSensitive: Boolean);
     procedure SetCompoundable(const aIDs: array of TTokenID);
-    procedure SetInnerDictionary(const aID: TTokenID; const aDictionary: TTokenDictionary; const aIsSubstitution: Boolean = FALSE);
-    procedure SetSubDictionary(const aID: TTokenID; const aDictionary: TTokenDictionary; const aIsSubstitution: Boolean = FALSE);
+    procedure SetInnerDictionary(const aID: TTokenID; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions; const aIsSubstitution: Boolean = FALSE);
+    procedure SetSubDictionary(const aID: TTokenID; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]; const aIsSubstitution: Boolean = FALSE);
   public
     constructor Create;
     destructor Destroy; override;
@@ -233,6 +233,7 @@ type
     fName: String;
     fInnerDictionary: Boolean;
     fSubDictionary: TTokenDictionary;
+    fSubDictionaryOptions: TTokeniserOptions;
     fSubDictionarySubstitution: Boolean;
     fTokenType: TTokenType;
     fClassID: TDefinitionClassID;
@@ -245,7 +246,7 @@ type
                        const aDialects: TDialects);
     function get_InitialChars: WideCharArray; virtual; abstract;
     procedure PrepareCharSet(var aCharSet: TANSICharSet);
-    procedure SetSubDictionary(const aDictionary: TTokenDictionary; const aIsInner: Boolean; const aIsSubstitution: Boolean);
+    procedure SetSubDictionary(const aDictionary: TTokenDictionary; const aIsInner: Boolean; const aOptions: TTokeniserOptions; const aIsSubstitution: Boolean);
     property InitialChars: WideCharArray read get_InitialChars;
     property SetIsCompoundable: Boolean write fIsCompoundable;
     property SetLength: Integer write fLength;
@@ -265,6 +266,7 @@ type
     property Name: String read fName;
     property StartPos: Integer read fStartPos;
     property SubDictionary: TTokenDictionary read fSubDictionary;
+    property SubDictionaryOptions: TTokeniserOptions read fSubDictionaryOptions;
     property SubDictionarySubstitution: Boolean read fSubDictionarySubstitution;
     property TokenType: TTokenType read fTokenType;
   end;
@@ -1012,6 +1014,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenDictionary.SetInnerDictionary(const aID: TTokenID;
                                                 const aDictionary: TTokenDictionary;
+                                                const aOptions: TTokeniserOptions;
                                                 const aIsSubstitution: Boolean);
   var
     i: Integer;
@@ -1019,7 +1022,7 @@ implementation
     for i := 0 to Pred(ItemCount) do
       if (Items[i].ID = aID) then
       begin
-        Items[i].SetSubDictionary(aDictionary, TRUE, aIsSubstitution);
+        Items[i].SetSubDictionary(aDictionary, TRUE, aOptions, aIsSubstitution);
       end;
   end;
 
@@ -1027,15 +1030,14 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenDictionary.SetSubDictionary(const aID: TTokenID;
                                               const aDictionary: TTokenDictionary;
+                                              const aOptions: TTokeniserOptions;
                                               const aIsSubstitution: Boolean);
   var
     i: Integer;
   begin
     for i := 0 to Pred(ItemCount) do
       if (Items[i].ID = aID) then
-      begin
-        Items[i].SetSubDictionary(aDictionary, FALSE, aIsSubstitution);
-      end;
+        Items[i].SetSubDictionary(aDictionary, FALSE, aOptions, aIsSubstitution);
   end;
 
 
@@ -1106,10 +1108,12 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenDefinition.SetSubDictionary(const aDictionary: TTokenDictionary;
                                               const aIsInner: Boolean;
+                                              const aOptions: TTokeniserOptions;
                                               const aIsSubstitution: Boolean);
   begin
     fInnerDictionary            := aIsInner;
     fSubDictionary              := aDictionary;
+    fSubDictionaryOptions       := aOptions;
     fSubDictionarySubstitution  := aIsSubstitution;
   end;
 

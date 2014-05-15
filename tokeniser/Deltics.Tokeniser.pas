@@ -94,14 +94,6 @@ interface
     ITokenList = interface;
     ITokenStream = interface;
 
-    TTokeniserOption = (
-                          toCaseSensitive,
-                          toConsumeWhitespace,
-                          toNormaliseKeywords,
-                          toNormaliseCase
-                         );
-    TTokeniserOptions = set of TTokeniserOption;
-
 
     TTokenSource = class
     private

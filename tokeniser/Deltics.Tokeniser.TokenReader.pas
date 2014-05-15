@@ -46,6 +46,7 @@ interface
   uses
     Classes,
     Contnrs,
+    Types,
     Deltics.Streams,
     Deltics.Strings,
     Deltics.Tokeniser,
@@ -407,7 +408,7 @@ const
       else
         strm  := TReadMemoryStream.Create(fTokenBuffer, fTokenLength * 2);
 
-      sub := TTokenReader.Create(strm, aDefinition.SubDictionary);
+      sub := TTokenReader.Create(strm, aDefinition.SubDictionary, aDefinition.SubDictionaryOptions);
       try
         sub.fLineNo   := fStartLine;
         sub.fCharPos  := fStartPos;

@@ -66,6 +66,16 @@ interface
     TDialects   = set of TDialectID;
 
 
+  type
+    TTokeniserOption = (
+                          toCaseSensitive,
+                          toConsumeWhitespace,
+                          toNormaliseKeywords,
+                          toNormaliseCase
+                         );
+    TTokeniserOptions = set of TTokeniserOption;
+
+
   const
     ttNotSpecified = #0;
     ttWhitespace   = #1;
