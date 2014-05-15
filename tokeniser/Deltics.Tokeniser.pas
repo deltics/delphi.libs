@@ -149,15 +149,20 @@ interface
       function get_Token: IToken;
 
       function CreateList(const aFrom, aTo: IToken; const aInclusive: Boolean = TRUE): ITokenList;
+      function CreateParentheticalList: ITokenList;
       function First: IToken; overload;
       function First(const aID: TTokenID): IToken; overload;
-      function First(const aID: TTokenID; const aText: String): IToken; overload;
+      function First(const aID: TTokenID; const aText: UnicodeString): IToken; overload;
+      function Last: IToken; overload;
       function Locate(const aToken: IToken): Boolean;
       function Next: IToken; overload;
       function Next(const aID: TTokenID): IToken; overload;
-      function Next(const aID: TTokenID; const aText: String): IToken; overload;
+      function Next(const aID: TTokenID; const aText: UnicodeString): IToken; overload;
       function Prev: IToken; overload;
       function Prev(const aID: TTokenID): IToken; overload;
+
+      procedure Restore;
+      function SavePoint: IToken;
 
       function Clone: ITokenCursor;
 
@@ -173,7 +178,9 @@ interface
       function get_Item(const aIndex: Integer): IToken;
       function get_Last: IToken;
 
+      procedure CreateToken(const aText: UnicodeString);
       function IndexOf(const aToken: IToken): Integer;
+      procedure Replace(const aToken: IToken; const aText: String);
       function Slice(const aFrom, aTo: Integer): ITokenList;
 
       property Count: Integer read get_Count;
@@ -195,7 +202,7 @@ interface
     end;
 
 
-    TTokenListFileProc = procedure(const aFilename: String; const aTokenList: ITokenList; const aLines: Integer) of object;
+    TTokenListFileProc = procedure(const aFilename: UnicodeString; const aTokenList: ITokenList; const aLines: Integer) of object;
 
 
     TTokenList = class(TFlexInterfacedObject, ITokenList)
@@ -227,8 +234,11 @@ interface
       function get_Item(const aIndex: Integer): IToken;
       function get_Last: IToken;
     public
+      procedure CreateToken(const aText: UnicodeString);
       function IndexOf(const aToken: IToken): Integer;
+      procedure Replace(const aToken: IToken; const aText: String);
       function Slice(const aFrom, aTo: Integer): ITokenList;
+    public
       property Count: Integer read get_Count;
       property Items[const aIndex: Integer]: IToken read get_Item; default;
     end;
@@ -255,6 +265,7 @@ interface
       fEOFIndex: Integer;
       fIndex: Integer;
       fList: ITokenList;
+      fSavePoints: array of Integer;
       fToken: IToken;
     public
       constructor Create(const aList: ITokenList); overload;
@@ -265,15 +276,19 @@ interface
       function get_Token: IToken;
 
       function CreateList(const aFrom, aTo: IToken; const aInclusive: Boolean): ITokenList;
+      function CreateParentheticalList: ITokenList;
       function First: IToken; overload;
       function First(const aID: TTokenID): IToken; overload;
-      function First(const aID: TTokenID; const aText: String): IToken; overload;
+      function First(const aID: TTokenID; const aText: UnicodeString): IToken; overload;
+      function Last: IToken; overload;
       function Locate(const aToken: IToken): Boolean;
       function Next: IToken; overload;
       function Next(const aID: TTokenID): IToken; overload;
-      function Next(const aID: TTokenID; const aText: String): IToken; overload;
+      function Next(const aID: TTokenID; const aText: UnicodeString): IToken; overload;
       function Prev: IToken; overload;
       function Prev(const aID: TTokenID): IToken; overload;
+      procedure Restore;
+      function SavePoint: IToken;
 
       function Clone: ITokenCursor;
     end;
@@ -288,7 +303,13 @@ implementation
   { deltics: }
     Deltics.SysUtils,
   { deltics.tokeniser: }
-    Deltics.Tokeniser.TokenReader;
+    Deltics.Tokeniser.TokenReader,
+    Deltics.Tokeniser.Tokens;
+
+
+
+  type
+    TTokenHelper = class(TToken);
 
 
   { Concrete stream implementations -------------------------------------------------------------- }
@@ -562,6 +583,16 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenList.CreateToken(const aText: UnicodeString);
+  var
+    token: IToken;
+  begin
+    token := TTokenHelper.Create(NIL, aText, 0, 0, 0, 0);
+    fItems.Add(token);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenList.Clear;
   begin
     fItems.Clear;
@@ -590,6 +621,17 @@ implementation
     idx := fItems.IndexOf(aToken as IUnknown);
     if idx <> -1 then
       fItems.Delete(idx);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenList.Replace(const aToken: IToken; const aText: String);
+  var
+    idx: Integer;
+  begin
+    idx := IndexOf(aToken);
+    if idx <> -1 then
+      fItems[idx] := TTokenHelper.Create(NIL, aText, 0, 0, 0, 0);
   end;
 
 
@@ -839,6 +881,40 @@ implementation
   end;
 
 
+  function TTokenCursor.CreateParentheticalList: ITokenList;
+  var
+    list: TTokenList;
+    nest: Integer;
+  begin
+    result := NIL;
+
+    if (fToken.ID <> tkLeftParenthesis) then
+      raise Exception.Create('Cursor is not positioned on a parenthetical token');
+
+    list := TTokenList.CreateManaged;
+
+    nest := 0;
+    repeat
+      case fToken.ID of
+        tkLeftParenthesis : Inc(nest);
+        tkRightParenthesis: Dec(nest);
+      end;
+
+      list.Add(fToken);
+      if NOT get_EOF then
+        self.Next;
+
+    until (get_EOF) or (nest = 0);
+
+    // Remove parentheticals from the resulting token list
+
+    list.Delete(0);
+    list.Delete(list.Count - 1);
+
+    result := list;
+  end;
+
+
   function TTokenCursor.Clone: ITokenCursor;
   begin
     result := TTokenCursor.Create(fList, fIndex);
@@ -867,7 +943,7 @@ implementation
 
 
   function TTokenCursor.First(const aID: TTokenID;
-                              const aText: String): IToken;
+                              const aText: UnicodeString): IToken;
   begin
     First;
     result := Next(aID, aText);
@@ -882,6 +958,19 @@ implementation
 
   function TTokenCursor.get_Token: IToken;
   begin
+    result := fToken;
+  end;
+
+
+  function TTokenCursor.Last: IToken;
+  begin
+    fIndex := Pred(fEOFIndex);
+
+    if (fIndex > -1) then
+      fToken := fList[fIndex] as IToken
+    else
+      fToken := NIL;
+
     result := fToken;
   end;
 
@@ -931,7 +1020,7 @@ implementation
   end;
 
 
-  function TTokenCursor.Next(const aID: TTokenID; const aText: String): IToken;
+  function TTokenCursor.Next(const aID: TTokenID; const aText: UnicodeString): IToken;
   var
     i: Integer;
   begin
@@ -986,6 +1075,33 @@ implementation
     fIndex := fEOFIndex;
     fToken := NIL;
     result := NIL;
+  end;
+
+
+  procedure TTokenCursor.Restore;
+  var
+    idx: Integer;
+  begin
+    idx := Length(fSavePoints) - 1;
+
+    if (idx = -1) then
+      raise Exception.Create('No savepoint to restore in cursor');
+
+    fIndex := fSavePoints[idx];
+    fToken := fList[fIndex];
+    SetLength(fSavePoints, idx);
+  end;
+
+
+  function TTokenCursor.SavePoint: IToken;
+  var
+    idx: Integer;
+  begin
+    result := fToken;
+
+    idx := Length(fSavePoints);
+    SetLength(fSavePoints, idx + 1);
+    fSavePoints[idx] := fIndex;
   end;
 
 
