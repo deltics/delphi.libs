@@ -45,6 +45,7 @@ interface
 
   uses
     Classes,
+    Contnrs,
     Deltics.Streams,
     Deltics.Strings,
     Deltics.Tokeniser,
@@ -109,14 +110,10 @@ interface
       function ReadToken: IToken;
       function TokenText(const aDefinition: TTokenDefinition): UnicodeString;
 
-      property NextCharReady: Boolean read fNextCharReady;
-
       property CaseSensitive: Boolean read fCaseSensitive;
       property ConsumeWhitespace: Boolean read fConsumeWhitespace;
       property NormaliseCase: Boolean read fNormaliseCase;
       property NormaliseKeywords: Boolean read fNormaliseKeywords;
-
-      constructor Create(const aStream: TStream); overload;
 
     public
       constructor Create(const aStream: TStream;
@@ -298,15 +295,6 @@ const
   type
     TTokenHelper = class(TToken);
 
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TTokenReader.Create(const aStream: TStream);
-  begin
-    Create(NIL, NIL, [toConsumeWhitespace]);
-
-    Stream := aStream;
-  end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
@@ -533,10 +521,6 @@ const
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTokenReader.Next: IToken;
-  var
-    def: TTokenDefinition;
-    part: TTokenDefinition;
-    s: UnicodeString;
   begin
     if Assigned(fNextToken) then
     begin
@@ -667,8 +651,6 @@ const
                               if aDef.IsComplete(fCompareBuffer, fTokenLength) then
                               begin
                                 result := TRUE;
-                                fReplay.Clear;
-                                fNextCharReady := FALSE;
                                 BREAK;
                               end;
 
@@ -714,7 +696,6 @@ const
   var
     i: Integer;
     chr: WideChar;
-    countLines: Boolean;
     def: TTokenDefinition;
   begin
     result        := NIL;
