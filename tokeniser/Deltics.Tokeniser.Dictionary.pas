@@ -55,6 +55,7 @@ interface
   { vcl: }
     Classes,
     Contnrs,
+    Types,
   { deltics: }
     Deltics.Strings,
   { deltics.tokeniser: }
@@ -326,8 +327,6 @@ type
 
 
     TDelimitedCharSetToken = class(TCharSetToken)
-    private
-      fUnicode: Boolean;
     protected
       constructor Create(const aDictionary: TTokenDictionary;
                          const aID: Integer;
@@ -1209,9 +1208,12 @@ implementation
   begin
     inherited Create(aDictionary, aID, aName, FALSE, aDialects);
 
-    SetLength := System.Length(aText);
+    if NOT aDictionary.IsCaseSensitive then
+      fText := WIDE.Lowercase(aText)
+    else
+      fText := aText;
 
-    fText := aText;
+    SetLength := System.Length(fText);
   end;
 
 
@@ -1528,6 +1530,7 @@ implementation
     i: Integer;
     c: ANSIChar;
   begin
+    c         := ANSIChar(0);
     result    := FALSE;
     fCurrSeq  := 0;
 
@@ -1574,8 +1577,12 @@ implementation
   begin
     inherited Create(aDictionary, aID, aName, aMultiLine, aDialects);
 
-    fPrefix       := aPrefix;
-    fPrefixLength := System.Length(aPrefix);
+    if NOT aDictionary.IsCaseSensitive then
+      fPrefix := WIDE.Lowercase(aPrefix)
+    else
+      fPrefix := aPrefix;
+
+    fPrefixLength := System.Length(fPrefix);
   end;
 
 
@@ -1623,6 +1630,11 @@ implementation
                                      const aDialects: TDialects);
   begin
     inherited Create(aDictionary, aID, aName, aPrefix, aMultiLine, aDialects);
+
+    if NOT aDictionary.IsCaseSensitive then
+      fSuffix := WIDE.Lowercase(aSuffix)
+    else
+      fSuffix := aSuffix;
 
     fSuffix       := aSuffix;
     fSuffixLength := System.Length(aSuffix);
