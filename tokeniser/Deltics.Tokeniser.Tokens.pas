@@ -67,7 +67,6 @@ interface
     private
       fLength: Integer;
       fLines: TStringList;
-      fLineSpan: Integer;
       fDefinition: TTokenDefinition;
       fSource: TTokenSource;
       fText: UnicodeString;
