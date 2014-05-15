@@ -323,6 +323,9 @@ interface
     dfmTStoredProc      = 214;
     dfmStoredProcName   = 215;
     dfmSQLStrings       = 216;
+    dfmEscapedQuote     = 217;
+    dfmEscapedTab       = 218;
+
 
     dfmConcat           = tkPlus;
 
@@ -366,10 +369,13 @@ implementation
     AddString(dfmTrue,            'true');
     AddString(dfmTStoredProc,     'tstoredproc');
     AddString(dfmStoredProcName,  'storedprocname');
-    AddString(dfmSQLStrings,      'SQL.Strings = (');
+    AddString(dfmSQLStrings,      'sql.strings = (');
     AddString(dfmSQLStrings,      'ModifySQL.Strings = (');
     AddString(dfmSQLStrings,      'InsertSQL.Strings = (');
     AddString(dfmSQLStrings,      'DeleteSQL.Strings = (');
+    AddString(dfmEscapedQuote,    '#39');
+    AddString(dfmEscapedTab,      '#9');
+
 
     TokenType := ttLiteral;
     AddDelimited(dfmString,         'String',   '''', '''');
