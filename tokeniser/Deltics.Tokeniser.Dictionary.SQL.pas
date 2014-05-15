@@ -15,11 +15,12 @@ interface
 
 
   const
-    ttComment       = #3;
-    ttReservedWord  = #4;
-    ttIdentifier    = #5;
-    ttLiteral       = #6;
-    ttSymbol        = #7;
+    ttComment         = #3;
+    ttReservedWord    = #4;
+    ttIdentifier      = #5;
+    ttLiteral         = #6;
+    ttSymbol          = #7;
+    ttIsolationLevel  = #8;
 
     sqlWhitespace         = 100;
     sqlEOL                = 101;
@@ -54,6 +55,21 @@ interface
     sqlGRANT              = 631;
     sqlCALL               = 632;
     sqlCOMMENT            = 633;
+    sqlWITH               = 634;
+    sqlOLD                = 635;
+    sqlNEW                = 636;
+    sqlFINAL              = 637;
+    sqlTABLE              = 638;
+    sqlAS                 = 639;
+    sqlREPLACE            = 640;
+    sqlIsolation_CS       = 641;
+    sqlIsolation_RR       = 642;
+    sqlIsolation_RS       = 643;
+    sqlIsolation_UR       = 644;
+    sqlNO                 = 645;
+    sqlLOG                = 646;
+    sqlHOLD               = 647;
+    sqlRETURN             = 648;
 
     sqlQuotedIdentifier   = 700;
     sqlIdentifier         = 701;
@@ -86,7 +102,7 @@ implementation
     charSets: TArrayOfANSICharSet;
   begin
     SetCaseSensitivity(FALSE);
-    SetName('COBOL Embedded SQL');
+    SetName('ANSI(?) SQL');
 
     TokenType := ttWhitespace;
     AddCharSet(sqlWhitespace, '[whitespace]', [' ', #9]);
@@ -145,6 +161,23 @@ implementation
     AddString(sqlGRANT,    'grant');
     AddString(sqlCALL,     'call');
     AddString(sqlCOMMENT,  'comment');
+    AddString(sqlWITH,     'with');
+    AddString(sqlOLD,      'old');
+    AddString(sqlNEW,      'new');
+    AddString(sqlFINAL,    'final');
+    AddString(sqlTABLE,    'table');
+    AddString(sqlAS,       'as');
+    AddString(sqlREPLACE,  'replace');
+    AddString(sqlNO,       'no');
+    AddString(sqlLOG,      'log');
+    AddString(sqlHOLD,     'hold');
+    AddString(sqlRETURN,   'return');
+
+    TokenType := ttIsolationLevel;
+    AddString(sqlIsolation_CS,  'cs');
+    AddString(sqlIsolation_RR,  'rr');
+    AddString(sqlIsolation_RS,  'rs');
+    AddString(sqlIsolation_UR,  'ur');
 
     TokenType := ttSymbol;
     AddASCII(sqlComma);
