@@ -186,6 +186,8 @@ interface
       class function Dequote(const aString: UnicodeString): UnicodeString;
       class function Lowercase(const aChar: WideChar): WideChar; overload;
       class function Lowercase(const aString: UnicodeString): UnicodeString; overload;
+      class procedure Remove(var aString: UnicodeString; const aSubString: UnicodeString);
+      class procedure RemoveText(var aString: UnicodeString; const aSubString: UnicodeString);
       class procedure Replace(var aString: UnicodeString; const aOldChar, aNewChar: WideChar); overload;
       class function Uppercase(const aChar: WideChar): WideChar; overload;
       class function Uppercase(const aString: UnicodeString): UnicodeString; overload;
@@ -1904,7 +1906,6 @@ implementation
     i, j: Integer;
     qc: WideChar;
     s: String;
-    esc: Boolean;
   begin
     qc := aString[1];
     if (aString[Length(aString)] <> qc)
@@ -1917,8 +1918,7 @@ implementation
     s := Copy(aString, 2, Length(aString) - 2);
     SetLength(result, Length(s));
 
-    esc := FALSE;
-    j   := 1;
+    j := 1;
 
     for i := 1 to Length(s) do
     begin
@@ -1952,9 +1952,25 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class procedure  WIDESupport.Replace(var aString: UnicodeString;
-                                       const aOldChar: WideChar;
-                                       const aNewChar: WideChar);
+  class procedure WIDESupport.Remove(var aString: UnicodeString;
+                                     const aSubString: UnicodeString);
+  begin
+    aString := StringReplace(aString, aSubString, '', [rfReplaceAll]);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class procedure WIDESupport.RemoveText(var aString: UnicodeString;
+                                         const aSubString: UnicodeString);
+  begin
+    aString := StringReplace(aString, aSubString, '', [rfReplaceAll, rfIgnoreCase]);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class procedure WIDESupport.Replace(var aString: UnicodeString;
+                                      const aOldChar: WideChar;
+                                      const aNewChar: WideChar);
   var
     i: Integer;
   begin
