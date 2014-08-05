@@ -94,5 +94,5 @@ implementation
 initialization
   SRCU := UTF8.Encode('Unicode™');
 
-  Smoketest.Add(TTestStrings, [TANSITests, TWIDETests, TSTRTests, TUTF8Tests]);
+  Smoketest.Add(TTestStrings, [TANSIFnTests, TANSITests, TWIDETests, TSTRTests, TUTF8Tests]);
 end.

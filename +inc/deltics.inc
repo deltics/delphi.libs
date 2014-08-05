@@ -146,6 +146,11 @@
 {$endif}
 
 
+{$ifdef DELPHI2009_OR_LATER}
+  {$define UTF8_OVERLOADABLE}
+{$endif}
+
+
 // Who knew you could declare $APPTYPE anywhere !?
 //  Now I can switch between CONSOLE and GUI with a project define
 //  instead of having to put the APPTYPE declaration in the DPR!

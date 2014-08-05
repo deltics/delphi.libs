@@ -50,11 +50,32 @@
 
 interface
 
+  uses
+    Classes,
+    SysUtils,
+    Deltics.Strings.WideStringList;
+
+
   type
   {$ifNdef UNICODE}
     UTF8String    = type ANSIString;
     UnicodeString = type WideString;
+
+    TANSIStrings    = Classes.TStrings;
+    TANSIStringList = Classes.TStringList;
+
+    TWIDEStrings    = TALTStrings;
+    TWIDEStringList = TALTStringList;
+  {$else}
+    TWIDEStrings    = Classes.TStrings;
+    TWIDEStringList = Classes.TStringList;
+
+    TANSIStrings    = TALTStrings;
+    TANSIStringList = TALTStringList;
   {$endif}
+
+    TReplaceFlags = SysUtils.TReplaceFlags;
+
 
     ASCIIString = type ANSIString;
     ASCIIChar   = type ANSIChar;
@@ -67,159 +88,365 @@ interface
     TStringArray      = array of String;
     TANSIStringArray  = array of ANSIString;
     TUTF8StringArray  = array of UTF8String;
-    TWideStringArray  = array of UnicodeString;
+    TWIDEStringArray  = array of UnicodeString;
+
+    TANSICharArray  = array of ANSIChar;
+    TUTF8CharArray  = array of UTF8Char;
+    TWIDECharArray  = array of WIDEChar;
+
+    TAlphaCase  = (
+                   acNotAlpha,
+                   acLower,
+                   acUpper
+                  );
 
 
-    ANSISupport = class
-      // Transcoding
+    TCaseSensitive = (
+                      caseSensitive,
+                      caseNotSensitive
+                     );
+
+
+  type
+    TANSICaseFn = function(aChar: ANSIChar): LongBool; stdcall;
+    TWIDECaseFn = function(aChar: WIDEChar): LongBool; stdcall;
+
+    ANSIFn = class
+    private
+      class function CheckCase(const aString: ANSIString; const aCaseFn: TANSICaseFn): Boolean;
+    public
+      class function Compare(const A, B: ANSIString): Integer;
+      class function CompareText(const A, B: ANSIString): Integer;
+      class function Coalesce(const aArray: array of ANSIString; const aSep: ANSIChar): ANSIString; overload;
+      class function Concat(const aArray: array of ANSIString): ANSIString; overload;
+      class function Concat(const aArray: array of ANSIString; const aSep: ANSIChar): ANSIString; overload;
+      class function Embrace(const aString: ANSIString; const aBraceChar: ASCIIChar = '('): ANSIString;
+      class function Encode(const aString: String): ANSIString;
+      class function Enquote(const aString: ANSIString; const aQuoteChar: ANSIChar = ''''): ANSIString;
       class function FromUTF8(const aString: UTF8String): ANSIString; overload;
       class function FromUTF8(const aBuffer: PUTF8Char; const aMaxLen: Integer = -1): ANSIString; overload;
-      class function FromWide(const aString: UnicodeString): ANSIString;
-      // Analysis
-      class function Len(const aString: PANSIChar): Integer;
-      class function Pos(const aString: ANSIString; const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
-      class function Pos(const aString: ANSIString; const aSubStr: ANSIString; var aPos: Integer): Boolean; overload;
-      class function Pos(const aString: ANSIString; const aChar: ANSIChar; var aPositions: TCharIndexArray): Boolean; overload;
-      class function Pos(const aString: ANSIString; const aSubStr: ANSIString; var aPositions: TCharIndexArray): Boolean; overload;
-      class function PosText(const aString: ANSIString; const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
-      class function PosText(const aString: ANSIString; const aSubStr: ANSIString; var aPos: Integer): Boolean; overload;
-      class function PosText(const aString: ANSIString; const aSubStr: ANSIString; var aPositions: TCharIndexArray): Boolean; overload;
-      class function NPos(const aString: ANSIString; const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
-      class function NPos(const aString: ANSIString; const aSubStr: ANSIString; var aPos: Integer): Boolean; overload;
-      class function RPos(const aString: ANSIString; const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
-      class function RPos(const aString: ANSIString; const aSubStr: ANSIString; var aPos: Integer): Boolean; overload;
-      class function Split(const aString: ANSIString; const aChar: ANSIChar; var aLeft, aRight: ANSIString): Boolean; overload;
-      class function Split(const aString: ANSIString; const aChar: ANSIChar; var aParts: TANSIStringArray): Boolean; overload;
-      // Evaluations
-      class function Compare(const S1, S2: ANSIString): Integer;
-      class function CompareText(const S1, S2: ANSIString): Integer;
-      class function Contains(const aString: ANSIString; const aChar: ANSIChar): Boolean; overload;
-      class function Contains(const aString, aSubStr: ANSIString): Boolean; overload;
-      class function ContainsText(const aString, aSubStr: ANSIString): Boolean; overload;
+      class function FromWIDE(const aString: UnicodeString): ANSIString;
       class function IsLowercase(const aChar: ANSIChar): Boolean; overload;
       class function IsLowercase(const aString: ANSIString): Boolean; overload;
       class function IsUppercase(const aChar: ANSIChar): Boolean; overload;
       class function IsUppercase(const aString: ANSIString): Boolean; overload;
-      class function SameText(const S1, S2: ANSIString): Boolean;
-      // Transformations
+      class function Len(const aBuffer: PANSIChar): Integer;
       class function Lowercase(const aChar: ANSIChar): ANSIChar; overload;
       class function Lowercase(const aString: ANSIString): ANSIString; overload;
+      class function PadLeft(const aString: ANSIString; const aCount: Integer; const aChar: ASCIIChar = ' '): ANSIString; overload;
+      class function PadRight(const aString: ANSIString; const aCount: Integer; const aChar: ASCIIChar = ' '): ANSIString; overload;
+      class function PadToLengthLeft(const aString: ANSIString; const aMaxLen: Integer; const aChar: ASCIIChar = ' '): ANSIString; overload;
+      class function PadToLengthRight(const aString: ANSIString; const aMaxLen: Integer; const aChar: ASCIIChar = ' '): ANSIString; overload;
+      class function Remove(const aString, aStringToRemove: ANSIString; const aFlags: TReplaceFlags): ANSIString;
+      class function RepeatString(const aString: ANSIString; const aCount: Integer): ANSIString; overload;
+      class function Replace(const aString, aFindStr, aReplaceStr: ANSIString; const aFlags: TReplaceFlags): ANSIString;
+      class function SameText(const A, B: ANSIString): Boolean;
+      class function StringOfChar(const aChar: ASCIIChar; const aCount: Integer): ANSIString; overload;
+      class function Trim(const aString: ANSIString; const aChar: ASCIIChar = ' '): ANSIString; overload;
+      class function TrimLeft(const aString: ANSIString; const aChar: ASCIIChar = ' '): ANSIString; overload;
+      class function TrimLeft(const aString: ANSIString; const aCount: Integer): ANSIString; overload;
+      class function TrimRight(const aString: ANSIString; const aChar: ASCIIChar = ' '): ANSIString; overload;
+      class function TrimRight(const aString: ANSIString; const aCount: Integer): ANSIString; overload;
+      class function Unbrace(const aString: ANSIString): ANSIString;
+      class function Unquote(const aString: ANSIString): ANSIString;
       class function Uppercase(const aChar: ANSIChar): ANSIChar; overload;
       class function Uppercase(const aString: ANSIString): ANSIString; overload;
     end;
 
-
-    ASCII = class
-      // Transcoding
-      class function Encode(const aString: String): ASCIIString;
-      class function Decode(const aString: ASCIIString): String;
-    end;
-
-
-    UTF8 = class
-      // Transcoding
+    UTF8Fn = class
+      class function Compare(const A, B: UTF8String): Integer;
+      class function CompareText(const A, B: UTF8String): Integer;
       class function Encode(const aString: String): UTF8String;
       class function Decode(const aString: UTF8String): String; overload;
-      class function Decode(const aBuffer: PUTF8Char; const aMaxLen: Integer = -1): String; overload;
+      class function Decode(const aBuffer: PUTF8Char; const aMaxLen: Integer): String; overload;
       class function FromANSI(const aString: ANSIString): UTF8String;
-      class function FromWide(const aString: UnicodeString): UTF8String;
-      // Analysis
+      class function FromWIDE(const aString: UnicodeString): UTF8String;
       class function Len(const aString: PUTF8Char): Integer;
-      class function Pos(const aString: UTF8String; const aChar: UTF8Char; var aPos: Integer): Boolean; overload;
-      class function Pos(const aString: UTF8String; const aSubStr: UTF8String; var aPos: Integer): Boolean; overload;
-      class function Pos(const aString: UTF8String; const aChar: UTF8Char; var aPositions: TCharIndexArray): Boolean; overload;
-      class function Pos(const aString: UTF8String; const aSubStr: UTF8String; var aPositions: TCharIndexArray): Boolean; overload;
-      class function NPos(const aString: UTF8String; const aChar: UTF8Char; var aPos: Integer): Boolean; overload;
-      class function NPos(const aString: UTF8String; const aSubStr: UTF8String; var aPos: Integer): Boolean; overload;
-      class function RPos(const aString: UTF8String; const aChar: UTF8Char; var aPos: Integer): Boolean; overload;
-      class function RPos(const aString: UTF8String; const aSubStr: UTF8String; var aPos: Integer): Boolean; overload;
-      // Evaluations
-      class function Compare(const S1, S2: UTF8String): Integer;
-      class function CompareText(const S1, S2: UTF8String): Integer;
-      class function Contains(const aString: UTF8String; const aChar: UTF8Char): Boolean; overload;
-      class function Contains(const aString, aSubStr: UTF8String): Boolean; overload;
-      class function IsLowercase(const aString: UTF8String): Boolean;
-      class function IsUppercase(const aString: UTF8String): Boolean;
-      class function SameText(const S1, S2: UTF8String): Boolean;
-      // Transformations
-      class function Lowercase(const aString: UTF8String): UTF8String;
-      class function Uppercase(const aString: UTF8String): UTF8String;
+      class function SameText(const A, B: UTF8String): Boolean;
     end;
 
-
-    WIDESupport = class
-      // Transcoding
+    WIDEFn = class
+    private
+      class function CheckCase(const aString: UnicodeString; const aCaseFn: TWIDECaseFn): Boolean;
+    public
+      class function Compare(const A, B: UnicodeString): Integer;
+      class function CompareText(const A, B: UnicodeString): Integer;
+      class function Coalesce(const aArray: array of UnicodeString; const aSep: WIDEChar): UnicodeString;
+      class function Concat(const aArray: array of UnicodeString): UnicodeString; overload;
+      class function Concat(const aArray: array of UnicodeString; const aSep: WIDEChar): UnicodeString; overload;
+      class function Embrace(const aString: UnicodeString; const aBraceChar: ASCIIChar = '('): UnicodeString;
+      class function Encode(const aString: String): UnicodeString;
+      class function Enquote(const aString: UnicodeString; const aQuoteChar: WIDEChar = ''''): UnicodeString;
       class function FromANSI(const aString: ANSIString): UnicodeString; overload;
-      class function FromANSI(const aBuffer: PANSIChar; const aMaxLen: Integer = -1): UnicodeString; overload;
-      class function FromASCII(const aString: ASCIIString): UnicodeString; overload;
+      class function FromANSI(const aBuffer: PANSIChar; const aMaxLen: Integer): UnicodeString; overload;
       class function FromUTF8(const aString: UTF8String): UnicodeString; overload;
       class function FromUTF8(const aBuffer: PUTF8Char; const aMaxLen: Integer = -1): UnicodeString; overload;
-      // Analysis
-      class function Len(const aString: PWideChar): Integer;
-      class function Pos(const aString: UnicodeString; const aChar: WideChar; var aPos: Integer): Boolean; overload;
-      class function Pos(const aString: UnicodeString; const aSubStr: UnicodeString; var aPos: Integer): Boolean; overload;
-      class function Pos(const aString: UnicodeString; const aChar: WideChar; var aPositions: TCharIndexArray): Boolean; overload;
-      class function Pos(const aString: UnicodeString; const aSubStr: UnicodeString; var aPositions: TCharIndexArray): Boolean; overload;
-      class function PosText(const aString: UnicodeString; const aChar: WideChar; var aPos: Integer): Boolean; overload;
-      class function PosText(const aString: UnicodeString; const aSubStr: UnicodeString; var aPos: Integer): Boolean; overload;
-      class function PosText(const aString: UnicodeString; const aSubStr: UnicodeString; var aPositions: TCharIndexArray): Boolean; overload;
-      class function NPos(const aString: UnicodeString; const aChar: WideChar; var aPos: Integer): Boolean; overload;
-      class function NPos(const aString: UnicodeString; const aSubStr: UnicodeString; var aPos: Integer): Boolean; overload;
-      class function RPos(const aString: UnicodeString; const aChar: WideChar; var aPos: Integer): Boolean; overload;
-      class function RPos(const aString: UnicodeString; const aSubStr: UnicodeString; var aPos: Integer): Boolean; overload;
-      class function Split(const aString: UnicodeString; const aChar: WideChar; var aLeft, aRight: UnicodeString): Boolean; overload;
-      class function Split(const aString: UnicodeString; const aChar: WideChar; var aParts: TWideStringArray): Boolean; overload;
-      // Evaluations
-      class function BeginsWith(const aString, aLead: UnicodeString): Boolean;
-      class function BeginsWithText(const aString, aLead: UnicodeString): Boolean;
-      class function Compare(const S1, S2: UnicodeString): Integer;
-      class function CompareText(const S1, S2: UnicodeString): Integer;
-      class function Contains(const aString: UnicodeString; const aChar: WideChar): Boolean; overload;
-      class function Contains(const aString, aSubStr: UnicodeString): Boolean; overload;
-      class function ContainsText(const aString, aSubStr: UnicodeString): Boolean; overload;
-      class function IsLowercase(const aChar: WideChar): Boolean; overload;
+      class function IsLowercase(const aChar: WIDEChar): Boolean; overload;
       class function IsLowercase(const aString: UnicodeString): Boolean; overload;
-      class function IsUppercase(const aChar: WideChar): Boolean; overload;
+      class function IsUppercase(const aChar: WIDEChar): Boolean; overload;
       class function IsUppercase(const aString: UnicodeString): Boolean; overload;
-      class function SameText(const S1, S2: UnicodeString): Boolean;
-      // Transformations
-      class function Dequote(const aString: UnicodeString): UnicodeString;
-      class function Lowercase(const aChar: WideChar): WideChar; overload;
+      class function Len(const aBuffer: PWIDEChar): Integer;
+      class function Lowercase(const aChar: WIDEChar): WIDEChar; overload;
       class function Lowercase(const aString: UnicodeString): UnicodeString; overload;
-      class procedure Remove(var aString: UnicodeString; const aSubString: UnicodeString);
-      class procedure RemoveText(var aString: UnicodeString; const aSubString: UnicodeString);
-      class procedure Replace(var aString: UnicodeString; const aOldChar, aNewChar: WideChar); overload;
-      class function Uppercase(const aChar: WideChar): WideChar; overload;
+      class function PadLeft(const aString: UnicodeString; const aCount: Integer; const aChar: ASCIIChar = ' '): UnicodeString; overload;
+      class function PadRight(const aString: UnicodeString; const aCount: Integer; const aChar: ASCIIChar = ' '): UnicodeString; overload;
+      class function PadToLengthLeft(const aString: UnicodeString; const aMaxLen: Integer; const aChar: ASCIIChar = ' ' ): UnicodeString; overload;
+      class function PadToLengthRight(const aString: UnicodeString; const aMaxLen: Integer; const aChar: ASCIIChar = ' '): UnicodeString; overload;
+      class function Remove(const aString, aStringToRemove: UnicodeString; const aFlags: TReplaceFlags): UnicodeString; overload;
+      class function RepeatString(const aString: UnicodeString; const aCount: Integer): UnicodeString; overload;
+      class function Replace(const aString: UnicodeString; const aFindStr, aReplaceStr: UnicodeString; const aFlags: TReplaceFlags): UnicodeString;
+      class function SameText(const A, B: UnicodeString): Boolean;
+      class function StringOfChar(const aChar: ASCIIChar; const aCount: Integer): UnicodeString; overload;
+      class function Trim(const aString: UnicodeString; const aChar: ASCIIChar = ' '): UnicodeString;
+      class function TrimLeft(const aString: UnicodeString; const aChar: ASCIIChar = ' '): UnicodeString; overload;
+      class function TrimLeft(const aString: UnicodeString; const aCount: Integer): UnicodeString; overload;
+      class function TrimRight(const aString: UnicodeString; const aChar: ASCIIChar = ' '): UnicodeString; overload;
+      class function TrimRight(const aString: UnicodeString; const aCount: Integer): UnicodeString; overload;
+      class function Unbrace(const aString: UnicodeString): UnicodeString;
+      class function Unquote(const aString: UnicodeString): UnicodeString;
+      class function Uppercase(const aChar: WIDEChar): WIDEChar; overload;
       class function Uppercase(const aString: UnicodeString): UnicodeString; overload;
     end;
 
 
-    ANSI = class(ANSISupport)
-      // Transcoding
-      class function Encode(const aString: String): ANSIString;
-      class function Decode(const aString: ANSIString): String;
+    IChar = interface
+      function AlphaCase: TAlphaCase;
+      function IsLowercase: Boolean;
+      function IsUppercase: Boolean;
+      function ToANSI: ANSIChar;
+      function ToWIDE: WIDEChar;
     end;
 
 
-    WIDE = class(WIDESupport)
-      // Transcoding
-      class function Encode(const aString: String): UnicodeString;
-      class function Decode(const aString: UnicodeString): String;
+    IStringBase = interface
+      function ByteCount: Integer;
+      function Length: Integer;
+      function IsLowercase: Boolean;
+      function IsUppercase: Boolean;
+      function ToANSI: ANSIString;
+      function ToString: String;
+      function ToUTF8: UTF8String;
+      function ToWIDE: UnicodeString;
     end;
 
 
-  {$ifdef UNICODE}
-    STR = class(WIDESupport)
+    // TODO: Consider also a IDBCSChar and IDBCSString implementation.
+    //
+    //       These interfaces would require specific codepage support.
+    //
+    //       The char interface would require BOX'ing a PANSIChar and could make no
+    //        assumptions about the number of bytes pointed to.
+
+
+    IANSIChar = interface(IChar)
+      function IsLowercase: Boolean;
+      function IsUppercase: Boolean;
+      function Lowercase: ANSIChar;
+      function Uppercase: ANSIChar;
+    end;
+
+
+    IANSIString = interface(IStringBase)
+      function BeginsWith(const aString: ANSIString): Boolean;
+      function BeginsWithText(const aString: ANSIString): Boolean;
+      function CompareWith(const aString: ANSIString): Integer;
+      function CompareWithText(const aString: ANSIString): Integer;
+      function Contains(const aString: ANSIString): Boolean; overload;
+      function Contains(const aChar: ANSIChar): Boolean; overload;
+      function ContainsText(const aChar: ANSIChar): Boolean; overload;
+      function ContainsText(const aText: ANSIString): Boolean; overload;
+      function Data: PANSIChar;
+      function EqualsText(const aString: ANSIString): Boolean;
+      function Find(const aChar: ANSIChar; var aPos: TCharIndexArray): Boolean; overload;
+      function Find(const aString: ANSIString; var aPos: TCharIndexArray): Boolean; overload;
+      function FindText(const aString: ANSIString; var aPos: TCharIndexArray): Boolean; overload;
+      function FindFirst(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
+      function FindFirst(const aString: ANSIString; var aPos: Integer): Boolean; overload;
+      function FindFirstText(const aString: ANSIString; var aPos: Integer): Boolean; overload;
+      function FindNext(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
+      function FindNext(const aString: ANSIString; var aPos: Integer): Boolean; overload;
+      function FindLast(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
+      function FindLast(const aString: ANSIString; var aPos: Integer): Boolean; overload;
+      function IndexIn(const aArray: array of ANSIString): Integer;
+      function IsIn(const aArray: array of ANSIString): Boolean;
+      function Leftmost(const aCount: Integer): ANSIString;
+      function Rightmost(const aCount: Integer): ANSIString;
+      function Split(const aChar: ANSIChar; var aLeft, aRight: ANSIString): Boolean; overload;
+      function Split(const aChar: ANSIChar; var aParts: TANSIStringArray): Boolean; overload;
+
+      function Delete(const aStart, aCount: Integer): ANSIString;
+      function Embrace(const aBraceChar: ASCIIChar = '('): ANSIString;
+      function Enquote(const aQuoteChar: ANSIChar = ''''): ANSIString;
+      function ExtractLeft(const aCount: Integer): ANSIString;
+      function ExtractRight(const aCount: Integer): ANSIString;
+      function Lowercase: ANSIString;
+      function PadLeft(const aCount: Integer; const aChar: ASCIIChar): ANSIString; overload;
+      function PadRight(const aCount: Integer; const aChar: ASCIIChar): ANSIString; overload;
+      function PadToLengthLeft(const aMaxLen: Integer; const aChar: ASCIIChar = ' '): ANSIString; overload;
+      function PadToLengthRight(const aMaxLen: Integer; const aChar: ASCIIChar = ' '): ANSIString; overload;
+      function Remove(const aString: ANSIString; const aFlags: TReplaceFlags): ANSIString;
+      function Replace(const aString: ANSIString; const aFindStr, aReplaceStr: ANSIString; const aFlags: TReplaceFlags): ANSIString;
+      function Trim(const aChar: ASCIIChar = ' '): ANSIString; overload;
+      function TrimLeft(const aChar: ASCIIChar = ' '): ANSIString; overload;
+      function TrimLeft(const aCount: Integer): ANSIString; overload;
+      function TrimRight(const aChar: ASCIIChar = ' '): ANSIString; overload;
+      function TrimRight(const aCount: Integer): ANSIString; overload;
+      function Unbrace: ANSIString;
+      function Unquote: ANSIString;
+      function Uppercase: ANSIString;
+    end;
+
+
+    IUTF8String = interface(IStringBase)
+      function BeginsWith(const aString: ANSIString): Boolean; overload;
+      function BeginsWith(const aString: UTF8String): Boolean; overload;
+      function BeginsWith(const aString: WIDEString): Boolean; overload;
+      function BeginsWithText(const aString: UTF8String): Boolean;
+      function CompareWith(const aString: UTF8String): Integer;
+      function CompareWithText(const aString: UTF8String): Integer;
+      function Contains(const aChar: ANSIChar): Boolean; overload;
+      function Contains(const aChar: WIDEChar): Boolean; overload;
+      function Contains(const aString: UTF8String): Boolean; overload;
+      function ContainsText(const aChar: ANSIChar): Boolean; overload;
+      function ContainsText(const aChar: WIDEChar): Boolean; overload;
+      function ContainsText(const aString: UTF8String): Boolean; overload;
+      function Data: PUTF8Char;
+      function EqualsText(const aString: UTF8String): Boolean;
+      function Find(const aChar: ANSIChar; var aPos: TCharIndexArray): Boolean; overload;
+      function Find(const aChar: WIDEChar; var aPos: TCharIndexArray): Boolean; overload;
+      function Find(const aString: UTF8String; var aPos: TCharIndexArray): Boolean; overload;
+      function FindFirst(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
+      function FindFirst(const aChar: WIDEChar; var aPos: Integer): Boolean; overload;
+      function FindFirst(const aString: UTF8String; var aPos: Integer): Boolean; overload;
+      function FindLast(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
+      function FindLast(const aChar: WIDEChar; var aPos: Integer): Boolean; overload;
+      function FindLast(const aString: UTF8String; var aPos: Integer): Boolean; overload;
+      function FindNext(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
+      function FindNext(const aChar: WIDEChar; var aPos: Integer): Boolean; overload;
+      function FindNext(const aString: UTF8String; var aPos: Integer): Boolean; overload;
+
+      function Lowercase: UTF8String;
+      function Uppercase: UTF8String;
+    end;
+
+
+    IWIDEChar = interface(IChar)
+      function Lowercase: WIDEChar;
+      function Uppercase: WIDEChar;
+    end;
+
+
+    IWIDEString = interface(IStringBase)
+      function BeginsWith(const aString: UnicodeString): Boolean;
+      function BeginsWithText(const aString: UnicodeString): Boolean;
+      function CompareWith(const aString: UnicodeString): Integer;
+      function CompareWithText(const aString: UnicodeString): Integer;
+      function Contains(const aChar: WIDEChar): Boolean; overload;
+      function Contains(const aString: UnicodeString): Boolean; overload;
+      function ContainsText(const aChar: WIDEChar): Boolean; overload;
+      function ContainsText(const aString: UnicodeString): Boolean; overload;
+      function CopyFrom(const aStart, aCount: Integer): UnicodeString;
+      function CopyRange(const aStart, aEnd: Integer): UnicodeString;
+      function Data: PWIDEChar;
+      function EqualsText(const aString: UnicodeString): Boolean;
+      function Find(const aChar: ANSIChar; var aPos: TCharIndexArray): Boolean; overload;
+      function Find(const aChar: WIDEChar; var aPos: TCharIndexArray): Boolean; overload;
+      function Find(const aString: UnicodeString; var aPos: TCharIndexArray): Boolean; overload;
+      function FindText(const aChar: ANSIChar; var aPos: TCharIndexArray): Boolean; overload;
+      function FindText(const aChar: WIDEChar; var aPos: TCharIndexArray): Boolean; overload;
+      function FindText(const aString: UnicodeString; var aPos: TCharIndexArray): Boolean; overload;
+      function FindFirst(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
+      function FindFirst(const aChar: WIDEChar; var aPos: Integer): Boolean; overload;
+      function FindFirst(const aString: UnicodeString; var aPos: Integer): Boolean; overload;
+      function FindFirstText(const aString: UnicodeString; var aPos: Integer): Boolean; overload;
+      function FindLast(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
+      function FindLast(const aChar: WIDEChar; var aPos: Integer): Boolean; overload;
+      function FindLast(const aString: UnicodeString; var aPos: Integer): Boolean; overload;
+      function FindNext(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
+      function FindNext(const aChar: WIDEChar; var aPos: Integer): Boolean; overload;
+      function FindNext(const aString: UnicodeString; var aPos: Integer): Boolean; overload;
+      function IndexIn(const aArray: array of UnicodeString): Integer;
+      function IsIn(const aArray: array of UnicodeString): Boolean;
+      function Leftmost(const aCount: Integer): UnicodeString;
+      function Rightmost(const aCount: Integer): UnicodeString;
+      function Split(const aChar: ANSIChar; var aLeft, aRight: UnicodeString): Boolean; overload;
+      function Split(const aChar: WIDEChar; var aLeft, aRight: UnicodeString): Boolean; overload;
+      function Split(const aChar: ANSIChar; var aParts: TWIDEStringArray): Boolean; overload;
+      function Split(const aChar: WIDEChar; var aParts: TWIDEStringArray): Boolean; overload;
+
+      function Delete(const aStart, aCount: Integer): UnicodeString;
+      function Embrace(const aBraceChar: ASCIIChar = '('): UnicodeString;
+      function Enquote(const aQuoteChar: WIDEChar = ''''): UnicodeString;
+      function ExtractLeft(const aCount: Integer): UnicodeString;
+      function ExtractRight(const aCount: Integer): UnicodeString;
+      function Lowercase: UnicodeString;
+      function PadLeft(const aCount: Integer; const aChar: ASCIIChar): UnicodeString; overload;
+      function PadRight(const aCount: Integer; const aChar: ASCIIChar): UnicodeString; overload;
+      function PadToLengthLeft(const aMaxLen: Integer; const aChar: ASCIIChar = ' '): UnicodeString; overload;
+      function PadToLengthRight(const aMaxLen: Integer; const aChar: ASCIIChar = ' '): UnicodeString; overload;
+      function Remove(const aString: UnicodeString; const aFlags: TReplaceFlags): UnicodeString;
+      function Replace(const aFindStr, aReplaceStr: UnicodeString; const aFlags: TReplaceFlags): UnicodeString;
+      function Trim(const aChar: ASCIIChar = ' '): UnicodeString; overload;
+      function TrimLeft(const aChar: ASCIIChar = ' '): UnicodeString; overload;
+      function TrimLeft(const aCount: Integer): UnicodeString; overload;
+      function TrimRight(const aChar: ASCIIChar = ' '): UnicodeString; overload;
+      function TrimRight(const aCount: Integer): UnicodeString; overload;
+      function Unbrace: UnicodeString;
+      function Unquote: UnicodeString;
+      function Uppercase: UnicodeString;
+    end;
+
+
+  {$ifdef UNICODE}
+    STRFn = class(WIDEFn)
+      class function FromWIDE(const aString: UnicodeString): UnicodeString;
+    end;
+
+    IString = IWIDEString;
   {$else}
-    STR = class(ANSISupport)
-  {$endif}
-      // Transcoding
-    {$ifdef UNICODE}
-      class function FromWide(const aString: UnicodeString): String;
-    {$else}
-      class function FromANSI(const aString: ANSIString): String;
-    {$endif}
+    STRFn = class(ANSIFn)
+      class function FromANSI(const aString: ANSIString): ANSIString;
     end;
+
+    IString = IANSIString;
+  {$endif}
+
+
+  ANSIClass = class of ANSIFn;
+  UTF8Class = class of UTF8Fn;
+  WIDEClass = class of WIDEFn;
+  STRClass  = class of STRFn;
+
+  function ANSI: ANSIClass; overload;
+  function ANSI(const aChar: ANSIChar): IANSIChar; overload;
+  function ANSI(const aString: ANSIString): IANSIString; overload;
+  function ANSIFromUTF8(const aString: UTF8String): IANSIString;
+  function ANSIFromWIDE(const aString: UnicodeString): IANSIString;
+
+  function WIDE: WIDEClass; overload;
+  function WIDE(const aChar: WIDEChar): IWIDEChar; overload;
+  function WIDE(const aString: UnicodeString): IWIDEString; overload;
+  function WIDEFromANSI(const aString: ANSIString): IWIDEString;
+  function WIDEFromUTF8(const aString: UTF8String): IWIDEString;
+
+
+  function STR: STRClass; overload;
+{$ifdef UNICODE}
+  function STR(const aChar: WIDEChar): IWIDEChar; overload;
+  function STR(const aString: UnicodeString): IString; overload;
+{$else}
+  function STR(const aChar: ANSIChar): IANSIChar; overload;
+  function STR(const aString: ANSIString): IString; overload;
+{$endif}
+
+
+  function UTF8: UTF8Class; overload;
+  function UTF8(const aString: UTF8String): IUTF8String; overload;
+  function UTF8FromANSI(const aString: ANSIString): IUTF8String;
+  function UTF8FromSTR(const aString: String): IUTF8String;
+  function UTF8FromWIDE(const aString: UnicodeString): IUTF8String;
+
+
 
 
 
@@ -233,21 +460,17 @@ implementation
   {$ifdef DELPHIXE4_OR_LATER}
     ANSIStrings,
   {$endif}
-    SysUtils,
-    Windows;
+    Windows,
+    Deltics.Strings.ANSI,
+    Deltics.Strings.UTF8,
+    Deltics.Strings.WIDE;
 
 
-{ Implementation Helpers ------------------------------------------------------------------------- }
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  type
-    TANSICaseFn = function(aChar: ANSIChar): LongBool; stdcall;
-    TWideCaseFn = function(aChar: WideChar): LongBool; stdcall;
 
 
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function CheckCase(const aString: ANSIString;
-                     const aCaseFn: TANSICaseFn): Boolean; overload;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.CheckCase(const aString: ANSIString;
+                                     const aCaseFn: TANSICaseFn): Boolean;
   var
     i: Integer;
     bAlpha: Boolean;
@@ -275,17 +498,771 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function CheckCase(const aString: UnicodeString;
-                     const aCaseFn: TWideCaseFn): Boolean; overload;
+  class function ANSIFn.Compare(const A, B: ANSIString): Integer;
+  begin
+    result := CompareStringA(LOCALE_USER_DEFAULT, 0,
+                             PANSIChar(A), Length(A),
+                             PANSIChar(B), Length(B)) - CSTR_EQUAL;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.CompareText(const A, B: ANSIString): Integer;
+  begin
+    result := CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                             PANSIChar(A), Length(A),
+                             PANSIChar(B), Length(B)) - CSTR_EQUAL;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Coalesce(const aArray: array of ANSIString;
+                                 const aSep: ANSIChar): ANSIString;
+  var
+    i: Integer;
+  begin
+    result := '';
+    for i := 0 to Pred(Length(aArray)) do
+      if (Length(aArray[i]) > 0) then
+        result := result + aArray[i] + aSep;
+
+    if Length(result) > 0 then
+      SetLength(result, Length(result) - 1);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Concat(const aArray: array of ANSIString): ANSIString;
+  var
+    i: Integer;
+  begin
+    result := '';
+    for i := 0 to Pred(Length(aArray)) do
+      result := result + aArray[i];
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Concat(const aArray: array of ANSIString;
+                               const aSep: ANSIChar): ANSIString;
+  var
+    i: Integer;
+  begin
+    result := '';
+    for i := 0 to Pred(Length(aArray)) do
+      result := result + aArray[i] + aSep;
+
+    if Length(result) > 0 then
+      SetLength(result, Length(result) - 1);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Embrace(const aString: ANSIString;
+                                const aBraceChar: ASCIIChar): ANSIString;
+  var
+    slen, rlen: Integer;
+  begin
+    slen := Length(aString);
+    rlen := slen + 2;
+
+    SetLength(result, rlen);
+    CopyMemory(@result[2], PANSIChar(aString), slen);
+
+    result[1] := ANSIChar(aBraceChar);
+
+    case aBraceChar of
+      '(' : result[rlen] := ANSIChar(')');
+      '{' : result[rlen] := ANSIChar('}');
+      '[' : result[rlen] := ANSIChar(']');
+      '<' : result[rlen] := ANSIChar('>');
+    else
+      result[rlen] := ANSICHar(aBraceChar);
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Encode(const aString: String): ANSIString;
+  begin
+  {$ifdef UNICODE}
+    result := FromWIDE(aString);
+  {$else}
+    result := aString;
+  {$endif}
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Enquote(const aString: ANSIString;
+                                const aQuoteChar: ANSIChar): ANSIString;
+  var
+    i, j: Integer;
+    strlen: Integer;
+    pc: PANSIChar;
+  begin
+    strlen := System.Length(aString);
+    SetLength(result, (strlen * 2) + 2);
+
+    j := 2;
+
+    if strlen > 0 then
+    begin
+      pc  := PANSIChar(aString);
+      for i := 1 to strlen do
+      begin
+        result[j] := pc^;
+
+        if (pc^ = aQuoteChar) then
+        begin
+          result[j + 1] := pc^;
+          Inc(j, 2);
+        end
+        else
+          Inc(j);
+
+        Inc(pc);
+      end;
+    end;
+
+    result[1] := aQuoteChar;
+    result[j] := aQuoteChar;
+    SetLength(result, j);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.FromUTF8(const aString: UTF8String): ANSIString;
+  begin
+    // TODO: Can we do this more directly / efficiently ?
+    result := ANSI.FromWIDE(WIDE.FromUTF8(aString));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.FromUTF8(const aBuffer: PUTF8Char; const aMaxLen: Integer): ANSIString;
+  begin
+    // TODO: Can we do this more directly / efficiently ?
+    result := ANSI.FromWIDE(WIDE.FromUTF8(aBuffer, aMaxLen));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.FromWIDE(const aString: UnicodeString): ANSIString;
+  var
+    len: Integer;
+  begin
+    len := WideCharToMultiByte(CP_ACP, 0, PWIDEChar(aString), -1, NIL, 0, NIL, NIL);
+    Dec(len);
+
+    SetLength(result, len);
+    WideCharToMultiByte(CP_ACP, 0, PWIDEChar(aString), System.Length(aString), PANSIChar(result), System.Length(result), NIL, NIL);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.IsLowercase(const aChar: ANSIChar): Boolean;
+  begin
+    result := IsCharLowerA(aChar);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.IsLowercase(const aString: ANSIString): Boolean;
+  begin
+    result := CheckCase(aString, IsCharLowerA);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.IsUppercase(const aChar: ANSIChar): Boolean;
+  begin
+    result := IsCharUpperA(aChar);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.IsUppercase(const aString: ANSIString): Boolean;
+  begin
+    result := CheckCase(aString, IsCharUpperA);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Len(const aBuffer: PANSIChar): Integer;
+  begin
+  {$ifdef DELPHIXE4_OR_LATER}
+    result := ANSIStrings.StrLen(aBuffer);
+  {$else}
+    result := SysUtils.StrLen(aBuffer);
+  {$endif}
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Lowercase(const aChar: ANSIChar): ANSIChar;
+  begin
+    result := aChar;
+    CharLowerBuffA(@result, 1);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Lowercase(const aString: ANSIString): ANSIString;
+  var
+    len: Integer;
+  begin
+    len := System.Length(aString);
+    SetString(result, PANSIChar(aString), len);
+    if len > 0 then
+      CharLowerBuffA(PANSIChar(result), len);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.PadLeft(const aString: ANSIString;
+                                const aCount: Integer;
+                                const aChar: ASCIIChar): ANSIString;
+  begin
+    result := StringOfChar(aChar, aCount) + aString;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.PadRight(const aString: ANSIString;
+                                 const aCount: Integer;
+                                 const aChar: ASCIIChar): ANSIString;
+  begin
+    result := aString + StringOfChar(aChar, aCount);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.PadToLengthLeft(const aString: ANSIString;
+                                        const aMaxLen: Integer;
+                                        const aChar: ASCIIChar): ANSIString;
+  var
+    len: Integer;
+  begin
+    result := aString;
+
+    len := System.Length(aString);
+    if len >= aMaxLen then
+      EXIT;
+
+    result := StringOfChar(aChar, aMaxLen - len) + result;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.PadToLengthRight(const aString: ANSIString;
+                                         const aMaxLen: Integer;
+                                         const aChar: ASCIIChar): ANSIString;
+  var
+    len: Integer;
+  begin
+    result := aString;
+
+    len := System.Length(aString);
+    if len >= aMaxLen then
+      EXIT;
+
+    result := result + StringOfChar(aChar, aMaxLen - len);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.RepeatString(const aString: ANSIString;
+                                     const aCount: Integer): ANSIString;
+  var
+    i: Integer;
+    bytes: Integer;
+    pr: PANSIChar;
+  begin
+    SetLength(result, System.Length(aString) * aCount);
+
+    bytes := System.Length(aString);
+    pr    := PANSIChar(result);
+
+    for i := 1 to aCount do
+    begin
+      CopyMemory(pr, PANSIChar(aString), bytes);
+      Inc(pr, bytes);
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Remove(const aString: ANSIString;
+                               const aStringToRemove: ANSIString;
+                               const aFlags: TReplaceFlags): ANSIString;
+{$ifNdef UNICODE}
+  begin
+    result := StringReplace(aString, aStringToRemove, '', aFlags);
+  end;
+{$else}
+  var
+    i: Integer;
+    pa: TCharIndexArray;
+    pr, ps: PANSIChar;
+    p, flen, rlen, clen: Integer;
+  begin
+    if (rfReplaceAll in aFlags) then
+    begin
+      if (rfIgnoreCase in aFlags) then
+        ANSI(aString).FindText(aStringToRemove, pa)
+      else
+        ANSI(aString).Find(aStringToRemove, pa);
+    end
+    else
+    begin
+      SetLength(pa, 1);
+      if (rfIgnoreCase in aFlags) then
+      begin
+        if ANSI(aString).FindFirstText(aStringToRemove, p) then
+          pa[0] := p;
+      end
+      else if ANSI(aString).FindFirst(aStringToRemove, p) then
+        pa[0] := p;
+
+      if pa[0] = 0 then
+        SetLength(pa, 0);
+    end;
+
+    if Length(pa) = 0 then
+      EXIT;
+
+    flen := Length(aStringToRemove);
+    rlen := Length(aString) - (Length(pa) * flen);
+    SetLength(result, rlen);
+
+    pr := PANSIChar(result);
+    ps := PANSIChar(aString);
+
+    CopyMemory(pr, ps, (pa[0] - 1));
+    Inc(pr, pa[0] - 1);
+    Inc(ps, flen);
+
+    Inc(ps, pa[0] - 1);
+
+    for i := 1 to Pred(Length(pa)) do
+    begin
+      clen := pa[i] - (pa[i - 1] + flen);
+      if (clen > 0) then
+      begin
+        CopyMemory(pr, ps, clen);
+        Inc(pr, clen);
+      end;
+
+      Inc(ps, clen + flen);
+    end;
+
+    if (pr - PANSIChar(result)) < rlen then
+    begin
+      clen := Length(aString) - (ps - PANSIChar(aString));
+      CopyMemory(pr, ps, clen);
+    end;
+  end;
+{$endif}
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Replace(const aString: ANSIString;
+                                const aFindStr: ANSIString;
+                                const aReplaceStr: ANSIString;
+                                const aFlags: TReplaceFlags): ANSIString;
+{$ifNdef UNICODE}
+  begin
+    result := StringReplace(aString, aFindStr, aReplaceStr, aFlags);
+  end;
+{$else}
+  var
+    i: Integer;
+    pa: TCharIndexArray;
+    pr, ps, px: PANSIChar;
+    p, flen, xlen, rlen, clen: Integer;
+  begin
+    if (rfReplaceAll in aFlags) then
+    begin
+      if (rfIgnoreCase in aFlags) then
+        ANSI(aString).FindText(aFindStr, pa)
+      else
+        ANSI(aString).Find(aFindStr, pa);
+    end
+    else
+    begin
+      SetLength(pa, 1);
+      if (rfIgnoreCase in aFlags) then
+      begin
+        if ANSI(aString).FindFirstText(aFindStr, p) then
+          pa[0] := p;
+      end
+      else if ANSI(aString).FindFirst(aFindStr, p) then
+        pa[0] := p;
+
+      if pa[0] = 0 then
+        SetLength(pa, 0);
+    end;
+
+    if Length(pa) = 0 then
+      EXIT;
+
+    flen := Length(aFindStr);
+    xlen := Length(aReplaceStr);
+    rlen := Length(aString) + (Length(pa) * ((xlen - flen)));
+    SetLength(result, rlen);
+
+    pr := PANSIChar(result);
+    ps := PANSIChar(aString);
+    px := PANSIChar(aReplaceStr);
+
+    CopyMemory(pr, ps, (pa[0] - 1));
+    Inc(pr, pa[0] - 1);
+    Inc(ps, flen);
+
+    if (xlen > 0) then
+    begin
+      CopyMemory(pr, px, xlen);
+      Inc(pr, xlen);
+    end;
+
+    Inc(ps, pa[0] - 1);
+
+    for i := 1 to Pred(Length(pa)) do
+    begin
+      clen := pa[i] - (pa[i - 1] + flen);
+      if (clen > 0) then
+      begin
+        CopyMemory(pr, ps, clen);
+        Inc(pr, clen);
+      end;
+
+      if (xlen > 0) then
+      begin
+        CopyMemory(pr, px, xlen);
+        Inc(pr, xlen);
+      end;
+
+      Inc(ps, clen + flen);
+    end;
+
+    if (pr - PANSIChar(result)) < rlen then
+    begin
+      clen := Length(aString) - (ps - PANSIChar(aString));
+      CopyMemory(pr, ps, clen);
+    end;
+  end;
+{$endif}
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.SameText(const A, B: ANSIString): Boolean;
+  begin
+    result := CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                             PANSIChar(A), Length(A),
+                             PANSIChar(B), Length(B)) = CSTR_EQUAL;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.StringOfChar(const aChar: ASCIIChar;
+                                     const aCount: Integer): ANSIString;
+  var
+    i: Integer;
+    ac: ANSIChar;
+    pr: PANSIChar;
+  begin
+    SetLength(result, aCount);
+
+    ac  := ANSIChar(aChar);
+    pr  := PANSIChar(result);
+
+    for i := 1 to aCount do
+    begin
+      pr^ := ac;
+      Inc(pr);
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.TrimLeft(const aString: ANSIString;
+                                 const aChar: ASCIIChar): ANSIString;
+  var
+    i, p: Integer;
+    pc: PANSIChar;
+  begin
+    p   := 1;
+    pc  := PANSIChar(aString);
+
+    for i := 1 to System.Length(aString) do
+      if (pc^ <> aChar) then
+      begin
+        p := i;
+        BREAK;
+      end
+      else
+        Inc(pc);
+
+    if (p > 1) then
+      result := Copy(aString, p, 1 + System.Length(aString) - p)
+    else
+      result := aString;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Trim(const aString: ANSIString;
+                             const aChar: ASCIIChar): ANSIString;
+  begin
+    result := aString;
+    result := TrimLeft(result, aChar);
+    result := TrimRight(result, aChar);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.TrimLeft(const aString: ANSIString;
+                                 const aCount: Integer): ANSIString;
+  begin
+    result := Copy(aString, aCount + 1, System.Length(aString) - aCount);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.TrimRight(const aString: ANSIString;
+                                  const aChar: ASCIIChar): ANSIString;
+  var
+    i, p: Integer;
+    len: Integer;
+    pc: PANSIChar;
+  begin
+    result  := aString;
+
+    len := System.Length(aString);
+
+    if (len = 0) then
+      EXIT;
+
+    p   := 0;
+    pc  := @aString[len];
+
+    for i := len downto 1 do
+      if (pc^ <> aChar) then
+      begin
+        p := i;
+        BREAK;
+      end
+      else
+        Dec(pc);
+
+    if (p < len) then
+      SetLength(result, len - p);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.TrimRight(const aString: ANSIString;
+                                  const aCount: Integer): ANSIString;
+  begin
+    result := aString;
+    SetLength(result, System.Length(result) - aCount);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Unbrace(const aString: ANSIString): ANSIString;
+  var
+    rlen: Integer;
+  begin
+    rlen := Length(aString) - 2;
+    SetLength(result, rlen);
+    CopyMemory(PANSIChar(result), @aString[2], rlen);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Unquote(const aString: ANSIString): ANSIString;
+  var
+    i, j, maxi: Integer;
+    qc: ANSIChar;
+  begin
+    qc := aString[1];
+    if (aString[Length(aString)] <> qc)
+     or ((qc <> '''') and (qc <> '"') and (qc <> '`')) then
+    begin
+      result := aString;
+      EXIT;
+    end;
+
+    SetLength(result, Length(aString) - 2);
+
+    i     := 2;
+    maxi  := System.Length(aString) - 1;
+    j     := 1;
+
+    while i <= maxi do
+    begin
+      result[j] := aString[i];
+      if (aString[i] = qc) then
+      begin
+        if (aString[i + 1] = qc) then
+          Inc(i, 2)
+        else
+          raise Exception.Create(STR.Concat(['Quoted string ''', STR.FromANSI(aString), ''' contains incorrectly escaped quotes']));
+      end
+      else
+        Inc(i);
+
+      Inc(j);
+    end;
+
+    SetLength(result, j - 1);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Uppercase(const aChar: ANSIChar): ANSIChar;
+  begin
+    result := aChar;
+    CharUpperBuffA(@result, 1);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function ANSIFn.Uppercase(const aString: ANSIString): ANSIString;
+  var
+    len: Integer;
+  begin
+    len := System.Length(aString);
+    SetString(result, PANSIChar(aString), len);
+    if len > 0 then
+      CharUpperBuffA(PANSIChar(result), len);
+  end;
+
+
+
+
+
+
+
+
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function UTF8Fn.Decode(const aString: UTF8String): String;
+  begin
+  {$ifdef UNICODE}
+    result := WIDE.FromUTF8(aString);
+  {$else}
+    result := ANSI.FromUTF8(aString);
+  {$endif}
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function UTF8Fn.Decode(const aBuffer: PUTF8Char;
+                               const aMaxLen: Integer): String;
+  begin
+  {$ifdef UNICODE}
+    result := WIDE.FromUTF8(aBuffer, aMaxLen);
+  {$else}
+    result := ANSI.FromUTF8(aBuffer, aMaxLen);
+  {$endif}
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function UTF8Fn.Encode(const aString: String): UTF8String;
+  begin
+  {$ifdef UNICODE}
+    result := UTF8.FromWIDE(aString);
+  {$else}
+    result := UTF8.FromANSI(aString);
+  {$endif}
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function UTF8Fn.FromANSI(const aString: ANSIString): UTF8String;
+  begin
+    result := UTF8.FromWIDE(WIDE.FromANSI(aString));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function UTF8Fn.FromWIDE(const aString: UnicodeString): UTF8String;
+  var
+    len: Integer;
+  begin
+    len := WideCharToMultiByte(CP_UTF8, 0, PWIDEChar(aString), -1, NIL, 0, NIL, NIL);
+    Dec(len);
+
+    SetLength(result, len);
+    WideCharToMultiByte(CP_UTF8, 0, PWIDEChar(aString), Length(aString), PANSIChar(result), Length(result), NIL, NIL);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function UTF8Fn.Len(const aString: PUTF8Char): Integer;
+  begin
+  {$ifdef DELPHIXE4_OR_LATER}
+    result := ANSIStrings.StrLen(PANSIChar(aString));
+  {$else}
+    result := SysUtils.StrLen(PANSIChar(aString));
+  {$endif}
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function UTF8Fn.SameText(const A, B: UTF8String): Boolean;
+  begin
+    result := WIDE.SameText(WIDE.FromUTF8(A), WIDE.FromUTF8(B));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function UTF8Fn.Compare(const A, B: UTF8String): Integer;
+  begin
+    result := WIDE.Compare(WIDE.FromUTF8(A), WIDE.FromUTF8(B));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function UTF8Fn.CompareText(const A, B: UTF8String): Integer;
+  begin
+    result := WIDE.CompareText(WIDE.FromUTF8(A), WIDE.FromUTF8(B));
+  end;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.CheckCase(const aString: UnicodeString;
+                                  const aCaseFn: TWIDECaseFn): Boolean;
   var
     i: Integer;
     bAlpha: Boolean;
-    pc: PWideChar;
+    pc: PWIDEChar;
   begin
     result  := FALSE;
     bAlpha  := FALSE;
 
-    pc := PWideChar(aString);
+    pc := PWIDEChar(aString);
     for i := 0 to Pred(Length(aString)) do
     begin
       if Windows.IsCharAlphaW(pc^) then
@@ -303,1030 +1280,149 @@ implementation
   end;
 
 
-
-
-
-
-{ ANSISupport ------------------------------------------------------------------------------------ }
-
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.FromUTF8(const aString: UTF8String): ANSIString;
+  class function WIDEFn.Compare(const A, B: UnicodeString): Integer;
   begin
-    // TODO: Can we do this more directly / efficiently ?
-    result := ANSISupport.FromWide(WIDE.FromUTF8(aString));
+    result := CompareStringW(LOCALE_USER_DEFAULT, 0,
+                             PWIDEChar(A), System.Length(A),
+                             PWIDEChar(B), System.Length(B)) - CSTR_EQUAL;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.FromUTF8(const aBuffer: PUTF8Char; const aMaxLen: Integer): ANSIString;
+  class function WIDEFn.CompareText(const A, B: UnicodeString): Integer;
   begin
-    // TODO: Can we do this more directly / efficiently ?
-    result := ANSISupport.FromWide(WIDE.FromUTF8(aBuffer, aMaxLen));
+    result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                             PWIDEChar(A), System.Length(A),
+                             PWIDEChar(B), System.Length(B)) - CSTR_EQUAL;
   end;
 
 
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.FromWide(const aString: UnicodeString): ANSIString;
-  var
-    len: Integer;
-  begin
-    len := WideCharToMultiByte(CP_ACP, 0, PWideChar(aString), -1, NIL, 0, NIL, NIL);
-    Dec(len);
-
-    SetLength(result, len);
-    WideCharToMultiByte(CP_ACP, 0, PWideChar(aString), Length(aString), PANSIChar(result), Length(result), NIL, NIL);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Len(const aString: PANSIChar): Integer;
-  begin
-  {$ifdef DELPHIXE4_OR_LATER}
-    result := ANSIStrings.StrLen(aString);
-  {$else}
-    result := SysUtils.StrLen(aString);
-  {$endif}
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Pos(const aString: ANSIString;
-                                 const aChar: ANSIChar;
-                                 var   aPos: Integer): Boolean;
-  begin
-  {$ifdef FASTSTRINGS}
-    aPos := FastStrings.FastCharPos(aString, aChar, 1);
-  {$else}
-    aPos := System.Pos(aChar, aString);
-  {$endif}
-    result := (aPos <> 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Pos(const aString: ANSIString;
-                                 const aSubStr: ANSIString;
-                                 var   aPos: Integer): Boolean;
-  begin
-  {$ifdef FASTSTRINGS}
-    aPos := FastStrings.FastPos(aString, aSubStr, Length(aString), Length(aSubStr), 1);
-  {$else}
-    aPos := System.Pos(aSubStr, aString);
-  {$endif}
-    result  := (aPos <> 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Pos(const aString: ANSIString;
-                                 const aChar: ANSIChar;
-                                 var   aPositions: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
-    strLen: Integer;
-    firstChar: PANSIChar;
-    currChar: PANSIChar;
-  begin
-    result  := FALSE;
-    strLen  := Length(aString);
-    if (strLen = 0) then
-      EXIT;
-
-    SetLength(aPositions, strLen);
-    j         := 0;
-    firstChar := @aString[1];
-    currChar  := firstChar;
-
-    for i := Pred(strLen) downto 0 do
-    begin
-      if (currChar^ = aChar) then
-      begin
-        aPositions[j] := (currChar - firstChar) + 1;
-        Inc(j);
-      end;
-      Inc(currChar);
-    end;
-    SetLength(aPositions, j);
-    result := (j > 0);
-  end;
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Pos(const aString: ANSIString;
-                                 const aSubStr: ANSIString;
-                                 var   aPositions: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PANSIChar;
-    currChar: PANSIChar;
-    initialChar: PANSIChar;
-  begin
-    result  := FALSE;
-    subLen  := Length(aSubStr);
-    strLen  := Length(aString);
-    if (strLen = 0) then
-      EXIT;
-
-    SetLength(aPositions, strLen);
-    j           := 0;
-    firstChar   := @aString[1];
-    currChar    := firstChar;
-    initialChar := @aSubStr[1];
-
-    for i := Pred(strLen) downto 0 do
-    begin
-      if (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen) then
-      begin
-        aPositions[j] := (currChar - firstChar) + 1;
-        Inc(j);
-      end;
-      Inc(currChar);
-    end;
-
-    SetLength(aPositions, j);
-    result := (j > 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.PosText(const aString: ANSIString;
-                                     const aChar: ANSIChar;
-                                     var aPos: Integer): Boolean;
+  class function WIDEFn.Coalesce(const aArray: array of UnicodeString;
+                                 const aSep: WIDEChar): UnicodeString;
   var
     i: Integer;
-    currChar: PANSIChar;
-    firstChar: PANSIChar;
-    strlen: Integer;
   begin
-    result  := FALSE;
-    strLen  := Length(aString);
-    if (strLen = 0) then
-      EXIT;
+    result := '';
+    for i := 0 to Pred(Length(aArray)) do
+      if (Length(aArray[i]) > 0) then
+        result := result + aArray[i] + aSep;
 
-    if NOT Windows.IsCharAlphaA(aChar) then
-    begin
-      aPos    := System.Pos(aChar, aString);
-      result  := aPos <> 0;
-      EXIT;
-    end;
+    if Length(result) > 0 then
+      SetLength(result, Length(result) - 1);
+  end;
 
-    firstChar := PANSIChar(aString);
-    currChar  := firstChar;
-    for i := Pred(strlen) downto 0 do
-    begin
-      result := Windows.IsCharAlphaA(currChar^)
-            and (Windows.CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                                        currChar, 1,
-                                        @aChar, 1) = CSTR_EQUAL);
-      if result then
-        BREAK;
 
-      Inc(currChar);
-    end;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.Concat(const aArray: array of UnicodeString): UnicodeString;
+  var
+    i: Integer;
+  begin
+    result := '';
+    for i := 0 to Pred(Length(aArray)) do
+      result := result + aArray[i];
+  end;
 
-    if result then
-      aPos := (currChar - firstChar) + 1
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.Concat(const aArray: array of UnicodeString;
+                               const aSep: WIDEChar): UnicodeString;
+  var
+    i: Integer;
+  begin
+    result := '';
+    for i := 0 to Pred(Length(aArray)) do
+      result := result + aArray[i] + aSep;
+
+    if Length(result) > 0 then
+      SetLength(result, Length(result) - 1);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.Embrace(const aString: UnicodeString;
+                                const aBraceChar: ASCIIChar): UnicodeString;
+  var
+    slen, rlen: Integer;
+  begin
+    slen := Length(aString);
+    rlen := slen + 2;
+
+    SetLength(result, rlen);
+    CopyMemory(@result[2], PWIDEChar(aString), slen * 2);
+
+    result[1] := WIDEChar(aBraceChar);
+
+    case aBraceChar of
+      '(' : result[rlen] := WIDEChar(')');
+      '{' : result[rlen] := WIDEChar('}');
+      '[' : result[rlen] := WIDEChar(']');
+      '<' : result[rlen] := WIDEChar('>');
     else
-      aPos := 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.PosText(const aString, aSubStr: ANSIString;
-                                     var aPos: Integer): Boolean;
-  var
-    i: Integer;
-    currChar: PANSIChar;
-    firstChar: PANSIChar;
-    psub: PANSIChar;
-    strlen: Integer;
-    sublen: Integer;
-  begin
-    result  := FALSE;
-    subLen  := Length(aSubStr);
-    strLen  := Length(aString);
-    if (strLen = 0) or (strlen = 0) or (sublen > strlen)then
-      EXIT;
-
-    firstChar := PANSIChar(aString);
-    currChar  := firstChar;
-    psub      := PANSIChar(aSubStr);
-    for i := (strlen - sublen) downto 0 do
-    begin
-      result := Windows.CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                                       currChar, sublen,
-                                       psub, sublen) = CSTR_EQUAL;
-      if result then
-        BREAK;
-
-      Inc(currChar);
+      result[rlen] := WIDECHar(aBraceChar);
     end;
-
-    if result then
-      aPos := (currChar - firstChar) + 1
-    else
-      aPos := 0;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.PosText(const aString, aSubStr: ANSIString;
-                                     var aPositions: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
-    currChar: PANSIChar;
-    firstChar: PANSIChar;
-    psub: PANSIChar;
-    strlen: Integer;
-    sublen: Integer;
-  begin
-    result  := FALSE;
-    subLen  := Length(aSubStr);
-    strLen  := Length(aString);
-    if (strLen = 0) or (strlen = 0) or (sublen > strlen)then
-      EXIT;
-
-    SetLength(aPositions, strlen);
-    j         := 0;
-    firstChar := PANSIChar(aString);
-    currChar  := firstChar;
-    psub      := PANSIChar(aSubStr);
-
-    for i := (strlen - sublen) downto 0 do
-    begin
-      result := Windows.CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                                       currChar, sublen,
-                                       psub, sublen) = CSTR_EQUAL;
-      if result then
-      begin
-        aPositions[j] := (currChar - firstChar) + 1;
-        Inc(j)
-      end;
-
-      Inc(currChar);
-    end;
-
-    SetLength(aPositions, j);
-    result := (j > 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.RPos(const aString: ANSIString;
-                                  const aChar: ANSIChar;
-                                  var   aPos: Integer): Boolean;
-  {$ifdef FASTSTRINGS}
-  begin
-    aPos    := FastStrings.FastPosBack(aString, aChar, Length(aString), 1, Length(aString));
-    result  := aPos <> 0;
-  end;
-  {$else}
-  var
-    i: Integer;
-    strLen: Integer;
-    firstChar: PANSIChar;
-    currChar: PANSIChar;
-  begin
-    strLen  := Length(aString);
-    aPos    := 0;
-    result  := FALSE;
-    if (strLen = 0) then
-      EXIT;
-    firstChar := @aString[1];
-    currChar  := @aString[strLen];
-
-    for i := Pred(strLen) downto 0 do
-    begin
-      result := (currChar^ = aChar);
-      if result then
-        BREAK;
-      Dec(currChar);
-    end;
-    if result then
-      aPos := (currChar - firstChar) + 1;
-  end;
-  {$endif}
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.RPos(const aString: ANSIString;
-                                  const aSubStr: ANSIString;
-                                  var   aPos: Integer): Boolean;
-  {$ifdef FASTSTRINGS}
-  begin
-    aPos    := FastStrings.FastPosBack(aString, aSubStr, Length(aString), Length(aSubStr), Length(aString));
-    result  := aPos <> 0;
-  end;
-  {$else}
-  var
-    i: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PANSIChar;
-    currChar: PANSIChar;
-    initialChar: PANSIChar;
-  begin
-    strLen  := Length(aString);
-    subLen  := Length(aSubStr);
-    aPos    := 0;
-    result  := FALSE;
-    if (subLen > strLen) or (subLen = 0) or (strLen = 0) then
-      EXIT;
-    firstChar   := @aString[1];
-    initialChar := @aSubStr[1];
-    currChar    := @aString[Length(aString)];
-    for i := (strLen - subLen) downto 0 do
-    begin
-      result := (currChar^ = initialChar^);
-      if result and CompareMem(currChar, initialChar, subLen) then
-        BREAK;
-      Dec(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - firstChar) + 1;
-  end;
-  {$endif}
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.NPos(const aString: ANSIString;
-                                  const aChar: ANSIChar;
-                                  var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    currChar: PANSIChar;
-  begin
-  ASSERT(aPos >= 0);
-    result  := FALSE;
-    strLen  := Length(aString);
-
-    if (aPos >= strLen) then
-    begin
-      aPos := 0;
-      EXIT;
-    end;
-
-    currChar := @aString[aPos + 1];
-    for i := Pred(strLen) downto aPos do
-    begin
-      result := (currChar^ = aChar);
-      if result then
-        BREAK;
-      Inc(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - @aString[1]) + 1
-    else
-      aPos := 0;
-  end;
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.NPos(const aString: ANSIString;
-                                  const aSubStr: ANSIString;
-                                  var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PANSIChar;
-    initialChar: PANSIChar;
-    currChar: PANSIChar;
-  begin
-  ASSERT(aPos >= 0);
-    result  := FALSE;
-    strLen  := Length(aString);
-    subLen  := Length(aSubStr);
-
-    if ((aPos + subLen) > strLen) or (strLen = 0) or (subLen = 0) then
-    begin
-      aPos := 0;
-      EXIT;
-    end;
-
-    firstChar   := @aString[1];
-    initialChar := @aSubStr[1];
-    currChar    := @aString[aPos + 1];
-    for i := (strLen - subLen) downto aPos do
-    begin
-      result := (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen);
-      if result then
-        BREAK;
-
-      Inc(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - firstChar) + 1
-    else
-      aPos := 0;
-  end;
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Split(const aString: ANSIString;
-                                   const aChar: ANSIChar;
-                                   var   aLeft: ANSIString;
-                                   var   aRight: ANSIString): Boolean;
-  var
-    p: Integer;
-  begin
-    aLeft   := aString;
-    aRight  := '';
-
-    result := Pos(aString, aChar, p);
-    if NOT result then
-      EXIT;
-
-    SetLength(aLeft, p - 1);
-    aRight := Copy(aString, p + 1, Length(aString) - p);
-  end;
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Split(const aString: ANSIString;
-                                   const aChar: ANSIChar;
-                                   var   aParts: TANSIStringArray): Boolean;
-  var
-    i: Integer;
-    p: TCharIndexArray;
-  begin
-    result := Pos(aString, aChar, p);
-    if NOT result then
-      EXIT;
-
-    SetLength(aParts, Length(p) + 1);
-
-    aParts[0] := Copy(aString, 1, p[0] - 1);
-    for i := 1 to Pred(Length(p)) do
-      aParts[i] := Copy(aString, p[i - 1] + 1, p[i] - p[i - 1] - 1);
-
-    i := p[Pred(Length(p))] + 1;
-    aParts[Length(p)] := Copy(aString, i, Length(aString) - i + 1)
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Compare(const S1, S2: ANSIString): Integer;
-  begin
-    result := CompareStringA(LOCALE_USER_DEFAULT, 0,
-                             PANSIChar(S1), Length(S1),
-                             PANSIChar(S2), Length(S2)) - CSTR_EQUAL;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.CompareText(const S1, S2: ANSIString): Integer;
-  begin
-    result := CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                             PANSIChar(S1), Length(S1),
-                             PANSIChar(S2), Length(S2)) - CSTR_EQUAL;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Contains(const aString: ANSIString; const aChar: ANSIChar): Boolean;
-  begin
-    result := System.Pos(aChar, aString) <> 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Contains(const aString, aSubStr: ANSIString): Boolean;
-  begin
-    result := System.Pos(aSubStr, aString) <> 0;
-  end;
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.ContainsText(const aString, aSubStr: ANSIString): Boolean;
-  var
-    p : Integer;
-  begin
-    result := ANSI.PosText(aString, aSubStr, p);
-  end;
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.IsLowercase(const aChar: ANSIChar): Boolean;
-  begin
-    result := Windows.IsCharLowerA(aChar);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.IsLowercase(const aString: ANSIString): Boolean;
-  begin
-    result := CheckCase(aString, Windows.IsCharLowerA);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.IsUppercase(const aChar: ANSIChar): Boolean;
-  begin
-    result := Windows.IsCharUpperA(aChar);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.IsUppercase(const aString: ANSIString): Boolean;
-  begin
-    result := CheckCase(aString, Windows.IsCharUpperA);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.SameText(const S1, S2: ANSIString): Boolean;
-  begin
-    result := CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                             PANSIChar(S1), Length(S1),
-                             PANSIChar(S2), Length(S2)) = CSTR_EQUAL;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Lowercase(const aChar: ANSIChar): ANSIChar;
-  begin
-    result := aChar;
-    CharLowerBuffA(@result, 1);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Lowercase(const aString: ANSIString): ANSIString;
-  var
-    len: Integer;
-  begin
-    len := Length(aString);
-    SetString(result, PANSIChar(aString), len);
-    if len > 0 then
-      CharLowerBuffA(PANSIChar(result), len);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Uppercase(const aChar: ANSIChar): ANSIChar;
-  begin
-    result := aChar;
-    CharUpperBuffA(@result, 1);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSISupport.Uppercase(const aString: ANSIString): ANSIString;
-  var
-    len: Integer;
-  begin
-    len := Length(aString);
-    SetString(result, PANSIChar(aString), len);
-    if len > 0 then
-      CharUpperBuffA(PANSIChar(result), len);
-  end;
-
-
-
-
-
-{ ANSI ------------------------------------------------------------------------------------------- }
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSI.Encode(const aString: String): ANSIString;
+  class function WIDEFn.Encode(const aString: String): UnicodeString;
   begin
   {$ifdef UNICODE}
-    result := ANSI.FromWide(aString);
-  {$else}
     result := aString;
-  {$endif}
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ANSI.Decode(const aString: ANSIString): String;
-  begin
-  {$ifdef UNICODE}
-    result := WIDE.FromANSI(aString);
   {$else}
-    result := aString;
-  {$endif}
-  end;
-
-
-
-
-
-
-
-
-
-
-
-{ ASCII ------------------------------------------------------------------------------------------ }
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ASCII.Encode(const aString: String): ASCIIString;
-  begin
-  {$ifdef UNICODE}
-    result := ASCIIString(UTF8.FromWide(aString));
-  {$else}
-    result := ASCIIString(aString);
+    result := FromANSI(aString);
   {$endif}
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function ASCII.Decode(const aString: ASCIIString): String;
-  begin
-  {$ifdef UNICODE}
-    result := WIDE.FromASCII(aString);
-  {$else}
-    result := String(aString);
-  {$endif}
-  end;
-
-
-
-
-
-
-
-{ UTF8 ------------------------------------------------------------------------------------------- }
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Encode(const aString: String): UTF8String;
-  begin
-  {$ifdef UNICODE}
-    result := UTF8.FromWide(aString);
-  {$else}
-    result := UTF8.FromANSI(aString);
-  {$endif}
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Decode(const aString: UTF8String): String;
-  begin
-  {$ifdef UNICODE}
-    result := WIDE.FromUTF8(aString);
-  {$else}
-    result := ANSI.FromUTF8(aString);
-  {$endif}
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Decode(const aBuffer: PUTF8Char; const aMaxLen: Integer): String;
-  begin
-  {$ifdef UNICODE}
-    result := WIDE.FromUTF8(aBuffer, aMaxLen);
-  {$else}
-    result := ANSI.FromUTF8(aBuffer, aMaxLen);
-  {$endif}
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.FromANSI(const aString: ANSIString): UTF8String;
-  begin
-    result := FromWide(WIDE.FromANSI(aString));
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.FromWide(const aString: UnicodeString): UTF8String;
-  var
-    len: Integer;
-  begin
-    len := WideCharToMultiByte(CP_UTF8, 0, PWideChar(aString), -1, NIL, 0, NIL, NIL);
-    Dec(len);
-
-    SetLength(result, len);
-    WideCharToMultiByte(CP_UTF8, 0, PWideChar(aString), Length(aString), PANSIChar(result), Length(result), NIL, NIL);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Len(const aString: PUTF8Char): Integer;
-  begin
-  {$ifdef DELPHIXE4_OR_LATER}
-    result := ANSIStrings.StrLen(PANSIChar(aString));
-  {$else}
-    result := SysUtils.StrLen(PANSIChar(aString));
-  {$endif}
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Pos(const aString: UTF8String;
-                          const aChar: UTF8Char;
-                          var   aPos: Integer): Boolean;
-  begin
-    aPos    := System.Pos(aChar, aString);
-    result  := (aPos <> 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Pos(const aString: UTF8String;
-                          const aSubStr: UTF8String;
-                          var   aPos: Integer): Boolean;
-  begin
-    aPos    := System.Pos(aSubStr, aString);
-    result  := (aPos <> 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Pos(const aString: UTF8String;
-                          const aChar: UTF8Char;
-                          var   aPositions: TCharIndexArray): Boolean;
+  class function WIDEFn.Enquote(const aString: UnicodeString;
+                                const aQuoteChar: WIDEChar): UnicodeString;
   var
     i, j: Integer;
-    strLen: Integer;
-    firstChar: PUTF8Char;
-    currChar: PUTF8Char;
+    strlen: Integer;
+    pc: PWIDEChar;
   begin
-    result  := FALSE;
-    strLen  := Length(aString);
+    strlen := System.Length(aString);
+    SetLength(result, (strlen * 2) + 2);
 
-    if (strLen = 0) then
-      EXIT;
+    j := 2;
 
-    SetLength(aPositions, strLen);
-
-    j         := 0;
-    firstChar := @aString[1];
-    currChar  := firstChar;
-
-    for i := Pred(strLen) downto 0 do
+    if strlen > 0 then
     begin
-      if (currChar^ = aChar) then
+      pc  := PWIDEChar(aString);
+      for i := 1 to strlen do
       begin
-        aPositions[j] := (PANSIChar(currChar) - PANSIChar(firstChar)) + 1;
-        Inc(j);
+        result[j] := pc^;
+
+        if (pc^ = aQuoteChar) then
+        begin
+          result[j + 1] := pc^;
+          Inc(j, 2);
+        end
+        else
+          Inc(j);
+
+        Inc(pc);
       end;
-      Inc(currChar);
     end;
 
-    SetLength(aPositions, j);
-    result := (j > 0);
-  end;
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Pos(const aString: UTF8String;
-                          const aSubStr: UTF8String;
-                          var   aPositions: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PUTF8Char;
-    currChar: PUTF8Char;
-    initialChar: PUTF8Char;
-  begin
-    result  := FALSE;
-    subLen  := Length(aSubStr);
-    strLen  := Length(aString);
-    if (strLen = 0) then
-      EXIT;
-    SetLength(aPositions, strLen);
-    j           := 0;
-    firstChar   := @aString[1];
-    currChar    := firstChar;
-    initialChar := @aSubStr[1];
-
-    for i := Pred(strLen) downto 0 do
-    begin
-      if (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen) then
-      begin
-        aPositions[j] := (PANSIChar(currChar) - PANSIChar(firstChar)) + 1;
-        Inc(j);
-      end;
-      Inc(currChar);
-    end;
-    SetLength(aPositions, j);
-    result := (j > 0);
+    result[1] := aQuoteChar;
+    result[j] := aQuoteChar;
+    SetLength(result, j);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.RPos(const aString: UTF8String;
-                           const aChar: UTF8Char;
-                           var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    firstChar: PUTF8Char;
-    currChar: PUTF8Char;
+  class function WIDEFn.FromANSI(const aString: ANSIString): UnicodeString;
   begin
-    strLen  := Length(aString);
-    aPos    := 0;
-    result  := FALSE;
-    if (strLen = 0) then
-      EXIT;
-    firstChar := @aString[1];
-    currChar  := @aString[strLen];
-    for i := Pred(strLen) downto 0 do
-    begin
-      result := (currChar^ = aChar);
-      if result then
-        BREAK;
-      Dec(currChar);
-    end;
-    if result then
-      aPos := (PANSIChar(currChar) - PANSIChar(firstChar)) + 1;
+    result := FromANSI(@aString[1], System.Length(aString));
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.RPos(const aString: UTF8String;
-                                 const aSubStr: UTF8String;
-                                 var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PUTF8Char;
-    currChar: PUTF8Char;
-    initialChar: PUTF8Char;
-  begin
-    strLen  := Length(aString);
-    subLen  := Length(aSubStr);
-    aPos    := 0;
-    result  := FALSE;
-    if (subLen > strLen) or (subLen = 0) or (strLen = 0) then
-      EXIT;
-
-    firstChar   := @aString[1];
-    initialChar := @aSubStr[1];
-    currChar    := @aString[Length(aString)];
-    for i := (strLen - subLen) downto 0 do
-    begin
-      result := (currChar^ = initialChar^);
-      if result and CompareMem(currChar, initialChar, subLen) then
-        BREAK;
-      Dec(currChar);
-    end;
-    if result then
-      aPos := (PANSIChar(currChar) - PANSIChar(firstChar)) + 1;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.NPos(const aString: UTF8String;
-                                 const aChar: UTF8Char;
-                                 var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    currChar: PUTF8Char;
-  begin
-  ASSERT(aPos >= 0);
-    result  := FALSE;
-    strLen  := Length(aString);
-
-    if (aPos >= strLen) then
-    begin
-      aPos := 0;
-      EXIT;
-    end;
-    currChar := @aString[aPos + 1];
-
-    for i := Pred(strLen) downto aPos do
-    begin
-      result := (currChar^ = aChar);
-      if result then
-        BREAK;
-      Inc(currChar);
-    end;
-    if result then
-      aPos := (PANSIChar(currChar) - PANSIChar(@aString[1])) + 1
-    else
-      aPos := 0;
-  end;
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.NPos(const aString: UTF8String;
-                                 const aSubStr: UTF8String;
-                                 var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PUTF8Char;
-    initialChar: PUTF8Char;
-    currChar: PUTF8Char;
-  begin
-  ASSERT(aPos >= 0);
-    result  := FALSE;
-    strLen  := Length(aString);
-    subLen  := Length(aSubStr);
-    if ((aPos + subLen) > strLen) or (strLen = 0) or (subLen = 0) then
-    begin
-      aPos := 0;
-      EXIT;
-    end;
-    firstChar   := @aString[1];
-    initialChar := @aSubStr[1];
-    currChar    := @aString[aPos + 1];
-    for i := (strLen - subLen) downto aPos do
-    begin
-      result := (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen);
-      if result then
-        BREAK;
-      Inc(currChar);
-    end;
-
-    if result then
-      aPos := (PANSIChar(currChar) - PANSIChar(firstChar)) + 1
-    else
-      aPos := 0;
-  end;
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Compare(const S1, S2: UTF8String): Integer;
-  begin
-    result := WIDE.Compare(WIDE.FromUTF8(S1), WIDE.FromUTF8(S2));
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.CompareText(const S1, S2: UTF8String): Integer;
-  begin
-    result := WIDE.CompareText(WIDE.FromUTF8(S1), WIDE.FromUTF8(S2));
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Contains(const aString: UTF8String;
-                               const aChar: UTF8Char): Boolean;
-  begin
-    result := System.Pos(aChar, aString) <> 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Contains(const aString: UTF8String;
-                               const aSubStr: UTF8String): Boolean;
-  begin
-    result := System.Pos(aSubStr, aString) <> 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.IsLowercase(const aString: UTF8String): Boolean;
-  begin
-    result := WIDE.IsLowercase(WIDE.FromUTF8(aString));
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.IsUppercase(const aString: UTF8String): Boolean;
-  begin
-    result := WIDE.IsUppercase(WIDE.FromUTF8(aString));
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.SameText(const S1, S2: UTF8String): Boolean;
-  begin
-    result := WIDE.SameText(WIDE.FromUTF8(S1), WIDE.FromUTF8(S2));
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Lowercase(const aString: UTF8String): UTF8String;
-  begin
-    result := UTF8.FromWide(WIDE.Lowercase(WIDE.FromUTF8(aString)));
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8.Uppercase(const aString: UTF8String): UTF8String;
-  begin
-    result := UTF8.FromWide(WIDE.Uppercase(WIDE.FromUTF8(aString)));
-  end;
-
-
-
-
-
-
-
-
-
-
-
-{ WIDESupport ------------------------------------------------------------------------------------ }
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.FromANSI(const aString: ANSIString): UnicodeString;
-  begin
-    result := FromANSI(PANSIChar(aString), Length(aString));
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.FromANSI(const aBuffer: PANSIChar;
-                                      const aMaxLen: Integer): UnicodeString;
+  class function WIDEFn.FromANSI(const aBuffer: PANSIChar;
+                                 const aMaxLen: Integer): UnicodeString;
   var
     len: Integer;
   begin
@@ -1349,22 +1445,15 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.FromASCII(const aString: ASCIIString): UnicodeString;
+  class function WIDEFn.FromUTF8(const aString: UTF8String): UnicodeString;
   begin
-    result := WIDESupport.FromUTF8(UTF8String(aString));
+    result := FromUTF8(PUTF8Char(aString), System.Length(aString));
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.FromUTF8(const aString: UTF8String): UnicodeString;
-  begin
-    result := FromUTF8(PUTF8Char(aString), Length(aString));
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.FromUTF8(const aBuffer: PUTF8Char;
-                                      const aMaxLen: Integer): UnicodeString;
+  class function WIDEFn.FromUTF8(const aBuffer: PUTF8Char;
+                                 const aMaxLen: Integer): UnicodeString;
   var
     len: Integer;
   begin
@@ -1387,525 +1476,444 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Len(const aString: PWideChar): Integer;
-  {$ifdef UNICODE}
-  begin
-    result := SysUtils.StrLen(aString);
-  {$else}
-  var
-    p: PWideChar;
-  begin
-    p := aString;
-    while p^ <> WideChar(0) do
-      Inc(p);
-
-    result := (p - aString);
-  {$endif}
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Pos(const aString: UnicodeString;
-                                 const aChar: WideChar;
-                                 var   aPos: Integer): Boolean;
-  begin
-    aPos    := System.Pos(aChar, aString);
-    result  := (aPos <> 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Pos(const aString: UnicodeString;
-                                 const aSubStr: UnicodeString;
-                                 var   aPos: Integer): Boolean;
-  begin
-    aPos    := System.Pos(aSubStr, aString);
-    result  := (aPos <> 0);
-  end;
-
-  
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Pos(const aString: UnicodeString;
-                                 const aChar: WideChar;
-                                 var   aPositions: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
-    strLen: Integer;
-    firstChar: PWideChar;
-    currChar: PWideChar;
-  begin
-    result  := FALSE;
-    strLen  := Length(aString);
-
-    if (strLen = 0) then
-      EXIT;
-    SetLength(aPositions, strLen);
-    j         := 0;
-    firstChar := @aString[1];
-    currChar  := firstChar;
-
-    for i := Pred(strLen) downto 0 do
-    begin
-      if (currChar^ = aChar) then
-      begin
-        aPositions[j] := (currChar - firstChar) + 1;
-        Inc(j);
-      end;
-
-      Inc(currChar);
-    end;
-
-    SetLength(aPositions, j);
-    result := (j > 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Pos(const aString: UnicodeString;
-                                 const aSubStr: UnicodeString;
-                                 var   aPositions: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PWideChar;
-    currChar: PWideChar;
-    initialChar: PWideChar;
-  begin
-    result  := FALSE;
-    subLen  := Length(aSubStr);
-    strLen  := Length(aString);
-    if (strLen = 0) then
-      EXIT;
-
-    SetLength(aPositions, strLen);
-    j           := 0;
-    firstChar   := @aString[1];
-    currChar    := firstChar;
-    initialChar := @aSubStr[1];
-    for i := Pred(strLen) downto 0 do
-    begin
-      if (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen * 2) then
-      begin
-        aPositions[j] := (currChar - firstChar) + 1;
-        Inc(j);
-      end;
-      Inc(currChar);
-    end;
-
-    SetLength(aPositions, j);
-    result := (j > 0);
-  end;
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.PosText(const aString: UnicodeString;
-                                     const aChar: WideChar;
-                                     var aPos: Integer): Boolean;
-  var
-    i: Integer;
-    currChar: PWideChar;
-    firstChar: PWideChar;
-    strlen: Integer;
-  begin
-    result  := FALSE;
-    strLen  := Length(aString);
-    if (strLen = 0) then
-      EXIT;
-    if NOT Windows.IsCharAlphaW(aChar) then
-    begin
-      aPos    := System.Pos(aChar, aString);
-      result  := aPos <> 0;
-      EXIT;
-    end;
-
-    firstChar := PWideChar(aString);
-    currChar  := firstChar;
-    for i := Pred(strlen) downto 0 do
-    begin
-      result := Windows.IsCharAlphaW(currChar^)
-            and (Windows.CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                                        currChar, 1,
-                                        @aChar, 1) = CSTR_EQUAL);
-      if result then
-        BREAK;
-
-      Inc(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - firstChar) + 1
-    else
-      aPos := 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.PosText(const aString, aSubStr: UnicodeString;
-                                     var aPos: Integer): Boolean;
-  var
-    i: Integer;
-    currChar: PWideChar;
-    firstChar: PWideChar;
-    psub: PWideChar;
-    strlen: Integer;
-    sublen: Integer;
-  begin
-    result  := FALSE;
-    subLen  := Length(aSubStr);
-    strLen  := Length(aString);
-    if (strLen = 0) or (strlen = 0) or (sublen > strlen)then
-      EXIT;
-
-    firstChar := PWideChar(aString);
-    currChar  := firstChar;
-    psub      := PWideChar(aSubStr);
-    for i := (strlen - sublen) downto 0 do
-    begin
-      result := Windows.CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                                       currChar, sublen,
-                                       psub, sublen) = CSTR_EQUAL;
-      if result then
-        BREAK;
-
-      Inc(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - firstChar) + 1
-    else
-      aPos := 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.PosText(const aString, aSubStr: UnicodeString;
-                                     var aPositions: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
-    currChar: PWideChar;
-    firstChar: PWideChar;
-    psub: PWideChar;
-    strlen: Integer;
-    sublen: Integer;
-  begin
-    result  := FALSE;
-    subLen  := Length(aSubStr);
-    strLen  := Length(aString);
-    if (strLen = 0) or (strlen = 0) or (sublen > strlen)then
-      EXIT;
-
-    SetLength(aPositions, strlen);
-    j         := 0;
-    firstChar := PWideChar(aString);
-    currChar  := firstChar;
-    psub      := PWideChar(aSubStr);
-    for i := (strlen - sublen) downto 0 do
-    begin
-      if (Windows.CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                                 currChar, sublen,
-                                 psub, sublen) = CSTR_EQUAL) then
-      begin
-        aPositions[j] := (currChar - firstChar) + 1;
-        Inc(j)
-      end;
-
-      Inc(currChar);
-    end;
-
-    SetLength(aPositions, j);
-
-    result := (j > 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.NPos(const aString: UnicodeString;
-                                  const aChar: WideChar;
-                                  var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    currChar: PWideChar;
-  begin
-  ASSERT(aPos >= 0);
-    result  := FALSE;
-    strLen  := Length(aString);
-    if (aPos >= strLen) then
-    begin
-      aPos := 0;
-      EXIT;
-    end;
-
-    currChar := @aString[aPos + 1];
-    for i := Pred(strLen) downto aPos do
-    begin
-      result := (currChar^ = aChar);
-      if result then
-        BREAK;
-      Inc(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - @aString[1]) + 1
-    else
-      aPos := 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.NPos(const aString: UnicodeString;
-                                  const aSubStr: UnicodeString;
-                                  var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PWideChar;
-    initialChar: PWideChar;
-    currChar: PWideChar;
-  begin
-  ASSERT(aPos >= 0);
-    result  := FALSE;
-    strLen  := Length(aString);
-    subLen  := Length(aSubStr);
-
-    if ((aPos + subLen) > strLen) or (strLen = 0) or (subLen = 0) then
-    begin
-      aPos := 0;
-      EXIT;
-    end;
-    firstChar   := @aString[1];
-    initialChar := @aSubStr[1];
-    currChar    := @aString[aPos + 1];
-
-    for i := (strLen - subLen) downto aPos do
-    begin
-      result := (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen * 2);
-      if result then
-        BREAK;
-
-      Inc(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - firstChar) + 1
-    else
-      aPos := 0;
-  end;
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.RPos(const aString: UnicodeString;
-                                  const aChar: WideChar;
-                                  var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    firstChar: PWideChar;
-    currChar: PWideChar;
-  begin
-    strLen  := Length(aString);
-    aPos    := 0;
-    result  := FALSE;
-    if (strLen = 0) then
-      EXIT;
-
-    firstChar := @aString[1];
-    currChar  := @aString[strLen];
-
-    for i := Pred(strLen) downto 0 do
-    begin
-      result := (currChar^ = aChar);
-      if result then
-        BREAK;
-      Dec(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - firstChar) + 1;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.RPos(const aString: UnicodeString;
-                                  const aSubStr: UnicodeString;
-                                  var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PWideChar;
-    currChar: PWideChar;
-    initialChar: PWideChar;
-  begin
-    strLen  := Length(aString);
-    subLen  := Length(aSubStr);
-    aPos    := 0;
-    result  := FALSE;
-    if (subLen > strLen) or (subLen = 0) or (strLen = 0) then
-      EXIT;
-    firstChar   := @aString[1];
-    initialChar := @aSubStr[1];
-    currChar    := @aString[Length(aString)];
-
-    for i := (strLen - subLen) downto 0 do
-    begin
-      result := (currChar^ = initialChar^);
-      if result and CompareMem(currChar, initialChar, subLen * 2) then
-        BREAK;
-      Dec(currChar);
-    end;
-    if result then
-      aPos := (currChar - firstChar) + 1;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Split(const aString: UnicodeString;
-                                   const aChar: WideChar;
-                                   var   aLeft: UnicodeString;
-                                   var   aRight: UnicodeString): Boolean;
-  var
-    p: Integer;
-  begin
-    aLeft   := aString;
-    aRight  := '';
-
-    result := Pos(aString, aChar, p);
-    if NOT result then
-      EXIT;
-
-    SetLength(aLeft, p - 1);
-    aRight := Copy(aString, p + 1, Length(aString) - p);
-  end;
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Split(const aString: UnicodeString;
-                                   const aChar: WideChar;
-                                   var   aParts: TWideStringArray): Boolean;
-  var
-    i: Integer;
-    p: TCharIndexArray;
-  begin
-    result := Pos(aString, aChar, p);
-    if NOT result then
-      EXIT;
-
-    SetLength(aParts, Length(p) + 1);
-
-    aParts[0] := Copy(aString, 1, p[0] - 1);
-    for i := 1 to Pred(Length(p)) do
-      aParts[i] := Copy(aString, p[i - 1] + 1, p[i] - p[i - 1] - 1);
-
-    i := p[Pred(Length(p))] + 1;
-    aParts[Length(p)] := Copy(aString, i, Length(aString) - i + 1)
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.BeginsWith(const aString, aLead: UnicodeString): Boolean;
-  begin
-    result := (Length(aLead) <= Length(aString))
-          and (CompareStringW(LOCALE_USER_DEFAULT, 0,
-                              PWideChar(aString), Length(aLead),
-                              PWideChar(aLead), Length(aLead)) = CSTR_EQUAL);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.BeginsWithText(const aString, aLead: UnicodeString): Boolean;
-  begin
-    result := (Length(aLead) <= Length(aString))
-          and (CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                              PWideChar(aString), Length(aLead),
-                              PWideChar(aLead), Length(aLead)) = CSTR_EQUAL);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Compare(const S1, S2: UnicodeString): Integer;
-  begin
-    result := CompareStringW(LOCALE_USER_DEFAULT, 0,
-                             PWideChar(S1), Length(S1),
-                             PWideChar(S2), Length(S2)) - CSTR_EQUAL;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.CompareText(const S1, S2: UnicodeString): Integer;
-  begin
-    result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                             PWideChar(S1), Length(S1),
-                             PWideChar(S2), Length(S2)) - CSTR_EQUAL;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Contains(const aString: UnicodeString;
-                                      const aChar: WideChar): Boolean;
-  begin
-    result := System.Pos(aChar, aString) <> 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Contains(const aString: UnicodeString;
-                                      const aSubStr: UnicodeString): Boolean;
-  begin
-    result := System.Pos(aSubStr, aString) <> 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.ContainsText(const aString, aSubStr: UnicodeString): Boolean;
-  var
-    p : Integer;
-  begin
-    result := WIDE.PosText(aString, aSubStr, p);
-  end;
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.IsLowercase(const aChar: WideChar): Boolean;
+  class function WIDEFn.IsLowercase(const aChar: WIDEChar): Boolean;
   begin
     result := IsCharLowerW(aChar);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.IsLowercase(const aString: UnicodeString): Boolean;
+  class function WIDEFn.IsLowercase(const aString: UnicodeString): Boolean;
   begin
-    result  := CheckCase(aString, Windows.IsCharLowerW);
+    result := CheckCase(aString, IsCharLowerW);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.IsUppercase(const aChar: WideChar): Boolean;
+  class function WIDEFn.IsUppercase(const aChar: WIDEChar): Boolean;
   begin
     result := IsCharUpperW(aChar);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.IsUppercase(const aString: UnicodeString): Boolean;
+  class function WIDEFn.IsUppercase(const aString: UnicodeString): Boolean;
   begin
-    result  := CheckCase(aString, Windows.IsCharUpperW);
+    result := CheckCase(aString, IsCharUpperW);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.SameText(const S1, S2: UnicodeString): Boolean;
+  class function WIDEFn.Len(const aBuffer: PWIDEChar): Integer;
+  {$ifdef UNICODE}
+    begin
+      result := SysUtils.StrLen(aBuffer);
+    end;
+  {$else}
+    var
+      p: PWIDEChar;
+    begin
+      p := aBuffer;
+      while p^ <> WIDEChar(0) do
+        Inc(p);
+
+      result := (p - aBuffer);
+    end;
+  {$endif}
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.Lowercase(const aChar: WIDEChar): WIDEChar;
+  begin
+    result := aChar;
+    CharLowerBuffW(@result, 1);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.Lowercase(const aString: UnicodeString): UnicodeString;
+  var
+    len: Integer;
+  begin
+    len := System.Length(aString);
+    SetString(result, PWIDEChar(aString), len);
+    if len > 0 then
+      CharLowerBuffW(PWIDEChar(result), len);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.PadLeft(const aString: UnicodeString;
+                                const aCount: Integer;
+                                const aChar: ASCIIChar): UnicodeString;
+  begin
+    result := StringOfChar(aChar, aCount) + aString;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.PadRight(const aString: UnicodeString;
+                                 const aCount: Integer;
+                                 const aChar: ASCIIChar): UnicodeString;
+  begin
+    result := aString + StringOfChar(aChar, aCount);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.PadToLengthLeft(const aString: UnicodeString;
+                                        const aMaxLen: Integer;
+                                        const aChar: ASCIIChar): UnicodeString;
+  var
+    len: Integer;
+  begin
+    result := aString;
+
+    len := System.Length(aString);
+    if len >= aMaxLen then
+      EXIT;
+
+    result := StringOfChar(aChar, aMaxLen - len) + result;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.PadToLengthRight(const aString: UnicodeString;
+                                         const aMaxLen: Integer;
+                                         const aChar: ASCIIChar): UnicodeString;
+  var
+    len: Integer;
+  begin
+    result := aString;
+
+    len := System.Length(aString);
+    if len >= aMaxLen then
+      EXIT;
+
+    result := result + StringOfChar(aChar, aMaxLen - len);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.Remove(const aString: UnicodeString;
+                               const aStringToRemove: UnicodeString;
+                               const aFlags: TReplaceFlags): UnicodeString;
+{$ifdef UNICODE}
+  begin
+    result := StringReplace(aString, aStringToRemove, '', aFlags);
+  end;
+{$else}
+  var
+    i: Integer;
+    pa: TCharIndexArray;
+    pr, ps: PWIDEChar;
+    p, flen, rlen, clen: Integer;
+  begin
+    if (rfReplaceAll in aFlags) then
+    begin
+      if (rfIgnoreCase in aFlags) then
+        WIDE(aString).FindText(aStringToRemove, pa)
+      else
+        WIDE(aString).Find(aStringToRemove, pa);
+    end
+    else
+    begin
+      SetLength(pa, 1);
+      if (rfIgnoreCase in aFlags) then
+      begin
+        if WIDE(aString).FindFirstText(aStringToRemove, p) then
+          pa[0] := p;
+      end
+      else if WIDE(aString).FindFirst(aStringToRemove, p) then
+        pa[0] := p;
+
+      if pa[0] = 0 then
+        SetLength(pa, 0);
+    end;
+
+    if Length(pa) = 0 then
+      EXIT;
+
+    flen := Length(aStringToRemove);
+    rlen := Length(aString) + (Length(pa) * flen);
+
+    SetLength(result, rlen);
+
+    pr := PWIDEChar(result);
+    ps := PWIDEChar(aString);
+
+    CopyMemory(pr, ps, (pa[0] - 1) * 2);
+    Inc(pr, pa[0] - 1);
+    Inc(ps, flen);
+
+    Inc(ps, pa[0] - 1);
+
+    for i := 1 to Pred(Length(pa)) do
+    begin
+      clen := pa[i] - (pa[i - 1] + flen);
+      if (clen > 0) then
+      begin
+        CopyMemory(pr, ps, clen * 2);
+        Inc(pr, clen);
+      end;
+
+      Inc(ps, clen + flen);
+    end;
+
+    if (pr - PWIDEChar(result)) < rlen then
+    begin
+      clen := Length(aString) - (ps - PWIDEChar(aString));
+      CopyMemory(pr, ps, clen * 2);
+    end;
+  end;
+{$endif}
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.RepeatString(const aString: UnicodeString;
+                                     const aCount: Integer): UnicodeString;
+  var
+    i: Integer;
+    bytes: Integer;
+    pr: PWIDEChar;
+  begin
+    SetLength(result, System.Length(aString) * aCount);
+
+    bytes := System.Length(aString) * 2;
+    pr    := PWIDEChar(result);
+
+    for i := 1 to aCount do
+    begin
+      CopyMemory(pr, PWIDEChar(aString), bytes);
+      Inc(pr, bytes);
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.Replace(const aString: UnicodeString;
+                                const aFindStr: UnicodeString;
+                                const aReplaceStr: UnicodeString;
+                                const aFlags: TReplaceFlags): UnicodeString;
+{$ifdef UNICODE}
+  begin
+    result := StringReplace(aString, aFindStr, aReplaceStr, aFlags);
+  end;
+{$else}
+  var
+    i: Integer;
+    pa: TCharIndexArray;
+    pr, ps, px: PWIDEChar;
+    p, flen, xlen, rlen, clen: Integer;
+  begin
+    if (rfReplaceAll in aFlags) then
+    begin
+      if (rfIgnoreCase in aFlags) then
+        WIDE(aString).FindText(aFindStr, pa)
+      else
+        WIDE(aString).Find(aFindStr, pa);
+    end
+    else
+    begin
+      SetLength(pa, 1);
+      if (rfIgnoreCase in aFlags) then
+      begin
+        if WIDE(aString).FindFirstText(aFindStr, p) then
+          pa[0] := p;
+      end
+      else if WIDE(aString).FindFirst(aFindStr, p) then
+        pa[0] := p;
+
+      if pa[0] = 0 then
+        SetLength(pa, 0);
+    end;
+
+    if Length(pa) = 0 then
+      EXIT;
+
+    flen := Length(aFindStr);
+    xlen := Length(aReplaceStr);
+    rlen := Length(aString) + (Length(pa) * ((xlen - flen)));
+
+    SetLength(result, rlen);
+
+    pr := PWIDEChar(result);
+    ps := PWIDEChar(aString);
+    px := PWIDEChar(aReplaceStr);
+
+    CopyMemory(pr, ps, (pa[0] - 1) * 2);
+    Inc(pr, pa[0] - 1);
+    Inc(ps, flen);
+
+    if (xlen > 0) then
+    begin
+      CopyMemory(pr, px, xlen * 2);
+      Inc(pr, xlen);
+    end;
+
+    Inc(ps, pa[0] - 1);
+
+    for i := 1 to Pred(Length(pa)) do
+    begin
+      clen := pa[i] - (pa[i - 1] + flen);
+      if (clen > 0) then
+      begin
+        CopyMemory(pr, ps, clen * 2);
+        Inc(pr, clen);
+      end;
+
+      if (xlen > 0) then
+      begin
+        CopyMemory(pr, px, xlen * 2);
+        Inc(pr, xlen);
+      end;
+
+      Inc(ps, clen + flen);
+    end;
+
+    if (pr - PWIDEChar(result)) < rlen then
+    begin
+      clen := Length(aString) - (ps - PWIDEChar(aString));
+      CopyMemory(pr, ps, clen * 2);
+    end;
+  end;
+{$endif}
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.TrimLeft(const aString: UnicodeString;
+                                 const aChar: ASCIIChar): UnicodeString;
+  var
+    i, p: Integer;
+    pc: PWIDEChar;
+    wc: WIDEChar;
+  begin
+    p   := 1;
+    wc  := WIDEChar(aChar);
+    pc  := PWIDEChar(aString);
+
+    for i := 1 to System.Length(aString) do
+      if (pc^ <> wc) then
+      begin
+        p := i;
+        BREAK;
+      end
+      else
+        Inc(pc);
+
+    if (p > 1) then
+      result := Copy(aString, p, 1 + System.Length(aString) - p)
+    else
+      result := aString;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.Trim(const aString: UnicodeString;
+                             const aChar: ASCIIChar): UnicodeString;
+  begin
+    result := aString;
+    result := TrimLeft(result, aChar);
+    result := TrimRight(result, aChar);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.TrimLeft(const aString: UnicodeString;
+                                 const aCount: Integer): UnicodeString;
+  begin
+    result := Copy(aString, aCount + 1, System.Length(aString) - aCount);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.TrimRight(const aString: UnicodeString;
+                                  const aChar: ASCIIChar): UnicodeString;
+  var
+    i, p: Integer;
+    len: Integer;
+    wc: WIDEChar;
+    pc: PWIDEChar;
+  begin
+    result  := aString;
+    len     := System.Length(aString);
+
+    if (len = 0) then
+      EXIT;
+
+    p   := 0;
+    wc  := WIDEChar(aChar);
+    pc  := @aString[len];
+
+    for i := len downto 1 do
+      if (pc^ <> wc) then
+      begin
+        p := i;
+        BREAK;
+      end
+      else
+        Dec(pc);
+
+    if (p < len) then
+      SetLength(result, len - p);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.TrimRight(const aString: UnicodeString;
+                                  const aCount: Integer): UnicodeString;
+  begin
+    result := aString;
+    SetLength(result, System.Length(result) - aCount);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.SameText(const A, B: UnicodeString): Boolean;
   begin
     result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                             PWideChar(S1), Length(S1),
-                             PWideChar(S2), Length(S2)) = CSTR_EQUAL;
+                             PWIDEChar(A), Length(A),
+                             PWIDEChar(B), Length(B)) = CSTR_EQUAL;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Dequote(const aString: UnicodeString): UnicodeString;
+  class function WIDEFn.StringOfChar(const aChar: ASCIIChar;
+                                     const aCount: Integer): UnicodeString;
   var
-    i, j: Integer;
-    qc: WideChar;
-    s: String;
+    i: Integer;
+    wc: WIDEChar;
+    pr: PWIDEChar;
+  begin
+    SetLength(result, aCount * 2);
+
+    wc  := WIDEChar(aChar);
+    pr  := PWIDEChar(result);
+
+    for i := 1 to aCount do
+    begin
+      pr^ := wc;
+      Inc(pr);
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.Unbrace(const aString: UnicodeString): UnicodeString;
+  var
+    rlen: Integer;
+  begin
+    rlen := Length(aString) - 2;
+    SetLength(result, rlen);
+    CopyMemory(PWIDEChar(result), @aString[2], rlen * 2);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function WIDEFn.Unquote(const aString: UnicodeString): UnicodeString;
+  var
+    i, j, maxi: Integer;
+    qc: WIDEChar;
   begin
     qc := aString[1];
     if (aString[Length(aString)] <> qc)
@@ -1915,112 +1923,49 @@ implementation
       EXIT;
     end;
 
-    s := Copy(aString, 2, Length(aString) - 2);
-    SetLength(result, Length(s));
+    SetLength(result, Length(aString) - 2);
 
-    j := 1;
+    i     := 2;
+    maxi  := System.Length(aString) - 1;
+    j     := 1;
 
-    for i := 1 to Length(s) do
+    while i <= maxi do
     begin
-      if (s[j] = qc) then
+      result[j] := aString[i];
+      if (aString[i] = qc) then
       begin
-        if (s[j + 1] = qc) then
-          Inc(j)
+        if (aString[i + 1] = qc) then
+          Inc(i, 2)
         else
-          raise Exception.Create('Enquoted string ' + aString + ' contains incorrectly escaped quotes');
+          raise Exception.Create('Quoted string ''' + aString + ''' contains incorrectly escaped quotes');
       end
       else
-        result[i] := s[j];
+        Inc(i);
 
       Inc(j);
     end;
+
+    SetLength(result, j - 1);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Lowercase(const aChar: WideChar): WideChar;
+  class function WIDEFn.Uppercase(const aChar: WIDEChar): WIDEChar;
   begin
-    result := WideLowerCase(aChar)[1];
+    result := aChar;
+    CharUpperBuffW(@result, 1);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Lowercase(const aString: UnicodeString): UnicodeString;
-  begin
-    result := WideLowerCase(aString);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class procedure WIDESupport.Remove(var aString: UnicodeString;
-                                     const aSubString: UnicodeString);
-  begin
-    aString := StringReplace(aString, aSubString, '', [rfReplaceAll]);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class procedure WIDESupport.RemoveText(var aString: UnicodeString;
-                                         const aSubString: UnicodeString);
-  begin
-    aString := StringReplace(aString, aSubString, '', [rfReplaceAll, rfIgnoreCase]);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class procedure WIDESupport.Replace(var aString: UnicodeString;
-                                      const aOldChar: WideChar;
-                                      const aNewChar: WideChar);
+  class function WIDEFn.Uppercase(const aString: UnicodeString): UnicodeString;
   var
-    i: Integer;
+    len: Integer;
   begin
-    for i := 1 to Length(aString) do
-      if (aString[i] = aOldChar) then
-        aString[i] := aNewChar;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Uppercase(const aChar: WideChar): WideChar;
-  begin
-    result := WideUpperCase(aChar)[1];
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDESupport.Uppercase(const aString: UnicodeString): UnicodeString;
-  begin
-    result := WideUpperCase(aString);
-  end;
-
-
-  
-  
-  
-  
-  
-
-{ WIDE ------------------------------------------------------------------------------------------- }
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDE.Encode(const aString: String): UnicodeString;
-  begin
-  {$ifdef UNICODE}
-    result := aString;
-  {$else}
-    result := WIDE.FromANSI(aString);
-  {$endif}
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function WIDE.Decode(const aString: UnicodeString): String;
-  begin
-  {$ifdef UNICODE}
-    result := aString;
-  {$else}
-    result := ANSI.FromWide(aString);
-  {$endif}
+    len := System.Length(aString);
+    SetString(result, PWIDEChar(aString), len);
+    if len > 0 then
+      CharUpperBuffW(PWIDEChar(result), len);
   end;
 
 
@@ -2031,16 +1976,14 @@ implementation
 
 
 
-
-{ STR -------------------------------------------------------------------------------------------- }
 
 {$ifdef UNICODE}
-  class function STR.FromWide(const aString: UnicodeString): String;
+  class function STRFn.FromWIDE(const aString: UnicodeString): UnicodeString;
   begin
     result := aString;
   end;
 {$else}
-  class function STR.FromANSI(const aString: ANSIString): String;
+  class function STRFn.FromANSI(const aString: ANSIString): ANSIString;
   begin
     result := aString;
   end;
@@ -2048,4 +1991,139 @@ implementation
 
 
 
+
+
+
+
+
+
+  function ANSI: ANSIClass;
+  begin
+    result := ANSIFn;
+  end;
+
+  function ANSI(const aChar: ANSIChar): IANSIChar;
+  begin
+    result := TANSIChar.Create(aChar);
+  end;
+
+  function ANSI(const aString: ANSIString): IANSIString;
+  begin
+    result := TANSIString.Create(aString);
+  end;
+
+
+  function ANSIFromUTF8(const aString: UTF8String): IANSIString;
+  begin
+    result := TANSIString.Create(ANSI.FromUTF8(aString));
+  end;
+
+
+  function ANSIFromWIDE(const aString: UnicodeString): IANSIString;
+  begin
+    result := TANSIString.Create(ANSI.FromWIDE(aString));
+  end;
+
+
+
+
+
+
+  function WIDE: WIDEClass;
+  begin
+    result := WIDEFn;
+  end;
+
+
+  function WIDE(const aChar: WIDEChar): IWIDEChar;
+  begin
+    result := TWIDEChar.Create(aChar);
+  end;
+
+
+  function WIDE(const aString: UnicodeString): IWIDEString;
+  begin
+    result := TWIDEString.Create(aString);
+  end;
+
+
+  function WIDEFromANSI(const aString: ANSIString): IWIDEString;
+  begin
+    result := TWIDEString.Create(WIDE.FromANSI(aString));
+  end;
+
+
+  function WIDEFromUTF8(const aString: UTF8String): IWIDEString;
+  begin
+    result := TWIDEString.Create(WIDE.FromUTF8(aString));
+  end;
+
+
+
+
+
+  function STR: STRClass; overload;
+  begin
+    result := STRFn;
+  end;
+
+
+{$ifdef UNICODE}
+  function STR(const aChar: WIDEChar): IWIDEChar;
+  begin
+    result := TWIDEChar.Create(aChar);
+  end;
+
+  function STR(const aString: UnicodeString): IWIDEString;
+  begin
+    result := TWIDEString.Create(aString);
+  end;
+{$else}
+  function STR(const aChar: ANSIChar): IANSIChar;
+  begin
+    result := TANSIChar.Create(aChar);
+  end;
+
+  function STR(const aString: ANSIString): IANSIString;
+  begin
+    result := TANSIString.Create(aString);
+  end;
+{$endif}
+
+
+
+
+
+
+  function UTF8: UTF8Class;
+  begin
+    result := UTF8Fn;
+  end;
+
+
+  function UTF8(const aString: UTF8String): IUTF8String;
+  begin
+    result := TUTF8String.Create(aString);
+  end;
+
+
+  function UTF8FromANSI(const aString: ANSIString): IUTF8String;
+  begin
+    result := TUTF8String.Create(UTF8.FromANSI(aString));
+  end;
+
+
+  function UTF8FromSTR(const aString: String): IUTF8String;
+  begin
+    result := TUTF8String.Create(UTF8.Encode(aString));
+  end;
+
+
+  function UTF8FromWIDE(const aString: UnicodeString): IUTF8String;
+  begin
+    result := TUTF8String.Create(UTF8.FromWIDE(aString));
+  end;
+
+
 end.
+

@@ -609,7 +609,11 @@ const
         case aDef.ClassID of
           dcString        : begin
                               while NOT EOF and (fTokenLength < aDef.Length) do
+                              begin
                                 ReadChar(chr);
+                                if NOT aDef.IsCompatible(fCompareBuffer, fTokenLength) then
+                                  EXIT;
+                              end;
 
                               result := (fTokenLength = aDef.Length);
                             end;
@@ -708,6 +712,11 @@ const
 
     // Get initial list of candidate token kinds
     CloneList(Dictionary.GetDefinitions(fStartPos, chr), fCandidateTokens);
+
+    for i := 0 to Pred(fCandidateTokens.Count) do
+      if TTokenDefinition(fCandidateTokens[i]).ClassID = dcDelimited then
+        TDelimitedToken(fCandidateTokens[i]).Reset;
+
     fRewind.Poke(fCandidateTokens);
 
     // Now try and whittle down the fCandidateTokens by building up the

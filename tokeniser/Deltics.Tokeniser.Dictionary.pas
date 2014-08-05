@@ -117,7 +117,6 @@ type
 
     function get_Items(const aIndex: Integer): TTokenDefinition;
     function get_ItemCount: Integer;
-
   protected
     procedure Initialise; virtual; abstract;
     procedure Prepare;
@@ -131,6 +130,11 @@ type
     procedure AddCharSet(const aID: TTokenID;
                          const aName: String;
                          const aValidChars: TANSICharSet;
+                         const aDialects: TDialects = []); overload;
+    procedure AddCharSet(const aID: TTokenID;
+                         const aName: String;
+                         const aInitialChar: TANSICharSet;
+                         const aFollowingChars: TANSICharSet;
                          const aDialects: TDialects = []); overload;
     procedure AddCharSet(const aID: TTokenID;
                          const aName: String;
@@ -164,6 +168,19 @@ type
                                   const aValidChars: TANSICharSet;
                                   const aUnicodeAllowed: Boolean = FALSE;
                                   const aDialects: TDialects = []);
+    procedure AddDelimitedWithStrings(const aID: TTokenID;
+                                      const aName: String;
+                                      const aPrefix: UnicodeString;
+                                      const aSuffix: UnicodeString;
+                                      const aMultiline: Boolean = FALSE;
+                                      const aDialects: TDialects = []);
+    procedure AddDelimitedWithStringsAndLineComments(const aID: TTokenID;
+                                                     const aName: String;
+                                                     const aPrefix: UnicodeString;
+                                                     const aSuffix: UnicodeString;
+                                                     const aLineCommentPrefix: UnicodeString;
+                                                     const aDialects: TDialects = []);
+
     procedure AddQualifiedCharSet(const aID: TTokenID;
                                   const aName: String;
                                   const aInitialChars: TANSICharSet;
@@ -202,7 +219,7 @@ type
                         const aDialects: TDialects = []); overload;
     procedure SetCaseSensitivity(const aIsSensitive: Boolean);
     procedure SetCompoundable(const aIDs: array of TTokenID);
-    procedure SetInnerDictionary(const aID: TTokenID; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions; const aIsSubstitution: Boolean = FALSE);
+    procedure SetInnerDictionary(const aID: TTokenID; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]; const aIsSubstitution: Boolean = FALSE);
     procedure SetSubDictionary(const aID: TTokenID; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]; const aIsSubstitution: Boolean = FALSE);
   public
     constructor Create;
@@ -412,8 +429,17 @@ type
 
     TDelimitedToken = class(TPrefixedToken)
     private
+      fIncludesStrings: Boolean;
+      fInLineComment: Boolean;
+      fInString: Boolean;
+      fInStringChar: WideChar;
+      fInStringCheckedLength: Integer;
+      fLineCommentPrefix: UnicodeString;
       fSuffix: UnicodeString;
       fSuffixLength: Integer;
+    private
+      procedure CheckLineComment(const aBuffer: PWideCharArray; const aLength: Integer);
+      procedure CheckString(const aBuffer: PWideCharArray; const aLength: Integer);
     protected
       constructor Create(const aDictionary: TTokenDictionary;
                          const aID: Integer;
@@ -422,8 +448,23 @@ type
                          const aSuffix: UnicodeString;
                          const aMultiLine: Boolean;
                          const aDialects: TDialects);
+      constructor CreateWithStrings(const aDictionary: TTokenDictionary;
+                                    const aID: Integer;
+                                    const aName: String;
+                                    const aPrefix: UnicodeString;
+                                    const aSuffix: UnicodeString;
+                                    const aMultiLine: Boolean;
+                                    const aDialects: TDialects);
+      constructor CreateWithStringsAndLineComments(const aDictionary: TTokenDictionary;
+                                                   const aID: Integer;
+                                                   const aName: String;
+                                                   const aPrefix: UnicodeString;
+                                                   const aSuffix: UnicodeString;
+                                                   const aLineCommentPrefix: UnicodeString;
+                                                   const aDialects: TDialects);
       property SuffixLength: Integer read fSuffixLength;
     public
+      procedure Reset;
       function IsCompatible(const aBuffer: PWideCharArray;
                             const aLength: Integer): Boolean; override;
       function IsComplete(const aBuffer: PWideCharArray;
@@ -569,6 +610,17 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenDictionary.AddCharSet(const aID: TTokenID;
                                         const aName: String;
+                                        const aInitialChar: TANSICharSet;
+                                        const aFollowingChars: TANSICharSet;
+                                        const aDialects: TDialects);
+  begin
+    AddQualifiedCharSet(aID, aName, aInitialChar, aFollowingChars, uaNowhere, aDialects);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenDictionary.AddCharSet(const aID: TTokenID;
+                                        const aName: String;
                                         const aCharSets: TArrayOfANSICharSet;
                                         const aRequiredSequences: Integer;
                                         const aDialects: TDialects);
@@ -619,6 +671,30 @@ implementation
                                           const aDialects: TDialects);
   begin
     TDelimitedToken.Create(self, aID, aName, aPrefix, aSuffix, aMultiLine, aDialects);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenDictionary.AddDelimitedWithStrings(const aID: TTokenID;
+                                                     const aName: String;
+                                                     const aPrefix: String;
+                                                     const aSuffix: String;
+                                                     const aMultiline: Boolean;
+                                                     const aDialects: TDialects);
+  begin
+    TDelimitedToken.CreateWithStrings(self, aID, aName, aPrefix, aSuffix, aMultiLine, aDialects);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenDictionary.AddDelimitedWithStringsAndLineComments(const aID: TTokenID;
+                                                                    const aName: String;
+                                                                    const aPrefix: String;
+                                                                    const aSuffix: String;
+                                                                    const aLineCommentPrefix: String;
+                                                                    const aDialects: TDialects);
+  begin
+    TDelimitedToken.CreateWithStringsAndLineComments(self, aID, aName, aPrefix, aSuffix, aLineCommentPrefix, aDialects);
   end;
 
 
@@ -1648,6 +1724,95 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TDelimitedToken.CreateWithStrings(const aDictionary: TTokenDictionary;
+                                                const aID: Integer;
+                                                const aName: String;
+                                                const aPrefix: String;
+                                                const aSuffix: String;
+                                                const aMultiLine: Boolean;
+                                                const aDialects: TDialects);
+  begin
+    Create(aDictionary, aID, aName, aPrefix, aSuffix, aMultiline, aDialects);
+
+    fIncludesStrings := TRUE;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TDelimitedToken.CreateWithStringsAndLineComments(const aDictionary: TTokenDictionary;
+                                                               const aID: Integer;
+                                                               const aName: String;
+                                                               const aPrefix: String;
+                                                               const aSuffix: String;
+                                                               const aLineCommentPrefix: String;
+                                                               const aDialects: TDialects);
+
+  begin
+    Create(aDictionary, aID, aName, aPrefix, aSuffix, TRUE, aDialects);
+
+    fIncludesStrings    := TRUE;
+    fLineCommentPrefix  := aLineCommentPrefix;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TDelimitedToken.CheckLineComment(const aBuffer: PWideCharArray; const aLength: Integer);
+  var
+    i: Integer;
+    c: WideChar;
+    plen: Integer;
+  begin
+    c     := aBuffer[Pred(aLength)];
+    plen  := System.Length(fLineCommentPrefix);
+
+    if (c = #13) or (c = #10) or (plen = 0) then
+    begin
+      fInLineComment := FALSE;
+      EXIT;
+    end
+    else if fInLineComment then
+      EXIT;
+
+    fInLineComment := (c = fLineCommentPrefix[plen]);
+    if NOT fInLineComment then
+      EXIT;
+
+    for i := 1 to plen do
+      if aBuffer[aLength - i] <> fLineCommentPrefix[plen - i + 1] then
+      begin
+        fInLineComment := FALSE;
+        EXIT;
+      end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TDelimitedToken.CheckString(const aBuffer: PWideCharArray;
+                                        const aLength: Integer);
+  var
+    c: WideChar;
+  begin
+    if (aLength <= fInStringCheckedLength) then
+      EXIT;
+
+    fInStringCheckedLength := aLength;
+
+    c := aBuffer^[Pred(aLength)];
+
+    if fInString and (c = fInStringChar) then
+    begin
+      fInString     := FALSE;
+      fInStringChar := #0;
+    end
+    else if (NOT fInString) and ((c = '''') or (c = '"')) then
+    begin
+      fInString     := TRUE;
+      fInStringChar := c;
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TDelimitedToken.IsCompatible(const aBuffer: PWideCharArray;
                                         const aLength: Integer): Boolean;
   begin
@@ -1671,19 +1836,39 @@ implementation
     if NOT result then
       EXIT;
 
+    CheckLineComment(aBuffer, aLength);
+
+    if NOT fInLineComment and fIncludesStrings then
+      CheckString(aBuffer, aLength);
+
     for i := SuffixLength downto 1 do
     begin
-try   c   := aBuffer^[aLength - (SuffixLength - i) - 1];
+      c   := aBuffer^[aLength - (SuffixLength - i) - 1];
       sc  := fSuffix[i];
-except
-  on e: Exception do
-    raise;
-end;
+
       result := (c = sc);
       if NOT result then
         EXIT;
     end;
+
+    result := NOT fInString;
   end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TDelimitedToken.Reset;
+  begin
+    fInString               := FALSE;
+    fInStringChar           := #0;
+    fInStringCheckedLength  := 0;
+  end;
+
+
+
+
+
+
+
 
 
 

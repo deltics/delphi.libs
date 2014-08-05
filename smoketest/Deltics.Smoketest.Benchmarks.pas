@@ -432,7 +432,7 @@ implementation
   var
     notUsed: UnicodeString;
   begin
-    WIDE.Split(fFiles[aIndex], WideChar('*'), result, notUsed);
+    WIDE(fFiles[aIndex]).Split(WIDEChar('*'), result, notUsed);
   end;
 
 
@@ -441,7 +441,7 @@ implementation
   var
     notUsed: UnicodeString;
   begin
-    WIDE.Split(fFiles[aIndex], WideChar('*'), notUsed, result);
+    WIDE(fFiles[aIndex]).Split(WIDEChar('*'), notUsed, result);
   end;
 
 

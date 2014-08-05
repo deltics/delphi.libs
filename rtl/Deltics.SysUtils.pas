@@ -155,6 +155,7 @@ interface
   procedure FillZero(var aDest; const aSize: Integer); overload;
   function ReverseBytes(const aValue: Word): Word; overload;
   function ReverseBytes(const aValue: LongWord): LongWord; overload;
+  function ReverseBytes(const aValue: Int64): Int64; overload;
 
   function Round(const aValue: Extended;
                  const aStrategy: TRoundingStrategy = rsDefault): Integer;
@@ -772,6 +773,20 @@ implementation
             or  ((aValue and $00ff0000) shr 8)
             or  ((aValue and $0000ff00) shl 8)
             or  ((aValue and $000000ff) shl 24));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function ReverseBytes(const aValue: Int64): Int64; overload;
+  begin
+    result :=  (((aValue and $ff00000000000000) shr 56)
+            or  ((aValue and $00ff000000000000) shr 40)
+            or  ((aValue and $0000ff0000000000) shr 24)
+            or  ((aValue and $000000ff00000000) shr 8)
+            or  ((aValue and $00000000ff000000) shl 8)
+            or  ((aValue and $0000000000ff0000) shl 24)
+            or  ((aValue and $000000000000ff00) shl 40)
+            or  ((aValue and $00000000000000ff) shl 56));
   end;
 
 

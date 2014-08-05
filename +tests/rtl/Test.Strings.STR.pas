@@ -58,15 +58,15 @@ implementation
   begin
     for i := 0 to Pred(NUM_LT) do
       Test(CASES[i].A + ' < ' + CASES[i].B + '!')
-        .Expect(STR.Compare(CASES[i].A, CASES[i].B)).Equals(-1);
+        .Expect(STR(CASES[i].A).CompareWith(CASES[i].B)).Equals(-1);
 
     for i := NUM_LT to Pred(NUM_LT + NUM_EQ) do
       Test(CASES[i].A + ' = ' + CASES[i].B + '!')
-        .Expect(STR.Compare(CASES[i].A, CASES[i].B)).Equals(0);
+        .Expect(STR(CASES[i].A).CompareWith(CASES[i].B)).Equals(0);
 
     for i := (NUM_LT + NUM_EQ) to Pred(Length(CASES)) do
       Test(CASES[i].A + ' > ' + CASES[i].B + '!')
-        .Expect(STR.Compare(CASES[i].A, CASES[i].B)).Equals(1);
+        .Expect(STR(CASES[i].A).CompareWith(CASES[i].B)).Equals(1);
   end;
 
 
@@ -123,7 +123,7 @@ implementation
   begin
     for i := 0 to Pred(Length(CASES)) do
       Test(CASES[i].A + ' same text as ' + CASES[i].B + '!')
-        .Expect(STR.SameText(CASES[i].A, CASES[i].B)).IsTRUE;
+        .Expect(STR(CASES[i].A).EqualsText(CASES[i].B)).IsTRUE;
   end;
 
 

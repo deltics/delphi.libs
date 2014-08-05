@@ -161,7 +161,7 @@ implementation
     AddString(bashProcessID,  '$$');
 
     TokenType := ttLiteral;
-    AddDelimited(bashBackticks, 'Backticks',  '`',    '`');
+    AddDelimited(bashBackticks, 'Backticks',  '`', '`');
     SetInnerDictionary(bashBackticks, self);
 
     AddDelimited(bashString,    'String',     '''',   '''');

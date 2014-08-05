@@ -134,7 +134,7 @@
 			<Directories Name="PackageDCPOutputDir">$(bpl)</Directories>
 			<Directories Name="SearchPath">$(deltics)\rtl;$(deltics)\smoketest</Directories>
 			<Directories Name="Packages"></Directories>
-			<Directories Name="Conditionals"></Directories>
+			<Directories Name="Conditionals">deltics_strings</Directories>
 			<Directories Name="DebugSourceDirs"></Directories>
 			<Directories Name="UsePackages">False</Directories>
 		</Directories>

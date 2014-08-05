@@ -12,14 +12,13 @@ interface
     TWIDEPerformance = class(TStringPerformanceCase)
       procedure SystemPosChar;
       procedure SystemPosStr;
-      procedure PosChar;
-      procedure NPosChar;
-      procedure RPosChar;
-      procedure PosStr;
-      procedure NPosStr;
-      procedure RPosStr;
-      procedure PosCharText;
-      procedure PosText;
+      procedure FindFirstChar;
+      procedure FindFirstStr;
+      procedure FindFirstText;
+      procedure FindNextChar;
+      procedure FindNextStr;
+      procedure FindLastChar;
+      procedure FindLastStr;
     end;
 
 
@@ -49,47 +48,60 @@ implementation
     Pos(FOX, STR);
   end;
 
-  procedure TWIDEPerformance.PosChar;
+  procedure TWIDEPerformance.FindFirstChar;
   const// 0         1         2         3         4
     STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
     FOX: WideChar = 'f';
   var
     p: Integer;
   begin
-    WIDE.Pos(STR, FOX, p);
+    WIDE(STR).FindFirst(FOX, p);
   end;
 
-  procedure TWIDEPerformance.PosStr;
+  procedure TWIDEPerformance.FindFirstStr;
   const// 0         1         2         3         4
     STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
     FOX: UnicodeString = 'fox';
   var
     p: Integer;
   begin
-    WIDE.Pos(STR, FOX, p);
+    WIDE(STR).FindFirst(FOX, p);
   end;
 
-  procedure TWIDEPerformance.PosCharText;
+  procedure TWIDEPerformance.FindFirstText;
   const// 0         1         2         3         4
     STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: UnicodeString = 'F';
+    FOX: UnicodeString = 'FOX';
   var
     p: Integer;
   begin
-    WIDE.PosText(STR, FOX, p);
+    WIDE(STR).FindFirstText(FOX, p);
   end;
 
-  procedure TWIDEPerformance.PosText;
+
+  procedure TWIDEPerformance.FindLastChar;
+  const// 0         1         2         3         4
+    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
+    FOX: WideChar = 'f';
+  var
+    p: Integer;
+  begin
+    WIDE(STR).FindLast(FOX, p);
+  end;
+
+
+  procedure TWIDEPerformance.FindLastStr;
   const// 0         1         2         3         4
     STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
     FOX: UnicodeString = 'fox';
   var
     p: Integer;
   begin
-    WIDE.PosText(STR, FOX, p);
+    WIDE(STR).FindLast(FOX, p);
   end;
 
-  procedure TWIDEPerformance.NPosChar;
+
+  procedure TWIDEPerformance.FindNextChar;
   const               // 0         1         2         3         4
     STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
     FOX: WideChar = 'f';
@@ -97,20 +109,11 @@ implementation
     p: Integer;
   begin
     p := 18;
-    WIDE.NPos(STR, FOX, p);
+    WIDE(STR).FindNext(FOX, p);
   end;
 
-  procedure TWIDEPerformance.RPosChar;
-  const// 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: WideChar = 'f';
-  var
-    p: Integer;
-  begin
-    WIDE.RPos(STR, FOX, p);
-  end;
 
-  procedure TWIDEPerformance.NPosStr;
+  procedure TWIDEPerformance.FindNextStr;
   const               // 0         1         2         3         4
     STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
     FOX: UnicodeString = 'fox';
@@ -118,19 +121,8 @@ implementation
     p: Integer;
   begin
     p := 18;
-    WIDE.NPos(STR, FOX, p);
+    WIDE(STR).FindNext(FOX, p);
   end;
-
-  procedure TWIDEPerformance.RPosStr;
-  const// 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: UnicodeString = 'fox';
-  var
-    p: Integer;
-  begin
-    WIDE.RPos(STR, FOX, p);
-  end;
-
 
 
 

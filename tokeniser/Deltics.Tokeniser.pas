@@ -170,8 +170,9 @@ interface
       function get_Item(const aIndex: Integer): IToken;
       function get_Last: IToken;
 
-      procedure CreateToken(const aText: UnicodeString);
+      procedure Add(const aText: UnicodeString);
       function IndexOf(const aToken: IToken): Integer;
+      procedure Insert(const aIndex: Integer; const aText: UnicodeString);
       procedure Replace(const aToken: IToken; const aText: String);
       function Slice(const aFrom, aTo: Integer): ITokenList;
 
@@ -202,6 +203,7 @@ interface
       fItems: TInterfaceList;
     public
       constructor Create; overload;
+      constructor CreateClone(const aSource: TTokenList);
       constructor CreateManaged;
       destructor Destroy; override;
 
@@ -215,9 +217,9 @@ interface
       class function LoadFromFile(const aFilename: UnicodeString; var aLines: Integer; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
       class function LoadFromFile(const aFilename: UnicodeString; const aEncoding: TCharEncoding; var aLines: Integer; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
 
-      procedure Add(const aToken: IToken);
       procedure Clear;
       procedure Delete(const aIndex: Integer);
+      procedure Insert(const aIndex: Integer; const aToken: IToken); overload;
       procedure Remove(const aToken: IToken);
 
     protected // ITokenList ---------------------------------------------------
@@ -226,13 +228,18 @@ interface
       function get_Item(const aIndex: Integer): IToken;
       function get_Last: IToken;
     public
-      procedure CreateToken(const aText: UnicodeString);
+      procedure Add(const aToken: IToken); overload;
+      procedure Add(const aText: UnicodeString); overload;
+      procedure Add(const aTokenList: ITokenList); overload;
+      procedure Insert(const aIndex: Integer; const aText: UnicodeString); overload;
       function IndexOf(const aToken: IToken): Integer;
       procedure Replace(const aToken: IToken; const aText: String);
       function Slice(const aFrom, aTo: Integer): ITokenList;
     public
       property Count: Integer read get_Count;
       property Items[const aIndex: Integer]: IToken read get_Item; default;
+      property First: IToken read get_First;
+      property Last: IToken read get_Last;
     end;
 
 
@@ -391,6 +398,16 @@ implementation
     finally
       reader.Free;
     end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TTokenList.CreateClone(const aSource: TTokenList);
+  begin
+    Create;
+
+    while Count < aSource.Count do
+      Add(aSource[Count]);
   end;
 
 
@@ -575,12 +592,41 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTokenList.CreateToken(const aText: UnicodeString);
+  procedure TTokenList.Add(const aText: UnicodeString);
   var
     token: IToken;
   begin
     token := TTokenHelper.Create(NIL, aText, 0, 0, 0, 0);
     fItems.Add(token);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenList.Add(const aTokenList: ITokenList);
+  var
+    i: Integer;
+  begin
+    for i := 0 to Pred(aTokenList.Count) do
+      Add(aTokenList[i]);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenList.Insert(const aIndex: Integer;
+                              const aText: UnicodeString);
+  var
+    token: IToken;
+  begin
+    token := TTokenHelper.Create(NIL, aText, 0, 0, 0, 0);
+    fItems.Insert(aIndex, token);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenList.Insert(const aIndex: Integer;
+                              const aToken: IToken);
+  begin
+    fItems.Insert(aIndex, aToken);
   end;
 
 

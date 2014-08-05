@@ -7,7 +7,7 @@ interface
 
   uses
   { deltics: }
-    Deltics.SmokeTest,
+    Deltics.Smoketest,
     Deltics.JSON;
 
 

@@ -943,6 +943,7 @@ interface
       procedure Alert(aMessage: UnicodeString);
       procedure Note(aMessage: UnicodeString); overload;
       procedure Note(aMessage: UnicodeString; const aArgs: array of const); overload;
+      function Inspect: IInspector; overload;
       function Test: ITest; overload;
 
       // The Deltics.Smoketest unit has a Smoketest reference which provides access
@@ -2407,7 +2408,11 @@ implementation
     if (fName = '') then
     begin
       fName := ClassName;
+    {$ifdef NEWSTRINGS}
+      if (fName[1] = 'T') and WIDE(fName[2]).IsUppercase then
+    {$else}
       if (fName[1] = 'T') and WIDE.IsUppercase(fName[2]) then
+    {$endif}
         Delete(fName, 1, 1);
 
       fName := CamelCapsToWords(fName);
@@ -3502,14 +3507,14 @@ implementation
 
     result := inherited SetDisplayName;
 
-    if WIDE.BeginsWithText(result, 'TUnitTest_') then
+    if WIDE(result).BeginsWithText('TUnitTest_') then
     begin
       Delete(result, 1, 10);
     end
     else
     begin
-      if (result[1] = 'T') and WIDE.IsUppercase(result[2]) then
-          Delete(result, 1, 1);
+      if (result[1] = 'T') and WIDE(result[2]).IsUppercase then
+        Delete(result, 1, 1);
 
       result := CamelCapsToWords(result);
     end;
@@ -4215,6 +4220,13 @@ implementation
     State.Leave(aStateID);
   end;
 
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TTestCase.Inspect: IInspector;
+  begin
+    result := Inspect('');
+  end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }

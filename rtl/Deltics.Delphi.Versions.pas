@@ -112,7 +112,7 @@ implementation
     result := dvUnknown;
 
     for v := High(TDelphiVersion) downto dvUnknown do
-      if STR.ContainsText(aName, PRODUCT_NAME[v]) then
+      if STR(aName).ContainsText(PRODUCT_NAME[v]) then
       begin
         result := v;
         EXIT;

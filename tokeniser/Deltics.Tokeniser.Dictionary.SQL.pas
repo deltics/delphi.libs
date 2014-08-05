@@ -21,6 +21,7 @@ interface
     ttLiteral         = #6;
     ttSymbol          = #7;
     ttIsolationLevel  = #8;
+    ttParameter       = #9;
 
     sqlWhitespace         = 100;
     sqlEOL                = 101;
@@ -76,6 +77,8 @@ interface
     sqlInteger            = 702;
     sqlFloat              = 703;
     sqlString             = 704;
+
+    sqlParameter          = 800;
 
     sqlPeriod             = tkPeriod;
     sqlComma              = tkComma;
@@ -178,6 +181,9 @@ implementation
     AddString(sqlIsolation_RR,  'rr');
     AddString(sqlIsolation_RS,  'rs');
     AddString(sqlIsolation_UR,  'ur');
+
+    TokenType := ttParameter;
+    AddQualifiedCharSet(sqlParameter, 'Parameter', [':'], ['a'..'z', '_']);
 
     TokenType := ttSymbol;
     AddASCII(sqlComma);
