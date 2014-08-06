@@ -74,7 +74,7 @@ interface
     TStateChangeEvent = procedure(Sender: TObject; const aStateID: TStateID) of object;
 
 
-    TMultiCastStateChange = class(TMultiCastNotify)
+    TMulticastStateChange = class(TMulticastNotify)
     private
       fEventState: TStateID;
       fInitial: TStateChangeEvent;
@@ -98,9 +98,10 @@ interface
       fOwner: TObject;
       fStates: array of TState;
 
-      eOn_Change: TMultiCastStateChange;
-      eOn_Enter: TMultiCastStateChange;
-      eOn_Leave: TMultiCastStateChange;
+      eOn_Change: TMulticastStateChange;
+      eOn_Changed: TMulticastNotify;
+      eOn_Enter: TMulticastStateChange;
+      eOn_Leave: TMulticastStateChange;
 
       function get_AsString: String;
       function get_Count: Integer;
@@ -139,9 +140,10 @@ interface
       property Owner: TObject read fOwner;
       property Ref[const aState: TStateID]: PState read get_StateRef;
 
-      property On_Change: TMultiCastStateChange read eOn_Change;
-      property On_Enter: TMultiCastStateChange read eOn_Enter;
-      property On_Leave: TMultiCastStateChange read eOn_Leave;
+      property On_Change: TMulticastStateChange read eOn_Change;
+      property On_Changed: TMulticastNotify read eOn_Changed;
+      property On_Enter: TMulticastStateChange read eOn_Enter;
+      property On_Leave: TMulticastStateChange read eOn_Leave;
     end;
 
 
@@ -163,9 +165,10 @@ implementation
 
     fOwner := aOwner;
 
-    eOn_Change := TMultiCastStateChange.Create(aOwner);
-    eOn_Enter  := TMultiCastStateChange.Create(aOwner);
-    eOn_Leave  := TMultiCastStateChange.Create(aOwner);
+    eOn_Change  := TMulticastStateChange.Create(aOwner);
+    eOn_Changed := TMulticastNotify.Create(aOwner);
+    eOn_Enter   := TMulticastStateChange.Create(aOwner);
+    eOn_Leave   := TMulticastStateChange.Create(aOwner);
 
     Add(aStateList);
    end;
@@ -175,6 +178,7 @@ implementation
   destructor TStateList.Destroy;
   begin
     FreeAndNIL(eOn_Change);
+    FreeAndNIL(eOn_Changed);
     FreeAndNIL(eOn_Enter);
     FreeAndNIL(eOn_Leave);
     FreeAndNIL(_CriticalSection);
@@ -306,6 +310,8 @@ implementation
 
       if NOT aValue then
         On_Leave.DoEvent(aStateID);
+
+      On_Changed.DoEvent;
     end;
   end;
 
@@ -492,35 +498,35 @@ implementation
 
 
 
-{ TMultiCastStateChange -------------------------------------------------------------------------- }
+{ TMulticastStateChange -------------------------------------------------------------------------- }
 
   {--  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  --}
-  procedure TMultiCastStateChange.Add(const aHandler: TStateChangeEvent);
+  procedure TMulticastStateChange.Add(const aHandler: TStateChangeEvent);
   begin
     inherited Add(TMethod(aHandler));
   end;
 
 
   {--  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  --}
-  procedure TMultiCastStateChange.Remove(const aHandler: TStateChangeEvent);
+  procedure TMulticastStateChange.Remove(const aHandler: TStateChangeEvent);
   begin
     inherited Remove(TMethod(aHandler));
   end;
 
 
   {--  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  --}
-  procedure TMultiCastStateChange.Call(const aMethod: TMethod);
+  procedure TMulticastStateChange.Call(const aMethod: TMethod);
   begin
     TStateChangeEvent(aMethod)(Sender, fEventState);
   end;
 
 
   {--  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  --}
-  procedure TMultiCastStateChange.DoEvent(const aStateID: TStateID);
+  procedure TMulticastStateChange.DoEvent(const aStateID: TStateID);
   begin
     if NOT Enabled then
       EXIT;
-      
+
     fEventState := aStateID;
 
     if Assigned(Initial) then
