@@ -71,7 +71,8 @@ interface
                           toCaseSensitive,
                           toConsumeWhitespace,
                           toNormaliseKeywords,
-                          toNormaliseCase
+                          toNormaliseCase,
+                          toRawStream
                          );
     TTokeniserOptions = set of TTokeniserOption;
 

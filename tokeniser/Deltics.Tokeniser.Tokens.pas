@@ -128,8 +128,10 @@ interface
       function get_Source: TTokenSource;
       function get_Text: UnicodeString;
       function get_TokenCount: Integer;
-      function get_Tokens: ITokenList;
+      function get_Token(const aIndex: Integer): IToken;
+
     public
+      procedure GetTokenList(var aList: ITokenList);
       property Definition: TTokenDefinition read fDefinition write fDefinition;
       property ID: TTokenID read get_ID;
       property IsWhitespace: Boolean read get_IsWhitespace;
@@ -137,7 +139,7 @@ interface
       property Source: TTokenSource read fSource;
       property Text: UnicodeString read fText;
       property TokenCount: Integer read get_TokenCount;
-      property Tokens: ITokenList read get_Tokens;
+      property Token[const aIndex: Integer]: IToken read get_Token;
     end;
 
 
@@ -236,9 +238,18 @@ implementation
   begin
     FreeAndNIL(fLines);
     FreeAndNIL(fSource);
-    FreeAndNIL(fTokens);
+
+    if Assigned(fTokens) then
+      FreeAndNIL(fTokens);
 
     inherited;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TToken.GetTokenList(var aList: ITokenList);
+  begin
+    aList := TTokenList.CreateManagedClone(fTokens);
   end;
 
 
@@ -392,12 +403,15 @@ implementation
       result := 0;
   end;
 
-  function TToken.get_Tokens: ITokenList;
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TToken.get_Token(const aIndex: Integer): IToken;
   begin
-    result := fTokens;
+    result := fTokens[aIndex];
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TToken.SetLineTo(const aLineNo: Integer);
   begin
     TTokenSourceHelper(fSource).SetLineTo(aLineNo);

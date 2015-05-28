@@ -47,8 +47,8 @@ interface
     Classes,
     Contnrs,
     Types,
-    Deltics.Streams,
     Deltics.Strings,
+    Deltics.Unicode,
     Deltics.Tokeniser,
     Deltics.Tokeniser.Consts,
     Deltics.Tokeniser.Dictionary,
@@ -83,12 +83,11 @@ interface
       fStartPos: Integer;
       fCompareBuffer: PWideCharArray;
       fTokenBuffer: PWideCharArray;
-      fMaxTokenLength: Integer;
+      fBufferLength: Integer;
       fTokenLength: Integer;
       fLineNo: Integer;
 
-      fOwnsStream: Boolean;
-      fStream: TUnicodeStream;
+      fSource: IUnicodeReader;
 
       ReadChar: TReadCharProc;
 
@@ -96,11 +95,9 @@ interface
       procedure UnreadChar(const aList: TTokenDefinitions); overload;
 
       function get_EOF: Boolean;
-      function get_Stream: TStream;
-      procedure set_Stream(const aValue: TStream);
 
-      procedure AllocTokenBuffers(const aBufSize: Integer);
-      procedure FreeTokenBuffers;
+      procedure ExpandBuffer;
+      procedure FreeBuffer;
 
       procedure ASCIIReadChar(var aChar: WideChar);
       procedure ASCIIReadCharNoCase(var aChar: WideChar);
@@ -108,7 +105,7 @@ interface
       function CreateToken(const aDefinition: TTokenDefinition;
                            const aText: UnicodeString): TToken;
       function NextTokenDefinition: TTokenDefinition;
-      function ReadToken: IToken;
+      function ReadToken: TToken;
       function TokenText(const aDefinition: TTokenDefinition): UnicodeString;
 
       property CaseSensitive: Boolean read fCaseSensitive;
@@ -117,7 +114,7 @@ interface
       property NormaliseKeywords: Boolean read fNormaliseKeywords;
 
     public
-      constructor Create(const aStream: TStream;
+      constructor Create(const aSource: IUnicodeReader;
                          const aDictionary: TTokenDictionary;
                          const aOptions: TTokeniserOptions = [toConsumeWhitespace]); overload;
       destructor Destroy; override;
@@ -125,7 +122,6 @@ interface
       function Next: IToken;
       property EOF: Boolean read get_EOF;
       property Dictionary: TTokenDictionary read fDictionary;
-      property Stream: TStream read get_Stream write set_Stream;
     end;
 
 
@@ -155,10 +151,8 @@ interface
       procedure Peek(const aList: TTokenDefinitions);
       procedure Poke(const aList: TTokenDefinitions);
       procedure Mark;
-//      procedure Pop(var aChar: WideChar; var aLineNo, aCharPos: Integer; const aList: TTokenDefinitions); overload;
       function Pop(var aChar: WideChar; var aLineNo, aCharPos: Integer): Boolean; overload;
       procedure Push(const aChar: WideChar; const aLineNo, aCharPos: Integer); overload;
-//      procedure Push(const aChar: WideChar; const aLineNo, aCharPos: Integer; const aList: TTokenDefinitions); overload;
       property IsEmpty: Boolean read fIsEmpty;
       property IsMarked: Boolean read get_IsMarked;
     end;
@@ -289,8 +283,10 @@ implementation
 
 
 
-const
-    BUFSIZE = 1024;
+  const
+    BUFFER_EXPANSION = 1024;  // Number of (wide)chars by which to expand the
+                              //  token buffer as and when the current buffer
+                              //  is filled
 
 
   type
@@ -299,7 +295,7 @@ const
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TTokenReader.Create(const aStream: TStream;
+  constructor TTokenReader.Create(const aSource: IUnicodeReader;
                                   const aDictionary: TTokenDictionary;
                                   const aOptions: TTokeniserOptions);
   begin
@@ -316,9 +312,9 @@ const
     fNormaliseKeywords  := toNormaliseKeywords in aOptions;
 
     fDictionary := aDictionary;
-    Stream      := aStream;
+    fSource     := aSource;
 
-    AllocTokenBuffers(BUFSIZE);
+    ExpandBuffer;
 
     if CaseSensitive then
       ReadChar := ASCIIReadChar
@@ -333,12 +329,10 @@ const
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   destructor TTokenReader.Destroy;
   begin
-    Stream := NIL;
-
     FreeAndNIL(fInvalidTokens);
     FreeAndNIL(fCandidateTokens);
 
-    FreeTokenBuffers;
+    FreeBuffer;
 
     fRewind.Free;
     fReplay.Free;
@@ -359,7 +353,9 @@ const
     aDelimited: TDelimitedToken absolute aDefinition;
     token: TTokenHelper absolute result;
     sub: TTokenReader;
-    strm: TReadMemoryStream;
+    reader: IUnicodeReader;
+    buf: PWideChar;
+    bufLen: Integer;
   begin
     result := NIL;
 
@@ -403,12 +399,19 @@ const
       //  desirable or even necessary!)
 
       if aDefinition.InnerDictionary then
-        strm  := TReadMemoryStream.Create(@fTokenBuffer[Length(aDelimited.Prefix)],
-                                           (fTokenLength - (Length(aDelimited.Prefix) + Length(aDelimited.Suffix)) + 1) * 2)
+      begin
+        buf     := @fTokenBuffer[Length(aDelimited.Prefix)];
+        bufLen  := (fTokenLength - (Length(aDelimited.Prefix) + Length(aDelimited.Suffix)) + 1);
+      end
       else
-        strm  := TReadMemoryStream.Create(fTokenBuffer, fTokenLength * 2);
+      begin
+        buf     := @fTokenBuffer[0];
+        bufLen  := fTokenLength;
+      end;
 
-      sub := TTokenReader.Create(strm, aDefinition.SubDictionary, aDefinition.SubDictionaryOptions);
+      reader := TUnicodeReader.OfWideChars(buf, bufLen);
+
+      sub := TTokenReader.Create(reader, aDefinition.SubDictionary, aDefinition.SubDictionaryOptions);
       try
         sub.fLineNo   := fStartLine;
         sub.fCharPos  := fStartPos;
@@ -420,7 +423,6 @@ const
 
       finally
         sub.Free;
-        strm.Free;
       end;
     end
     else
@@ -433,26 +435,21 @@ const
   var
     c: WideChar absolute aChar;
   begin
+    if (fTokenLength = (fBufferLength - 1)) then
+      ExpandBuffer;
+
     if NOT fNextCharReady then
     begin
-      fStream.ReadChar(c);
+      fSource.ReadChar(c);
       Inc(fCharPos);
 
-      fRewind.Push(aChar, fLineNo, fCharPos);
-
-      if (fTokenLength = fMaxTokenLength) then
-        AllocTokenBuffers(fMaxTokenLength + BUFSIZE);
-
-      fTokenBuffer^[fTokenLength] := aChar;
-
-      fEOF := fStream.EOF;
+      fEOF := fSource.EOF;
     end
     else
-    begin
       fNextCharReady := fReplay.Pop(aChar, fLineNo, fCharPos);
-      fRewind.Push(aChar, fLineNo, fCharPos);
-      fTokenBuffer^[fTokenLength] := aChar;
-    end;
+
+    fRewind.Push(aChar, fLineNo, fCharPos);
+    fTokenBuffer^[fTokenLength] := aChar;
 
     if (aChar = #10) then
     begin
@@ -477,7 +474,7 @@ const
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTokenReader.AllocTokenBuffers(const aBufSize: Integer);
+  procedure TTokenReader.ExpandBuffer;
   {
     Allocates or increases the size of the buffers used to hold the
      text for a token as it is read from the input stream.
@@ -491,32 +488,32 @@ const
      attempt to reduce the buffer size will be ignored.
   }
   begin
-    if (aBufSize <= fMaxTokenLength) then
-      EXIT;
+    Inc(fBufferLength, BUFFER_EXPANSION);
 
-    ReallocMem(fTokenBuffer, aBufSize * sizeof(WideChar));
+    ReallocMem(fTokenBuffer, fBufferLength * 2);
 
     if CaseSensitive then
       fCompareBuffer := fTokenBuffer
     else
-      ReallocMem(fCompareBuffer, aBufSize * sizeof(WideChar));
-
-    fMaxTokenLength := aBufSize;
+      ReallocMem(fCompareBuffer, fBufferLength * 2);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTokenReader.FreeTokenBuffers;
+  procedure TTokenReader.FreeBuffer;
   {
     Returns all memory in use by the token buffers to the system.
   }
   begin
-    ReallocMem(fTokenBuffer, 0);
+    FreeMem(fTokenBuffer);
 
-    if CaseSensitive then
-      fCompareBuffer := NIL
-    else
-      ReallocMem(fCompareBuffer, 0);
+    if (fCompareBuffer <> fTokenbuffer) then
+      FreeMem(fCompareBuffer);
+
+    fTokenBuffer    := NIL;
+    fCompareBuffer  := NIL;
+
+    fBufferLength := 0;
   end;
 
 
@@ -525,8 +522,8 @@ const
   begin
     if Assigned(fNextToken) then
     begin
-      result := fNextToken;
-      fNextToken := NIL;
+      result      := fNextToken;
+      fNextToken  := NIL;
     end
     else
       result := ReadToken;
@@ -546,20 +543,21 @@ const
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTokenReader.ReadToken: IToken;
+  function TTokenReader.ReadToken: TToken;
   var
     def: TTokenDefinition;
     part: TTokenDefinition;
     s: UnicodeString;
   begin
-    result := NIL;
+    def     := NIL;
+    result  := NIL;
 
     if Assigned(fNextDefinition) then
     begin
       def := fNextDefinition;
       fNextDefinition := NIL;
     end
-    else
+    else if NOT EOf then
       repeat
         def := NextTokenDefinition;
       until EOF or NOT Assigned(def) or NOT ConsumeWhitespace or (def.TokenType <> ttWhitespace);
@@ -771,20 +769,23 @@ const
           end;
         end;
 
-        while fCandidateTokens.Count > 1 do
-        begin
-          def := Dictionary.MostCompatible(fCandidateTokens, fCompareBuffer, fTokenLength);
-          if NOT CompleteToken(def) then
+        if fCandidateTokens.Count = 1 then
+          result := fCandidateTokens[0]
+        else
+          while (fCandidateTokens.Count > 1) do
           begin
-            fInvalidTokens.Add(def);
-            fCandidateTokens.Remove(def);
-          end
-          else
-          begin
-            result := def;
-            BREAK;
+            def := Dictionary.MostCompatible(fCandidateTokens, fCompareBuffer, fTokenLength);
+            if NOT CompleteToken(def) then
+            begin
+              fInvalidTokens.Add(def);
+              fCandidateTokens.Remove(def);
+            end
+            else
+            begin
+              result := def;
+              BREAK;
+            end;
           end;
-        end;
       end;
     until Assigned(result) or EOF;
 
@@ -800,38 +801,15 @@ const
   end;
 
 
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTokenReader.get_EOF: Boolean;
-  begin
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+
+  function TTokenReader.get_EOF: Boolean;
+
+  begin
     result := fEOF and (NOT fNextCharReady) and NOT Assigned(fNextToken);
   end;
 
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TTokenReader.get_Stream: TStream;
-  begin
-    result := fStream;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTokenReader.set_Stream(const aValue: TStream);
-  begin
-    if fOwnsStream then
-      FreeAndNIL(fStream);
-
-    if Assigned(aValue) then
-    begin
-      if (aValue is TUnicodeStream) then
-        fStream := TUnicodeStream(aValue)
-      else
-        fStream := TUnicodeStream.Create(aValue);
-    end
-    else
-      fStream := NIL;
-
-    fOwnsStream := Assigned(fStream) and (fStream <> aValue);
-  end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }

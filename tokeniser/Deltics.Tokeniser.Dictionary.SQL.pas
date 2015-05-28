@@ -30,6 +30,7 @@ interface
     sqlCursor             = 602;
     sqlDeclare            = 603;
     sqlDELETE             = 604;
+    sqlExecute            = 605;
     sqlINSERT             = 608;
     sqlJOIN               = 609;
     sqlFROM               = 610;
@@ -83,6 +84,7 @@ interface
     sqlPeriod             = tkPeriod;
     sqlComma              = tkComma;
     sqlEquals             = tkEquals;
+    sqlSemiColon          = tkSemiColon;
     sqlLessThan           = tkLeftAngleBrace;
     sqlGreaterThan        = tkRightAngleBrace;
     sqlOpenParenthesis    = tkLeftParenthesis;
@@ -136,8 +138,9 @@ implementation
     AddCharSet(sqlFloat, 'Float', charSets, [3,6]);
 
     TokenType := ttReservedWord;
-    AddString(sqlBegin,    'begin');
-    AddString(sqlDeclare,  'declare');
+    AddString(sqlBEGIN,    'begin');
+    AddString(sqlDECLARE,  'declare');
+    AddString(sqlEXECUTE,  'execute');
     AddString(sqlSection,  'section');
     AddString(sqlFROM,     'from');
     AddString(sqlINTO,     'into');
@@ -188,6 +191,7 @@ implementation
     TokenType := ttSymbol;
     AddASCII(sqlComma);
     AddASCII(sqlPeriod);
+    AddASCII(sqlSemiColon);
     AddASCII(sqlOpenParenthesis);
     AddASCII(sqlCloseParenthesis);
     AddASCII(sqlEquals);

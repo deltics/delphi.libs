@@ -66,11 +66,11 @@
 
 {$i deltics.tokeniser.inc}
 
-{$ifdef deltics_tokeniser}
+{.$ifdef deltics_tokeniser}
   {$debuginfo ON}
-{$else}
-  {$debuginfo OFF}
-{$endif}
+{.$else}
+  {.$debuginfo OFF}
+{.$endif}
 
 
   unit Deltics.Tokeniser;
@@ -81,10 +81,11 @@ interface
   uses
   { vcl: }
     Classes,
+    SysUtils,
   { deltics: }
     Deltics.Classes,
-    Deltics.Streams,
     Deltics.Strings,
+    Deltics.Unicode,
   { deltics.tokeniser: }
     Deltics.Tokeniser.Consts,
     Deltics.Tokeniser.Dictionary;
@@ -122,13 +123,15 @@ interface
       function get_Source: TTokenSource;
       function get_Text: UnicodeString;
       function get_TokenCount: Integer;
-      function get_Tokens: ITokenList;
+      function get_Token(const aIndex: Integer): IToken;
+
+      procedure GetTokenList(var aList: ITokenList);
 
       property Definition: TTokenDefinition read get_Definition;
       property ID: TTokenID read get_ID;
       property IsWhitespace: Boolean read get_IsWhitespace;
       property TokenCount: Integer read get_TokenCount;
-      property Tokens: ITokenList read get_Tokens;
+      property Tokens[const aIndex: Integer]: IToken read get_Token;
       property Length: Integer read get_Length;
       property Source: TTokenSource read get_Source;
       property Text: UnicodeString read get_Text;
@@ -201,21 +204,23 @@ interface
     TTokenList = class(TFlexInterfacedObject, ITokenList)
     private
       fItems: TInterfaceList;
+      procedure CopyFrom(const aSource: ITokenList);
     public
       constructor Create; overload;
-      constructor CreateClone(const aSource: TTokenList);
+      constructor CreateClone(const aSource: ITokenList);
       constructor CreateManaged;
+      constructor CreateManagedClone(const aSource: ITokenList);
       destructor Destroy; override;
 
       class function Filter(const aSource: ITokenList; const aID: TTokenID): ITokenList; overload;
       class function Create(const aSource: UnicodeString; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
-      class function Create(const aSource: TStream; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
-      class function Create(const aSource: TStream; var aLines: Integer; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
+      class function Create(const aSource: IUnicodeReader; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
+      class function Create(const aSource: IUnicodeReader; var aLines: Integer; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
       class procedure ForEachFile(const aFilePattern: UnicodeString; const aSubDirs: Boolean; const aCallback: TTokenListFileProc; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = []);
       class function LoadFromFile(const aFilename: UnicodeString; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
-      class function LoadFromFile(const aFilename: UnicodeString; const aEncoding: TCharEncoding; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
+      class function LoadFromFile(const aFilename: UnicodeString; const aEncoding: TEncoding; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
       class function LoadFromFile(const aFilename: UnicodeString; var aLines: Integer; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
-      class function LoadFromFile(const aFilename: UnicodeString; const aEncoding: TCharEncoding; var aLines: Integer; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
+      class function LoadFromFile(const aFilename: UnicodeString; const aEncoding: TEncoding; var aLines: Integer; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = [toConsumeWhitespace]): ITokenList; overload;
 
       procedure Clear;
       procedure Delete(const aIndex: Integer);
@@ -249,7 +254,7 @@ interface
     public
       class function Create(const aSource: ITokenList; const aInitialIndex: Integer = 0): ITokenStream; overload;
       class function Create(const aSource: UnicodeString; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = []): ITokenStream; overload;
-      class function Create(const aSource: TStream; const aOwnsStream: Boolean; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = []): ITokenStream; overload;
+      class function Create(const aSource: IUnicodeReader; const aOwnsStream: Boolean; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = []): ITokenStream; overload;
       class function LoadFromFile(const aFilename: UnicodeString; const aDictionary: TTokenDictionary; const aOptions: TTokeniserOptions = []): ITokenStream;
 
     protected // ITokenStream -------------------------------------------------
@@ -262,11 +267,13 @@ interface
     TTokenCursor = class(TCOMInterfacedObject, ITokenCursor)
     private
       fEOFIndex: Integer;
+      fIgnoreWhitespace: Boolean;
       fIndex: Integer;
       fList: ITokenList;
       fSavePoints: array of Integer;
       fToken: IToken;
     public
+      constructor Create(const aToken: IToken); overload;
       constructor Create(const aList: ITokenList); overload;
       constructor Create(const aList: ITokenList; const aInitialIndex: Integer); overload;
 
@@ -290,6 +297,7 @@ interface
       function SavePoint: IToken;
 
       function Clone: ITokenCursor;
+      property IgnoreWhitespace: Boolean read fIgnoreWhitespace write fIgnoreWhitespace;
     end;
 
 
@@ -297,8 +305,6 @@ interface
 implementation
 
   uses
-  { vcl: }
-    SysUtils,
   { deltics: }
     Deltics.SysUtils,
   { deltics.tokeniser: }
@@ -330,9 +336,9 @@ implementation
     TTokenReaderStream = class(TTokenStream)
     private
       fReader: TTokenReader;
-      fSource: TStream;
+      fSource: IUnicodeReader;
     protected
-      constructor Create(const aReader: TTokenReader; const aSource: TStream);
+      constructor Create(const aReader: TTokenReader; const aSource: IUnicodeReader);
     public
       destructor Destroy; override;
 
@@ -353,20 +359,15 @@ implementation
                                    const aDictionary: TTokenDictionary;
                                    const aOptions: TTokeniserOptions): ITokenList;
   var
-    strm: TUnicodeStream;
+    reader: IUnicodeReader;
   begin
-    strm := TUnicodeStream.Create(aSource);
-    try
-      result := Create(strm, aDictionary, aOptions);
-
-    finally
-      strm.Free;
-    end;
+    reader := TUnicodeReader.OfWIDE(aSource);
+    result := Create(reader, aDictionary, aOptions);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function TTokenList.Create(const aSource: TStream;
+  class function TTokenList.Create(const aSource: IUnicodeReader;
                                    const aDictionary: TTokenDictionary;
                                    const aOptions: TTokeniserOptions): ITokenList;
   var
@@ -377,7 +378,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function TTokenList.Create(const aSource: TStream;
+  class function TTokenList.Create(const aSource: IUnicodeReader;
                                    var aLines: Integer;
                                    const aDictionary: TTokenDictionary;
                                    const aOptions: TTokeniserOptions): ITokenList;
@@ -402,29 +403,19 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TTokenList.CreateClone(const aSource: TTokenList);
-  begin
-    Create;
-
-    while Count < aSource.Count do
-      Add(aSource[Count]);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function TTokenList.LoadFromFile(const aFilename: UnicodeString;
                                          const aDictionary: TTokenDictionary;
                                          const aOptions: TTokeniserOptions): ITokenList;
   var
     notUsed: Integer;
   begin
-    result := LoadFromFile(aFilename, ceUTF8, notUsed, aDictionary, aOptions);
+    result := LoadFromFile(aFilename, TEncoding.UTF8, notUsed, aDictionary, aOptions);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function TTokenList.LoadFromFile(const aFilename: UnicodeString;
-                                         const aEncoding: TCharEncoding;
+                                         const aEncoding: TEncoding;
                                          const aDictionary: TTokenDictionary;
                                          const aOptions: TTokeniserOptions): ITokenList;
   var
@@ -440,27 +431,24 @@ implementation
                                          const aDictionary: TTokenDictionary;
                                          const aOptions: TTokeniserOptions): ITokenList;
   begin
-    result := LoadFromFile(aFilename, ceUTF8, aLines, aDictionary, aOptions);
+    result := LoadFromFile(aFilename, TEncoding.UTF8, aLines, aDictionary, aOptions);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function TTokenList.LoadFromFile(const aFilename: UnicodeString;
-                                         const aEncoding: TCharEncoding;
+                                         const aEncoding: TEncoding;
                                          var aLines: Integer;
                                          const aDictionary: TTokenDictionary;
                                          const aOptions: TTokeniserOptions): ITokenList;
   var
-    strm: TUnicodeStream;
+    stream: TFileStream;
+    reader: IUnicodeReader;
   begin
-    strm := TUnicodeStream.Create(aEncoding);
-    try
-      strm.LoadFromFile(aFilename);
-      result := Create(strm, aLines, aDictionary, aOptions);
+    stream := TFileStream.Create(aFilename, fmOpenRead or fmShareDenyWrite);
+    reader := TUnicodeReader.AsOwnerOfStream(stream, aEncoding);
 
-    finally
-      strm.Free;
-    end;
+    result := Create(reader, aLines, aDictionary, aOptions);
   end;
 
 
@@ -538,11 +526,27 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TTokenList.CreateClone(const aSource: ITokenList);
+  begin
+    Create;
+    CopyFrom(aSource);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TTokenList.CreateManaged;
   begin
     inherited Create;
 
     fItems := TInterfaceList.Create;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  constructor TTokenList.CreateManagedClone(const aSource: ITokenList);
+  begin
+    CreateManaged;
+    CopyFrom(aSource);
   end;
 
 
@@ -579,7 +583,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTokenList.get_Last: IToken;
   begin
-    result := fItems[fItems.Count - 1] as IToken;
+    result := fItems[Count - 1] as IToken;
   end;
 
 
@@ -593,11 +597,8 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenList.Add(const aText: UnicodeString);
-  var
-    token: IToken;
   begin
-    token := TTokenHelper.Create(NIL, aText, 0, 0, 0, 0);
-    fItems.Add(token);
+    Add(TTokenHelper.Create(NIL, aText, 0, 0, 0, 0));
   end;
 
 
@@ -614,11 +615,8 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TTokenList.Insert(const aIndex: Integer;
                               const aText: UnicodeString);
-  var
-    token: IToken;
   begin
-    token := TTokenHelper.Create(NIL, aText, 0, 0, 0, 0);
-    fItems.Insert(aIndex, token);
+    Insert(aIndex, TTokenHelper.Create(NIL, aText, 0, 0, 0, 0));
   end;
 
 
@@ -626,7 +624,7 @@ implementation
   procedure TTokenList.Insert(const aIndex: Integer;
                               const aToken: IToken);
   begin
-    fItems.Insert(aIndex, aToken);
+    fItems.Insert(aIndex, aToken as IUnknown);
   end;
 
 
@@ -634,6 +632,23 @@ implementation
   procedure TTokenList.Clear;
   begin
     fItems.Clear;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TTokenList.CopyFrom(const aSource: ITokenList);
+  var
+    i: Integer;
+  begin
+    fItems.Clear;
+
+    if NOT Assigned(aSource) then
+      EXIT;
+
+    fItems.Capacity := aSource.Count;
+
+    for i := 0 to Pred(aSource.Count) do
+      fItems.Add(aSource[i]);
   end;
 
 
@@ -658,7 +673,7 @@ implementation
   begin
     idx := fItems.IndexOf(aToken as IUnknown);
     if idx <> -1 then
-      fItems.Delete(idx);
+      Delete(idx);
   end;
 
 
@@ -667,9 +682,9 @@ implementation
   var
     idx: Integer;
   begin
-    idx := IndexOf(aToken);
+    idx := fItems.IndexOf(aToken as IUnknown);
     if idx <> -1 then
-      fItems[idx] := TTokenHelper.Create(NIL, aText, 0, 0, 0, 0);
+      fItems[idx] := TTokenHelper.Create(NIL, aText, 0, 0, 0, 0) as IUnknown;
   end;
 
 
@@ -682,8 +697,9 @@ implementation
     list := TTokenList.CreateManaged;
 
     list.fItems.Capacity := (aTo - aFrom) + 1;
+
     for i := aFrom to aTo do
-      list.Add(self.Items[i]);
+      list.fItems.Add(fItems[i]);
 
     result := list;
   end;
@@ -706,13 +722,16 @@ implementation
   class function TTokenStream.Create(const aSource: UnicodeString;
                                      const aDictionary: TTokenDictionary;
                                      const aOptions: TTokeniserOptions): ITokenStream;
+  var
+    reader: IUnicodeReader;
   begin
-    result := Create(TUnicodeStream.Create(aSource), TRUE, aDictionary, aOptions);
+    reader := TUnicodeReader.OfWIDE(aSource);
+    result := Create(reader, TRUE, aDictionary, aOptions);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function TTokenStream.Create(const aSource: TStream;
+  class function TTokenStream.Create(const aSource: IUnicodeReader;
                                      const aOwnsStream: Boolean;
                                      const aDictionary: TTokenDictionary;
                                      const aOptions: TTokeniserOptions): ITokenStream;
@@ -732,8 +751,16 @@ implementation
   class function TTokenStream.LoadFromFile(const aFilename: UnicodeString;
                                            const aDictionary: TTokenDictionary;
                                            const aOptions: TTokeniserOptions): ITokenStream;
+  var
+    stream: TFileStream;
+    source: IUnicodeReader;
+    reader: TTokenReader;
   begin
+    stream := TFileStream.Create(aFilename, fmOpenRead or fmShareDenyWrite);
+    source := TUnicodeReader.AsOwnerOfStream(stream, TEncoding.UTF8);
+    reader := TTokenReader.Create(source, aDictionary, aOptions);
 
+    result := TTokenReaderStream.Create(reader, source);
   end;
 
 
@@ -802,7 +829,7 @@ implementation
 { TTokenReaderStream ----------------------------------------------------------------------------- }
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TTokenReaderStream.Create(const aReader: TTokenReader; const aSource: TStream);
+  constructor TTokenReaderStream.Create(const aReader: TTokenReader; const aSource: IUnicodeReader);
   begin
     inherited Create;
 
@@ -815,7 +842,6 @@ implementation
   destructor TTokenReaderStream.Destroy;
   begin
     FreeAndNIL(fReader);
-    FreeAndNIL(fSource);
 
     inherited;
   end;
@@ -872,6 +898,15 @@ implementation
 
 { TTokenCursor }
 
+  constructor TTokenCursor.Create(const aToken: IToken);
+  var
+    list: ITokenList;
+  begin
+    aToken.GetTokenList(list);
+    Create(list);
+  end;
+
+
   constructor TTokenCursor.Create(const aList: ITokenList);
   begin
     inherited Create;
@@ -881,7 +916,9 @@ implementation
     fList     := aList;
 
     if (fEOFIndex > 0) then
-      First;
+      First
+    else
+      fIndex := 0;
   end;
 
 

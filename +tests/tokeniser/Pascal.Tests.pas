@@ -21,6 +21,7 @@ implementation
 
   uses
     Deltics.Tokeniser,
+    Deltics.Tokeniser.Consts,
     Deltics.Tokeniser.Dictionary.Pascal;
 
 

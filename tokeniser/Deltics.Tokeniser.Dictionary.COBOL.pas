@@ -278,6 +278,7 @@ implementation
   procedure TCOBOLLanguage.Initialise;
   var
     charSets: TArrayOfANSICharSet;
+    charStrs: TArrayOfString;
   begin
     SetCaseSensitivity(FALSE);
     SetName('COBOL Language');
@@ -428,7 +429,7 @@ implementation
     SetLength(charSets, 2);
     charSets[0] := ['-', '+', '0'..'9'];
     charSets[1] := ['0'..'9'];
-    AddCharSet(cblInteger, 'Integer', charSets, 1);
+    AddCharSet(cblInteger, 'Integer', charSets, [1]);
 
     SetLength(charSets, 7);
     charSets[0] := ['-', '+', '0'..'9'];
@@ -440,30 +441,22 @@ implementation
     charSets[6] := ['0'..'9'];
     AddCharSet(cblFloat, 'Float', charSets, [3,6]);
 
-    SetLength(charSets, 6);
-    charSets[0] := ['A', 'B', 'G', 'N', 'P', 'X', 'Z', '9', 'S',
-                    '/', ',', '+', '-', '*', '$'];
-    charSets[1] := ['A', 'B', 'G', 'N', 'P', 'X', 'Z', '0'..'9',
-                    '/', ',', '+', '-', '*', '$',
-                    'E', 'S', 'V', '.', 'C', 'R', 'D',
-                    '(', ')'];
-    charSets[2] := ['.', 'V'];
-    charSets[3] := ['A', 'B', 'G', 'N', 'P', 'X', 'Z', '0'..'9',
-                    '/', ',', '+', '-', '*', '$',
-                    'E', 'S', 'C', 'R', 'D',
-                    '(', ')'];
-    charSets[4] := ['A', 'G', 'N', 'P', 'X', 'Z', '9',
-                    '/', '+', '-', '*', '$',
-                    'E', 'S', 'R', 'D'];
-    charSets[5] := ['A', 'G', 'N', 'P', 'X', 'Z', '9',
-                    '/', '+', '-', '*', '$',
-                    'E', 'S', 'R', 'D',
-                    ')'];
-    AddCharSet(cblPictureString, 'Picture', charSets, [0,1,4,5]);
+    SetLength(charStrs, 5);
+    charStrs[0] := 'ABGNPSXZ9/,+-*$';
+    charStrs[1] := 'ABGNPXZ0123456789/,+-*$ESV.CRD()';
+    charStrs[2] := ',.V';
+    charStrs[3] := 'ABGNPXZ0123456789/,+-*$ESCRD()';
+    charStrs[4] := 'ABGNPXZ9/*$ESRD';
+    AddCharSet(cblPictureString, 'Picture', charStrs, [0,1,4]);
 
     TokenType := ttIdentifier;
     AddQualifiedCharSet(cblIdentifier,      'identifier',       ['0'..'9', 'a'..'z'], ['a'..'z', '0'..'9', '-', '_'], uaNowhere);
-    AddQualifiedCharSet(cblHostIdentifier,  'host identifier',  [':'], ['a'..'z', '0'..'9', '-'], uaNowhere);
+
+    SetLength(charSets, 3);
+    charSets[0] := [':'];
+    charSets[1] := ['0'..'9', 'a'..'z'];
+    charSets[2] := ['0'..'9', 'a'..'z', '-'];
+    AddCharSet(cblHostIdentifier,  'host identifier',  charSets, 2);
 
     TokenType := ttOperator;
     AddString(cblOpAddition,        '+');
@@ -519,6 +512,8 @@ implementation
 { TEmbeddedSQL }
 
   procedure TCOBOLEmbeddedSQL.Initialise;
+  var
+    charSets: TArrayOfANSICharSet;
   begin
     inherited;
     SetName('COBOL Embedded SQL');
@@ -532,8 +527,20 @@ implementation
     AddRange(sqlParagraph,     'Paragraph', 8, 72);
 
     TokenType := ttIdentifier;
-    AddQualifiedCharSet(sqlHostVariable,               'host variable',             [':'], ['0'..'9', 'a'..'z', '-', '.']);
-    AddQualifiedCharSet(sqlHostVariableWithIndicator,  'host variable : indicator', [':'], ['0'..'9', 'a'..'z', '-', '.', ':']);
+    SetLength(charSets, 3);
+    charSets[0] := [':'];
+    charSets[1] := ['0'..'9', 'a'..'z'];
+    charSets[2] := ['0'..'9', 'a'..'z', '-'];
+    AddCharSet(sqlHostVariable,  'host variable',  charSets, [2]);
+
+    SetLength(charSets, 6);
+    charSets[0] := [':'];
+    charSets[1] := ['0'..'9', 'a'..'z'];
+    charSets[2] := ['0'..'9', 'a'..'z', '-'];
+    charSets[3] := [':'];
+    charSets[4] := ['0'..'9', 'a'..'z'];
+    charSets[5] := ['0'..'9', 'a'..'z', '-'];
+    AddCharSet(sqlHostVariableWithIndicator,  'host variable + ind',  charSets, [4, 5]);
 
     TokenType := ttReservedWord;
     AddString(cblEXECSQL,  'sql');
