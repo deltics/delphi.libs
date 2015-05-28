@@ -18,8 +18,10 @@ interface
       constructor Create(const aString: UTF8String);
 
     private
+      function get_Length: Integer;
+      procedure set_Length(const aValue: Integer);
+
       function ByteCount: Integer;
-      function Length: Integer;
       function IsLowercase: Boolean;
       function IsUppercase: Boolean;
       function ToANSI: ANSIString;
@@ -27,18 +29,13 @@ interface
       function ToUTF8: UTF8String;
       function ToWIDE: UnicodeString;
     private
-      function BeginsWith(const aString: ANSIString): Boolean; overload;
-      function BeginsWith(const aString: UTF8String): Boolean; overload;
-      function BeginsWith(const aString: WIDEString): Boolean; overload;
-      function BeginsWithText(const aString: UTF8String): Boolean;
-      function CompareWith(const aString: UTF8String): Integer;
-      function CompareWithText(const aString: UTF8String): Integer;
-      function Contains(const aChar: ANSIChar): Boolean; overload;
-      function Contains(const aChar: WIDEChar): Boolean; overload;
-      function Contains(const aString: UTF8String): Boolean; overload;
-      function ContainsText(const aChar: ANSIChar): Boolean; overload;
-      function ContainsText(const aChar: WIDEChar): Boolean; overload;
-      function ContainsText(const aString: UTF8String): Boolean; overload;
+      function BeginsWith(const aString: ANSIString; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function BeginsWith(const aString: UTF8String; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function BeginsWith(const aString: WIDEString; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function CompareWith(const aString: UTF8String; const aCaseMode: TCaseSensitivity): Integer;
+      function Contains(const aChar: ANSIChar; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function Contains(const aChar: WIDEChar; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function Contains(const aString: UTF8String; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
       function Data: PUTF8Char;
       function EqualsText(const aString: UTF8String): Boolean;
       function Find(const aChar: ANSIChar; var aPos: TCharIndexArray): Boolean; overload;
@@ -70,6 +67,18 @@ implementation
   begin
     inherited Create;
     BOX := aString;
+  end;
+
+
+  function TUTF8String.get_Length: Integer;
+  begin
+    result := Length(BOX);
+  end;
+
+
+  procedure TUTF8String.set_Length(const aValue: Integer);
+  begin
+    SetLength(BOX, aValue);
   end;
 
 
@@ -107,37 +116,28 @@ implementation
   end;
 
 
-  function TUTF8String.BeginsWith(const aString: UTF8String): Boolean;
+  function TUTF8String.BeginsWith(const aString: UTF8String;
+                                  const aCaseMode: TCaseSensitivity): Boolean;
   begin
-    result := WIDE(WIDE.FromUTF8(BOX)).BeginsWith(WIDE.FromUTF8(aString));
+    result := WIDE(WIDE.FromUTF8(BOX)).BeginsWith(WIDE.FromUTF8(aString), aCaseMode);
   end;
 
 
-  function TUTF8String.BeginsWith(const aString: ANSIString): Boolean;
+  function TUTF8String.BeginsWith(const aString: ANSIString;
+                                  const aCaseMode: TCaseSensitivity): Boolean;
   begin
-    result := WIDE(WIDE.FromUTF8(BOX)).BeginsWith(WIDE.FromANSI(aString));
+    result := WIDE(WIDE.FromUTF8(BOX)).BeginsWith(WIDE.FromANSI(aString), aCaseMode);
   end;
 
 
-  function TUTF8String.BeginsWith(const aString: WIDEString): Boolean;
+  function TUTF8String.BeginsWith(const aString: WIDEString;
+                                  const aCaseMode: TCaseSensitivity): Boolean;
   begin
-    result := WIDE(WIDE.FromUTF8(BOX)).BeginsWith(aString);
-  end;
-
-
-  function TUTF8String.BeginsWithText(const aString: UTF8String): Boolean;
-  begin
-    result := WIDE(WIDE.FromUTF8(BOX)).BeginsWithText(WIDE.FromUTF8(aString));
+    result := WIDE(WIDE.FromUTF8(BOX)).BeginsWith(aString, aCaseMode);
   end;
 
 
   function TUTF8String.ByteCount: Integer;
-  begin
-    result := System.Length(BOX);
-  end;
-
-
-  function TUTF8String.Length: Integer;
   begin
     result := System.Length(BOX);
   end;
@@ -150,51 +150,31 @@ implementation
   end;
 
 
-  function TUTF8String.CompareWith(const aString: UTF8String): Integer;
+  function TUTF8String.CompareWith(const aString: UTF8String;
+                                   const aCaseMode: TCaseSensitivity): Integer;
   begin
-    result := WIDE.Compare(WIDE.FromUTF8(BOX), WIDE.FromUTF8(aString));
+    result := WIDE.Compare(ToWIDE, WIDE.FromUTF8(aString), aCaseMode);
   end;
 
 
-  function TUTF8String.CompareWithText(const aString: UTF8String): Integer;
+  function TUTF8String.Contains(const aString: UTF8String;
+                                const aCaseMode: TCaseSensitivity): Boolean;
   begin
-    result := WIDE.CompareText(WIDE.FromUTF8(BOX), WIDE.FromUTF8(aString));
+    result := WIDE(ToWIDE).Contains(WIDE.FromUTF8(aString));
   end;
 
 
-  function TUTF8String.Contains(const aString: UTF8String): Boolean;
-  begin
-    result := WIDE(WIDE.FromUTF8(BOX)).Contains(WIDE.FromUTF8(aString));
-  end;
-
-
-  function TUTF8String.Contains(const aChar: WIDEChar): Boolean;
+  function TUTF8String.Contains(const aChar: WIDEChar;
+                                const aCaseMode: TCaseSensitivity): Boolean;
   begin
     result := WIDE(ToWIDE).Contains(aChar);
   end;
 
 
-  function TUTF8String.Contains(const aChar: ANSIChar): Boolean;
+  function TUTF8String.Contains(const aChar: ANSIChar;
+                                const aCaseMode: TCaseSensitivity): Boolean;
   begin
-    result := ANSI(ToANSI).Contains(aChar);
-  end;
-
-
-  function TUTF8String.ContainsText(const aChar: ANSIChar): Boolean;
-  begin
-    result := ANSI(ToANSI).ContainsText(aChar);
-  end;
-
-
-  function TUTF8String.ContainsText(const aChar: WIDEChar): Boolean;
-  begin
-    result := WIDE(ToWIDE).ContainsText(aChar);
-  end;
-
-
-  function TUTF8String.ContainsText(const aString: UTF8String): Boolean;
-  begin
-    result := WIDE(ToWIDE).ContainsText(UTF8(aString).ToWIDE);
+    result := WIDE(ToWIDE).Contains(ANSI(aChar).ToWIDE);
   end;
 
 
@@ -333,7 +313,7 @@ implementation
 
     firstChar   := @BOX[1];
     initialChar := @aString[1];
-    currChar    := @BOX[strlen];
+    currChar    := Addr(BOX[strlen]);
 
     for i := (strlen - sublen) downto 0 do
     begin
@@ -393,7 +373,7 @@ implementation
 
     firstChar   := @BOX[1];
     initialChar := @aString[1];
-    currChar    := @BOX[aPos + 1];
+    currChar    := Addr(BOX[aPos + 1]);
 
     for i := (strLen - subLen) downto aPos do
     begin

@@ -2750,7 +2750,7 @@ implementation
 
     Actual := '''' + Copy(Value, 1, Length(aString)) + ELIDE[Length(Value) > Length(aString)] + '''';
 
-    OK := WIDE(Value).BeginsWithText(aString);
+    OK := WIDE(Value).BeginsWith(aString, csIgnoreCase);
   end;
 
 

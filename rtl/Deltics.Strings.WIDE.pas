@@ -6,6 +6,7 @@
 interface
 
   uses
+    SysUtils,
     Deltics.Classes,
     Deltics.Strings;
 
@@ -34,8 +35,10 @@ interface
       constructor Create(const aString: UnicodeString);
 
     private
+      function get_Length: Integer;
+      procedure set_Length(const aValue: Integer);
+
       function ByteCount: Integer;
-      function Length: Integer;
       function IsLowercase: Boolean;
       function IsUppercase: Boolean;
       function ToANSI: ANSIString;
@@ -43,60 +46,61 @@ interface
       function ToUTF8: UTF8String;
       function ToWIDE: UnicodeString;
     private
-      function BeginsWith(const aString: UnicodeString): Boolean;
-      function BeginsWithText(const aString: UnicodeString): Boolean;
-      function CompareWith(const aString: UnicodeString): Integer;
-      function CompareWithText(const aString: UnicodeString): Integer;
-      function Contains(const aChar: WIDEChar): Boolean; overload;
-      function Contains(const aString: UnicodeString): Boolean; overload;
-      function ContainsText(const aChar: WIDEChar): Boolean; overload;
-      function ContainsText(const aString: UnicodeString): Boolean; overload;
+      function AllocANSI: PANSIChar;
+      function AllocUTF8: PUTF8Char;
+      function AllocWIDE: PWIDEChar;
+      function BeginsWith(const aString: UnicodeString; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean;
+      function CompareWith(const aString: UnicodeString; const aCaseMode: TCaseSensitivity = csCaseSensitive): Integer;
+      function Contains(const aString: UnicodeString; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function Contains(const aChar: WIDEChar; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function Contains(const aNeed: TContainNeeds; const aChars: array of WIDEChar; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function Contains(const aNeed: TContainNeeds; const aStrings: array of UnicodeString; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
       function CopyFrom(const aStart, aCount: Integer): UnicodeString;
       function CopyRange(const aStart, aEnd: Integer): UnicodeString;
+      procedure CopyTo(const aDest: PANSIChar; const aMaxBytes: Integer = -1); overload;
+      procedure CopyTo(const aDest: PUTF8Char; const aMaxBytes: Integer = -1); overload;
+      procedure CopyTo(const aDest: PWIDEChar; const aMaxChars: Integer = -1); overload;
       function Data: PWIDEChar;
+      function EndsWith(const aString: UnicodeString; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean;
       function EqualsText(const aString: UnicodeString): Boolean;
-      function Find(const aChar: ANSIChar; var aPos: TCharIndexArray): Boolean; overload;
-      function Find(const aChar: WIDEChar; var aPos: TCharIndexArray): Boolean; overload;
-      function Find(const aString: UnicodeString; var aPos: TCharIndexArray): Boolean; overload;
-      function FindText(const aChar: ANSIChar; var aPos: TCharIndexArray): Boolean; overload;
-      function FindText(const aChar: WIDEChar; var aPos: TCharIndexArray): Boolean; overload;
-      function FindText(const aString: UnicodeString; var aPos: TCharIndexArray): Boolean; overload;
-      function FindFirst(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
-      function FindFirst(const aChar: WIDEChar; var aPos: Integer): Boolean; overload;
-      function FindFirst(const aString: UnicodeString; var aPos: Integer): Boolean; overload;
-      function FindFirstText(const aString: UnicodeString; var aPos: Integer): Boolean;
-      function FindLast(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
-      function FindLast(const aChar: WIDEChar; var aPos: Integer): Boolean; overload;
-      function FindLast(const aString: UnicodeString; var aPos: Integer): Boolean; overload;
-      function FindNext(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
-      function FindNext(const aChar: WIDEChar; var aPos: Integer): Boolean; overload;
-      function FindNext(const aString: UnicodeString; var aPos: Integer): Boolean; overload;
-      function IndexIn(const aArray: array of UnicodeString): Integer;
-      function IsIn(const aArray: array of UnicodeString): Boolean;
-      function Leftmost(const aCount: Integer): UnicodeString;
-      function Rightmost(const aCount: Integer): UnicodeString;
+
+      function Find(const aChar: WIDEChar; var aPos: Integer; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function Find(const aString: UnicodeString; var aPos: Integer; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function Find(const aChar: WIDEChar; var aPos: TCharIndexArray; const aCaseMode: TCaseSensitivity = csCaseSensitive): Integer; overload;
+      function Find(const aString: UnicodeString; var aPos: TCharIndexArray; const aCaseMode: TCaseSensitivity = csCaseSensitive): Integer; overload;
+//      function FindFirst(const aChar: WIDEChar; const aCaseMode: TCaseSensitivity = csCaseSensitive): IStringSearch; overload;
+//      function FindFirst(const aString: UnicodeString; const aCaseMode: TCaseSensitivity = csCaseSensitive): IStringSearch; overload;
+      function FindLast(const aChar: WIDEChar; var aPos: Integer; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function FindLast(const aString: UnicodeString; var aPos: Integer; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+//      function FindLast(const aChar: WIDEChar; const aCaseMode: TCaseSensitivity = csCaseSensitive): IStringSearch; overload;
+//      function FindLast(const aString: UnicodeString; const aCaseMode: TCaseSensitivity = csCaseSensitive): IStringSearch; overload;
+
+      function IndexIn(const aArray: array of UnicodeString; const aCaseMode: TCaseSensitivity): Integer;
+      function IsOneOf(const aArray: array of UnicodeString; const aCaseMode: TCaseSensitivity): Boolean;
+      function Leading(const aCount: Integer): UnicodeString;
+      function Trailing(const aCount: Integer): UnicodeString;
       function Split(const aChar: ANSIChar; var aLeft, aRight: UnicodeString): Boolean; overload;
       function Split(const aChar: WIDEChar; var aLeft, aRight: UnicodeString): Boolean; overload;
       function Split(const aChar: ANSIChar; var aParts: TWIDEStringArray): Boolean; overload;
       function Split(const aChar: WIDEChar; var aParts: TWIDEStringArray): Boolean; overload;
 
       function Delete(const aStart, aCount: Integer): UnicodeString; overload;
-      function Embrace(const aBraceChar: ASCIIChar = '('): UnicodeString;
+      function Embrace(const aBraceChar: WIDEChar = '('): UnicodeString;
       function Enquote(const aQuoteChar: WIDEChar = ''''): UnicodeString;
       function ExtractLeft(const aCount: Integer): UnicodeString;
       function ExtractRight(const aCount: Integer): UnicodeString;
       function Lowercase: UnicodeString;
-      function PadLeft(const aCount: Integer; const aChar: ASCIIChar): UnicodeString; overload;
-      function PadRight(const aCount: Integer; const aChar: ASCIIChar): UnicodeString; overload;
-      function PadToLengthLeft(const aMaxLen: Integer; const aChar: ASCIIChar): UnicodeString; overload;
-      function PadToLengthRight(const aMaxLen: Integer; const aChar: ASCIIChar): UnicodeString; overload;
-      function Remove(const aString: UnicodeString; const aFlags: TReplaceFlags): UnicodeString; overload;
-      function Replace(const aFindStr, aReplaceStr: UnicodeString; const aFlags: TReplaceFlags): UnicodeString; overload;
-      function Trim(const aChar: ASCIIChar): UnicodeString; overload;
-      function TrimLeft(const aChar: ASCIIChar): UnicodeString; overload;
-      function TrimLeft(const aCount: Integer): UnicodeString; overload;
-      function TrimRight(const aChar: ASCIIChar): UnicodeString; overload;
-      function TrimRight(const aCount: Integer): UnicodeString; overload;
+      function PadLeft(const aCount: Integer; const aChar: WIDEChar = ' '): UnicodeString; overload;
+      function PadRight(const aCount: Integer; const aChar: WIDEChar = ' '): UnicodeString; overload;
+      function PadToLengthLeft(const aMaxLen: Integer; const aChar: WIDEChar = ' '): UnicodeString; overload;
+      function PadToLengthRight(const aMaxLen: Integer; const aChar: WIDEChar = ' '): UnicodeString; overload;
+      function Remove(const aScope: TStringScope; const aString: UnicodeString; const aCaseMode: TCaseSensitivity = csCaseSensitive): UnicodeString; overload;
+      function Replace(const aScope: TStringScope; const aFindStr, aReplaceStr: UnicodeString; const aCaseMode: TCaseSensitivity = csCaseSensitive): UnicodeString; overload;
+      function Trim(const aChar: WIDEChar): UnicodeString; overload;
+      function RemoveLeading(const aChar: WIDEChar): UnicodeString; overload;
+      function RemoveLeading(const aCount: Integer): UnicodeString; overload;
+      function RemoveTrailing(const aChar: WIDEChar): UnicodeString; overload;
+      function RemoveTrailing(const aCount: Integer): UnicodeString; overload;
       function Unbrace: UnicodeString;
       function Unquote: UnicodeString;
       function Uppercase: UnicodeString;
@@ -108,8 +112,14 @@ interface
 implementation
 
   uses
-    SysUtils,
-    Windows;
+    Windows,
+    Deltics.Strings.FXUtils;
+
+
+  type TStepCharProcW = procedure(var aChar: PWIDEChar);
+
+  procedure StepForward(var aChar: PWIDEChar);  begin Inc(aChar); end;
+  procedure StepBack(var aChar: PWIDEChar);     begin Dec(aChar); end;
 
 
 
@@ -189,6 +199,20 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TWIDEString.get_Length: Integer;
+  begin
+    result := Length(BOX);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TWIDEString.set_Length(const aValue: Integer);
+  begin
+    SetLength(BOX, aValue);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TWIDEString.Data: PWIDEChar;
   begin
     result := PWIDEChar(BOX);
@@ -199,13 +223,6 @@ implementation
   function TWIDEString.ByteCount: Integer;
   begin
     result := System.Length(BOX) * 2;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.Length: Integer;
-  begin
-    result := System.Length(BOX);
   end;
 
 
@@ -256,79 +273,114 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.BeginsWith(const aString: UnicodeString): Boolean;
+  function TWIDEString.AllocANSI: PANSIChar;
+  begin
+    result := WIDE.AllocANSI(BOX);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TWIDEString.AllocUTF8: PUTF8Char;
+  begin
+    result := WIDE.AllocUTF8(BOX);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TWIDEString.AllocWIDE: PWIDEChar;
+  begin
+    result := WIDE.AllocWIDE(BOX);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TWIDEString.BeginsWith(const aString: UnicodeString;
+                                  const aCaseMode: TCaseSensitivity): Boolean;
   var
     alen: Integer;
   begin
     alen := System.Length(aString);
 
     result := (alen <= System.Length(BOX))
-          and (CompareStringW(LOCALE_USER_DEFAULT, 0,
+          and (CompareStringW(LOCALE_USER_DEFAULT, FXCOMPAREFLAG_CASE[aCaseMode],
                               PWIDEChar(BOX), alen,
                               PWIDEChar(aString), alen) = CSTR_EQUAL);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.BeginsWithText(const aString: UnicodeString): Boolean;
-  var
-    alen: Integer;
+  function TWIDEString.CompareWith(const aString: UnicodeString;
+                                   const aCaseMode: TCaseSensitivity): Integer;
   begin
-    alen := System.Length(aString);
-
-    result := (alen <= System.Length(BOX))
-          and (CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                              PWIDEChar(BOX), alen,
-                              PWIDEChar(aString), alen) = CSTR_EQUAL);
-  end;
-
-
-  function TWIDEString.CompareWith(const aString: UnicodeString): Integer;
-  begin
-    result := CompareStringW(LOCALE_USER_DEFAULT, 0,
+    result := CompareStringW(LOCALE_USER_DEFAULT, FXCOMPAREFLAG_CASE[aCaseMode],
                              PWIDEChar(BOX), System.Length(BOX),
                              PWIDEChar(aString), System.Length(aString)) - CSTR_EQUAL;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.CompareWithText(const aString: UnicodeString): Integer;
+  function TWIDEString.Contains(const aChar: WIDEChar;
+                                const aCaseMode: TCaseSensitivity): Boolean;
+  var
+    notUsed: Integer;
   begin
-    result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                             PWIDEChar(BOX), System.Length(BOX),
-                             PWIDEChar(aString), System.Length(aString)) - CSTR_EQUAL;
+    result := Find(aChar, notUsed, aCaseMode);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.Contains(const aString: UnicodeString): Boolean;
+  function TWIDEString.Contains(const aString: UnicodeString;
+                                const aCaseMode: TCaseSensitivity): Boolean;
+  var
+    notUsed: Integer;
   begin
-    result := System.Pos(aString, BOX) <> 0;
+    result := Find(aString, notUsed, aCaseMode);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.Contains(const aChar: WIDEChar): Boolean;
-  begin
-    result := System.Pos(aChar, BOX) <> 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.ContainsText(const aChar: WIDEChar): Boolean;
+  function TWIDEString.Contains(const aNeed: TContainNeeds;
+                                const aChars: array of WIDEChar;
+                                const aCaseMode: TCaseSensitivity): Boolean;
   var
-    pos: Integer;
+    i: Integer;
+    notUsed: Integer;
+    foundOne: Boolean;
   begin
-    result := FindFirstText(aChar, pos);
+    foundOne := FALSE;
+
+    for i := Low(aChars) to High(aChars) do
+    begin
+      result := Find(aChars[i], notUsed, aCaseMode);
+
+      if FXContains.HasResult(aNeed, result, foundOne) then
+        EXIT;
+    end;
+
+    FXContains.CheckFinalResult(aNeed, result, foundOne);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.ContainsText(const aString: UnicodeString): Boolean;
+  function TWIDEString.Contains(const aNeed: TContainNeeds;
+                                const aStrings: array of UnicodeString;
+                                const aCaseMode: TCaseSensitivity): Boolean;
   var
-    pos: Integer;
+    i: Integer;
+    notUsed: Integer;
+    foundOne: Boolean;
   begin
-    result := FindFirstText(aString, pos);
+    foundOne := FALSE;
+
+    for i := Low(aStrings) to High(aStrings) do
+    begin
+      result := Find(aStrings[i], notUsed, aCaseMode);
+
+      if FXContains.HasResult(aNeed, result, foundOne) then
+        EXIT;
+    end;
+
+    FXContains.CheckFinalResult(aNeed, result, foundOne);
   end;
 
 
@@ -347,6 +399,47 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TWIDEString.CopyTo(const aDest: PANSIChar;
+                               const aMaxBytes: Integer);
+  begin
+    WIDE.CopyToBuffer(BOX, aDest, aMaxBytes);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TWIDEString.CopyTo(const aDest: PUTF8Char;
+                               const aMaxBytes: Integer);
+  begin
+    WIDE.CopyToBuffer(BOX, aDest, aMaxBytes);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TWIDEString.CopyTo(const aDest: PWIDEChar;
+                               const aMaxChars: Integer);
+  begin
+    WIDE.CopyToBuffer(BOX, aDest, aMaxChars);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TWIDEString.EndsWith(const aString: UnicodeString;
+                                const aCaseMode: TCaseSensitivity): Boolean;
+  const
+    NORMALISE: array[FALSE..TRUE] of Cardinal = (0, NORM_IGNORECASE);
+  var
+    alen: Integer;
+  begin
+    alen := System.Length(aString);
+
+    result := (alen <= System.Length(BOX))
+          and (CompareStringW(LOCALE_USER_DEFAULT, FXCOMPAREFLAG_CASE[aCaseMode],
+                              PWIDEChar(Integer(@BOX) - alen), alen,
+                              PWIDEChar(aString), alen) = CSTR_EQUAL);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TWIDEString.EqualsText(const aString: UnicodeString): Boolean;
   begin
     result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
@@ -356,455 +449,328 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.Find(const aChar: ANSIChar;
-                            var aPos: TCharIndexArray): Boolean;
+  function TWIDEString.Find(const aChar: WIDEChar;
+                            var   aPos: Integer;
+                            const aCaseMode: TCaseSensitivity): Boolean;
+  var
+    i: Integer;
+    boxLen: Integer;
+    first: PWIDEChar;
+    curr: PWIDEChar;
   begin
-    result := Find(ANSI(aChar).ToWIDE, aPos);
+    aPos    := 0;
+    result  := FALSE;
+
+    boxLen := System.Length(BOX);
+    if (boxLen = 0) then
+      EXIT;
+
+    first := PWIDEChar(BOX);
+    curr  := first;
+
+    case aCaseMode of
+      csCaseSensitive : for i := Pred(boxLen) downto 0 do
+                        begin
+                          result := (curr^ = aChar);
+                          if result then
+                            BREAK;
+
+                          Inc(curr);
+                        end;
+
+      csIgnoreCase    : for i := Pred(boxLen) downto 0 do
+                        begin
+                          result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                                                   curr, 1, @aChar, 1) = CSTR_EQUAL;
+                          if result then
+                            BREAK;
+
+                          Inc(curr);
+                        end;
+    end;
+
+    if result then
+      aPos := (curr - first) + 1;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TWIDEString.Find(const aString: UnicodeString;
+                            var   aPos: Integer;
+                            const aCaseMode: TCaseSensitivity): Boolean;
+  var
+    i: Integer;
+    boxLen: Integer;
+    strLen: Integer;
+    first: PWIDEChar;
+    curr: PWIDEChar;
+  begin
+    aPos   := 0;
+    result := FALSE;
+
+    boxLen := System.Length(BOX);
+    strLen := System.Length(aString);
+    if (boxLen = 0) or (strLen = 0) or (strLen > boxLen) then
+      EXIT;
+
+    first := PWIDEChar(BOX);
+    curr  := first;
+
+    for i := (boxLen - strLen) downto 0 do
+    begin
+      result := CompareStringW(LOCALE_USER_DEFAULT, FXCOMPAREFLAG_CASE[aCaseMode],
+                               curr, strLen, PWIDEChar(aString), strLen) = CSTR_EQUAL;
+      if result then
+        BREAK;
+
+      Inc(curr);
+    end;
+
+    if result then
+      aPos := (curr - first) + 1;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TWIDEString.FindLast(const aChar: WIDEChar;
+                                var   aPos: Integer;
+                                const aCaseMode: TCaseSensitivity): Boolean;
+  var
+    i: Integer;
+    boxLen: Integer;
+    first: PWIDEChar;
+    curr: PWIDEChar;
+  begin
+    aPos    := 0;
+    result  := FALSE;
+
+    boxLen  := System.Length(BOX);
+    if (boxLen = 0) then
+      EXIT;
+
+    first := @BOX[1];
+    curr  := @BOX[boxLen];
+
+    case aCaseMode of
+      csCaseSensitive : for i := Pred(boxLen) downto 0 do
+                        begin
+                          result := (curr^ = aChar);
+                          if result then
+                            BREAK;
+
+                          Dec(curr);
+                        end;
+
+      csIgnoreCase    : for i := Pred(boxLen) downto 0 do
+                        begin
+                          result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                                                   curr, 1, @aChar, 1) = CSTR_EQUAL;
+                          if result then
+                            BREAK;
+
+                          Dec(curr);
+                        end;
+    end;
+
+    if result then
+      aPos := (curr - first) + 1;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TWIDEString.FindLast(const aString: UnicodeString;
+                                var   aPos: Integer;
+                                const aCaseMode: TCaseSensitivity): Boolean;
+  var
+    i: Integer;
+    boxLen: Integer;
+    strLen: Integer;
+    first: PWIDEChar;
+    curr: PWIDEChar;
+  begin
+    aPos    := 0;
+    result  := FALSE;
+
+    boxLen  := System.Length(BOX);
+    strLen  := System.Length(aString);
+    if (boxLen = 0) or (strLen = 0) or (strLen > boxLen) then
+      EXIT;
+
+    first := @BOX[1];
+    curr  := @BOX[(boxLen - strLen) + 1];
+
+    for i := (boxLen - strLen) downto 0 do
+    begin
+      result := CompareStringW(LOCALE_USER_DEFAULT, FXCOMPAREFLAG_CASE[aCaseMode],
+                               curr, strLen, PWIDEChar(aString), strLen) = CSTR_EQUAL;
+      if result then
+        BREAK;
+
+      Dec(curr);
+    end;
+
+    if result then
+      aPos := (curr - first) + 1;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TWIDEString.Find(const aChar: WIDEChar;
-                            var aPos: TCharIndexArray): Boolean;
+                            var   aPos: TCharIndexArray;
+                            const aCaseMode: TCaseSensitivity): Integer;
   var
-    i, j: Integer;
+    i: Integer;
     strlen: Integer;
     firstChar: PWIDEChar;
     currChar: PWIDEChar;
   begin
-    result  := FALSE;
+    result := 0;
+    SetLength(aPos, 0);
+
     strlen  := System.Length(BOX);
 
     if (strlen = 0) then
       EXIT;
 
     SetLength(aPos, strlen);
-    j         := 0;
-    firstChar := PWIDEChar(BOX);
+    firstChar := PWIDEChar(BOX);
     currChar  := firstChar;
 
-    for i := Pred(strlen) downto 0 do
-    begin
-      if (currChar^ = aChar) then
-      begin
-        aPos[j] := (currChar - firstChar) + 1;
-        Inc(j);
-      end;
+    case aCaseMode of
+      csCaseSensitive : for i := Pred(strlen) downto 0 do
+                        begin
+                          if (currChar^ = aChar) then
+                          begin
+                            aPos[result] := (currChar - firstChar) + 1;
+                            Inc(result);
+                          end;
 
-      Inc(currChar);
-    end;
+                          Inc(currChar);
+                        end;
 
-    SetLength(aPos, j);
-    result := (j > 0);
+      csIgnoreCase    : for i := Pred(strlen) downto 0 do
+                        begin
+                          if CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                                            currChar, 1, @aChar, 1) = CSTR_EQUAL then
+                          begin
+                            aPos[result] := (currChar - firstChar) + 1;
+                            Inc(result);
+                          end;
+
+                          Inc(currChar);
+                        end;
+    end;
+
+    SetLength(aPos, result);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TWIDEString.Find(const aString: UnicodeString;
-                            var aPos: TCharIndexArray): Boolean;
+                            var   aPos: TCharIndexArray;
+                            const aCaseMode: TCaseSensitivity): Integer;
   var
-    i, j: Integer;
+    i: Integer;
     currChar: PWIDEChar;
     firstChar: PWIDEChar;
-    psub: PWIDEChar;
-    strlen: Integer;
-    sublen: Integer;
+    pstr: PWIDEChar;
+    boxLen: Integer;
+    strLen: Integer;
   begin
-    result  := FALSE;
-    subLen  := System.Length(aString);
-    strLen  := System.Length(BOX);
-    if (strLen = 0) or (strlen = 0) or (sublen > strlen)then
+    result  := 0;
+    SetLength(aPos, 0);
+
+    strLen  := System.Length(aString);
+    boxLen  := System.Length(BOX);
+    if (boxLen = 0) or (strLen = 0) or (strLen > boxLen)then
       EXIT;
 
-    SetLength(aPos, strlen);
-    j         := 0;
+    SetLength(aPos, boxLen);
+    pstr      := PWIDEChar(aString);
     firstChar := PWIDEChar(BOX);
     currChar  := firstChar;
-    psub      := PWIDEChar(aString);
-    for i := (strlen - sublen) downto 0 do
+
+    for i := (boxLen - strLen) downto 0 do
     begin
-      if (Windows.CompareStringW(LOCALE_USER_DEFAULT, 0,
-                                 currChar, sublen,
-                                 psub, sublen) = CSTR_EQUAL) then
+      if (Windows.CompareStringW(LOCALE_USER_DEFAULT, FXCOMPAREFLAG_CASE[aCaseMode],
+                                 currChar, strLen, pstr, strLen) = CSTR_EQUAL) then
       begin
-        aPos[j] := (currChar - firstChar) + 1;
-        Inc(j)
+        aPos[result] := (currChar - firstChar) + 1;
+        Inc(result)
       end;
 
       Inc(currChar);
     end;
 
-    SetLength(aPos, j);
-
-    result := (j > 0);
+    SetLength(aPos, result);
   end;
 
 
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.FindText(const aChar: ANSIChar;
-                                var aPos: TCharIndexArray): Boolean;
-  begin
-    result := FindText(ANSI(aChar).ToWIDE, aPos);
-  end;
-
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.FindText(const aChar: WIDEChar;
-                                var aPos: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
-    currChar: PWIDEChar;
-    firstChar: PWIDEChar;
-    psub: PWIDEChar;
-    strlen: Integer;
-  begin
-    result  := FALSE;
-    strlen  := System.Length(BOX);
-    if (strlen = 0) then
-      EXIT;
-
-    SetLength(aPos, strlen);
-    j         := 0;
-    firstChar := PWIDEChar(BOX);
-    currChar  := firstChar;
-    psub      := @aChar;
-    for i := (strlen - 1) downto 0 do
-    begin
-      if (Windows.CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                                 currChar, 1,
-                                 psub, 1) = CSTR_EQUAL) then
-      begin
-        aPos[j] := (currChar - firstChar) + 1;
-        Inc(j)
-      end;
-
-      Inc(currChar);
-    end;
-
-    SetLength(aPos, j);
-
-    result := (j > 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.FindText(const aString: UnicodeString;
-                                var aPos: TCharIndexArray): Boolean;
-  var
-    i, j: Integer;
-    currChar: PWIDEChar;
-    firstChar: PWIDEChar;
-    psub: PWIDEChar;
-    strlen: Integer;
-    sublen: Integer;
-  begin
-    result  := FALSE;
-    subLen  := System.Length(aString);
-    strLen  := System.Length(BOX);
-    if (strLen = 0) or (strlen = 0) or (sublen > strlen)then
-      EXIT;
-
-    SetLength(aPos, strlen);
-    j         := 0;
-    firstChar := PWIDEChar(BOX);
-    currChar  := firstChar;
-    psub      := PWIDEChar(aString);
-    for i := (strlen - sublen) downto 0 do
-    begin
-      if (Windows.CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                                 currChar, sublen,
-                                 psub, sublen) = CSTR_EQUAL) then
-      begin
-        aPos[j] := (currChar - firstChar) + 1;
-        Inc(j)
-      end;
-
-      Inc(currChar);
-    end;
-
-    SetLength(aPos, j);
-
-    result := (j > 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.FindFirst(const aChar: ANSIChar;
-                                 var aPos: Integer): Boolean;
-  begin
-    result := FindFirst(ANSI(aChar).ToWIDE, aPos);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.FindFirst(const aChar: WIDEChar;
-                                 var aPos: Integer): Boolean;
-  begin
-    aPos    := System.Pos(aChar, BOX);
-    result  := (aPos <> 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.FindFirst(const aString: UnicodeString;
-                                 var aPos: Integer): Boolean;
-  begin
-    aPos    := System.Pos(aString, BOX);
-    result  := (aPos <> 0);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.FindFirstText(const aString: UnicodeString;
-                                     var aPos: Integer): Boolean;
-  var
-    i: Integer;
-    currChar: PWIDEChar;
-    firstChar: PWIDEChar;
-    psub: PWIDEChar;
-    strlen: Integer;
-    sublen: Integer;
-  begin
-    result  := FALSE;
-    subLen  := System.Length(aString);
-    strLen  := System.Length(BOX);
-    if (strlen = 0) or (sublen > strlen)then
-      EXIT;
-
-    firstChar := PWIDEChar(BOX);
-    currChar  := firstChar;
-    psub      := PWIDEChar(aString);
-    for i := (strlen - sublen) downto 0 do
-    begin
-      result := Windows.CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                                       currChar, sublen,
-                                       psub, sublen) = CSTR_EQUAL;
-      if result then
-        BREAK;
-
-      Inc(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - firstChar) + 1
-    else
-      aPos := 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.FindLast(const aChar: ANSIChar;
-                                var aPos: Integer): Boolean;
-  begin
-    result := FindLast(ANSI(aChar).ToWIDE, aPos);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.FindLast(const aChar: WIDEChar;
-                                var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    firstChar: PWIDEChar;
-    currChar: PWIDEChar;
-  begin
-    strLen  := System.Length(BOX);
-    aPos    := 0;
-    result  := FALSE;
-    if (strLen = 0) then
-      EXIT;
-
-    firstChar := @BOX[1];
-    currChar  := @BOX[strLen];
-
-    for i := Pred(strLen) downto 0 do
-    begin
-      result := (currChar^ = aChar);
-      if result then
-        BREAK;
-
-      Dec(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - firstChar) + 1;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.FindLast(const aString: UnicodeString;
-                                var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PWIDEChar;
-    currChar: PWIDEChar;
-    initialChar: PWIDEChar;
-  begin
-    strLen  := System.Length(BOX);
-    subLen  := System.Length(aString);
-    aPos    := 0;
-    result  := FALSE;
-
-    if (subLen > strLen) or (subLen = 0) or (strLen = 0) then
-      EXIT;
-
-    firstChar   := @BOX[1];
-    initialChar := @aString[1];
-    currChar    := @BOX[strlen];
-
-    for i := (strLen - subLen) downto 0 do
-    begin
-      result := (currChar^ = initialChar^);
-      if result and CompareMem(currChar, initialChar, subLen * 2) then
-        BREAK;
-
-      Dec(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - firstChar) + 1;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.FindNext(const aChar: ANSIChar;
-                                var aPos: Integer): Boolean;
-  begin
-    result := FindNext(ANSI(aChar).ToWIDE, aPos);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.FindNext(const aChar: WIDEChar;
-                                var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    currChar: PWIDEChar;
-  begin
-  ASSERT(aPos >= 0);
-
-    result  := FALSE;
-    strLen  := System.Length(BOX);
-    if (aPos >= strLen) then
-    begin
-      aPos := 0;
-      EXIT;
-    end;
-
-    currChar := @BOX[aPos + 1];
-    for i := Pred(strLen) downto aPos do
-    begin
-      result := (currChar^ = aChar);
-      if result then
-        BREAK;
-      Inc(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - @BOX[1]) + 1
-    else
-      aPos := 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.FindNext(const aString: UnicodeString;
-                                var   aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PWIDEChar;
-    initialChar: PWIDEChar;
-    currChar: PWIDEChar;
-  begin
-  ASSERT(aPos >= 0);
-
-    result  := FALSE;
-    strLen  := System.Length(BOX);
-    subLen  := System.Length(aString);
-
-    if ((aPos + subLen) > strLen) or (strLen = 0) or (subLen = 0) then
-    begin
-      aPos := 0;
-      EXIT;
-    end;
-
-    firstChar   := @BOX[1];
-    initialChar := @aString[1];
-    currChar    := @BOX[aPos + 1];
-
-    for i := (strLen - subLen) downto aPos do
-    begin
-      result := (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen * 2);
-      if result then
-        BREAK;
-
-      Inc(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - firstChar) + 1
-    else
-      aPos := 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.IndexIn(const aArray: array of UnicodeString): Integer;
+  function TWIDEString.IndexIn(const aArray: array of UnicodeString;
+                               const aCaseMode: TCaseSensitivity): Integer;
   var
     i: Integer;
   begin
-    for i := 0 to Pred(System.Length(aArray)) do
-      if (aArray[i] = BOX) then
-      begin
-        result := i;
-        EXIT;
-      end;
+    case aCaseMode of
+      csCaseSensitive : for i := 0 to Pred(System.Length(aArray)) do
+                          if (BOX = aArray[i]) then
+                          begin
+                            result := i;
+                            EXIT;
+                          end;
+
+      csIgnoreCase    : for i := 0 to Pred(System.Length(aArray)) do
+                          if EqualsText(aArray[i]) then
+                          begin
+                            result := i;
+                            EXIT;
+                          end;
+    end;
 
     result := -1;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.IsIn(const aArray: array of UnicodeString): Boolean;
+  function TWIDEString.IsOneOf(const aArray: array of UnicodeString;
+                               const aCaseMode: TCaseSensitivity): Boolean;
   begin
-    result := IndexIn(aArray) <> -1;
+    result := IndexIn(aArray, aCaseMode) <> -1;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.Leftmost(const aCount: Integer): UnicodeString;
+  function TWIDEString.Leading(const aCount: Integer): UnicodeString;
   begin
     result := Copy(BOX, 1, aCount);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.Remove(const aString: UnicodeString;
-                              const aFlags: TReplaceFlags): UnicodeString;
+  function TWIDEString.Remove(const aScope: TStringScope;
+                              const aString: UnicodeString;
+                              const aCaseMode: TCaseSensitivity): UnicodeString;
   begin
-    BOX     := WIDE.Replace(BOX, aString, '', aFlags);
+    BOX     := WIDE.Replace(aScope, BOX, aString, '', aCaseMode);
     result  := BOX;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.Replace(const aFindStr: UnicodeString;
+  function TWIDEString.Replace(const aScope: TStringScope;
+                               const aFindStr: UnicodeString;
                                const aReplaceStr: UnicodeString;
-                               const aFlags: TReplaceFlags): UnicodeString;
+                               const aCaseMode: TCaseSensitivity): UnicodeString;
   begin
-    BOX     := WIDE.Replace(BOX, aFindStr, aReplaceStr, aFlags);
+    BOX     := WIDE.Replace(aScope, BOX, aFindStr, aReplaceStr, aCaseMode);
     result  := BOX;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.Rightmost(const aCount: Integer): UnicodeString;
+  function TWIDEString.Trailing(const aCount: Integer): UnicodeString;
   begin
     result := Copy(BOX, (System.Length(BOX) - aCount) + 1, aCount);
   end;
@@ -827,7 +793,7 @@ implementation
     aLeft   := BOX;
     aRight  := '';
 
-    result  := FindFirst(aChar, p);
+    result  := Find(aChar, p);
     if NOT result then
       EXIT;
 
@@ -852,7 +818,7 @@ implementation
     p: TCharIndexArray;
     plen: Integer;
   begin
-    result := Find(aChar, p);
+    result := Find(aChar, p) > 0;
     if NOT result then
       EXIT;
 
@@ -889,7 +855,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.Embrace(const aBraceChar: ASCIIChar): UnicodeString;
+  function TWIDEString.Embrace(const aBraceChar: WIDEChar): UnicodeString;
   begin
     BOX     := WIDE.Embrace(BOX, aBraceChar);
     result  := BOX;
@@ -935,7 +901,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TWIDEString.PadLeft(const aCount: Integer;
-                               const aChar: ASCIIChar): UnicodeString;
+                               const aChar: WIDEChar): UnicodeString;
   begin
     BOX     := WIDE.PadLeft(BOX, aCount, aChar);
     result  := BOX;
@@ -944,7 +910,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TWIDEString.PadRight(const aCount: Integer;
-                                const aChar: ASCIIChar): UnicodeString;
+                                const aChar: WIDEChar): UnicodeString;
   begin
     BOX     := WIDE.PadRight(BOX, aCount, aChar);
     result  := BOX;
@@ -953,7 +919,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TWIDEString.PadToLengthLeft(const aMaxLen: Integer;
-                                       const aChar: ASCIIChar): UnicodeString;
+                                       const aChar: WIDEChar): UnicodeString;
   begin
     BOX     := WIDE.PadLeft(BOX, aMaxLen, aChar);
     result  := BOX;
@@ -962,7 +928,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TWIDEString.PadToLengthRight(const aMaxLen: Integer;
-                                        const aChar: ASCIIChar): UnicodeString;
+                                        const aChar: WIDEChar): UnicodeString;
   begin
     BOX     := WIDE.PadRight(BOX, aMaxLen, aChar);
     result  := BOX;
@@ -970,15 +936,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.TrimLeft(const aChar: ASCIIChar): UnicodeString;
-  begin
-    BOX     := WIDE.TrimLeft(BOX, aChar);
-    result  := BOX;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.Trim(const aChar: ASCIIChar): UnicodeString;
+  function TWIDEString.Trim(const aChar: WIDEChar): UnicodeString;
   begin
     BOX       := WIDE.Trim(BOX, aChar);
     result    := BOX;
@@ -986,7 +944,15 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.TrimLeft(const aCount: Integer): UnicodeString;
+  function TWIDEString.RemoveLeading(const aChar: WIDEChar): UnicodeString;
+  begin
+    BOX     := WIDE.RemoveLeading(BOX, aChar);
+    result  := BOX;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TWIDEString.RemoveLeading(const aCount: Integer): UnicodeString;
   begin
     System.Delete(BOX, 1, aCount);
     result := BOX;
@@ -994,15 +960,15 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.TrimRight(const aChar: ASCIIChar): UnicodeString;
+  function TWIDEString.RemoveTrailing(const aChar: WIDEChar): UnicodeString;
   begin
-    BOX     := WIDE.TrimRight(BOX, aChar);
+    BOX     := WIDE.RemoveTrailing(BOX, aChar);
     result  := BOX;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TWIDEString.TrimRight(const aCount: Integer): UnicodeString;
+  function TWIDEString.RemoveTrailing(const aCount: Integer): UnicodeString;
   begin
     SetLength(BOX, System.Length(BOX) - aCount);
     result := BOX;

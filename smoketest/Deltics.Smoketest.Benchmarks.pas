@@ -7,6 +7,7 @@ interface
 
   uses
     Classes,
+    SysUtils,
     Deltics.Classes,
     Deltics.Smoketest,
     Deltics.Strings;
@@ -83,7 +84,6 @@ interface
 implementation
 
   uses
-    SysUtils,
     Deltics.Delphi.Versions,
     Deltics.JSON,
     Deltics.Shell,
@@ -353,7 +353,7 @@ implementation
         for j := 0 to Pred(CasesCount[i]) do
           if (Cases[i, j].ID = aCase.ID) then
           begin
-            json := TJSONObject.CreateFromFile(Filename[i]);
+            json := TJSONObject.CreateFromFile(Filename[i], TEncoding.UTF8);
             BREAK;
           end;
 
@@ -486,7 +486,7 @@ implementation
     method: IPerformanceMethod;
   begin
     if FileExists(aFilename) then
-      json := TJSONObject.CreateFromFile(aFilename)
+      json := TJSONObject.CreateFromFile(aFilename, TEncoding.UTF8)
     else
       json := TJSONObject.Create;
     try

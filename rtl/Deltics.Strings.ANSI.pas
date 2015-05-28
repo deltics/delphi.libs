@@ -6,6 +6,7 @@
 interface
 
   uses
+    SysUtils,
     Deltics.Classes,
     Deltics.Strings;
 
@@ -35,8 +36,10 @@ interface
       constructor Create(const aString: ANSIString);
 
     private // IString
+      function get_Length: Integer;
+      procedure set_Length(const aValue: Integer);
+
       function ByteCount: Integer;
-      function Length: Integer;
       function IsLowercase: Boolean;
       function IsUppercase: Boolean;
       function ToANSI: ANSIString;
@@ -45,71 +48,119 @@ interface
       function ToWIDE: UnicodeString;
 
     private // IANSIString
-      function BeginsWith(const aString: ANSIString): Boolean;
-      function BeginsWithText(const aString: ANSIString): Boolean;
-      function CompareWith(const aString: ANSIString): Integer;
-      function CompareWithText(const aString: ANSIString): Integer;
-      function Contains(const aChar: ANSIChar): Boolean; overload;
-      function Contains(const aString: ANSIString): Boolean; overload;
-      function ContainsText(const aChar: ANSIChar): Boolean; overload;
-      function ContainsText(const aString: ANSIString): Boolean; overload;
-      function Data: PANSIChar;
+      function get_Value: ANSIString;
+      procedure set_Value(const aValue: ANSIString);
+
+      function AsPointer: PANSIChar;
+
+      function AllocANSI: PANSIChar;
+      function AllocUTF8: PUTF8Char;
+      function AllocWIDE: PWIDEChar;
+      procedure CopyToBuffer(const aDest: PANSIChar; const aMaxBytes: Integer = -1); overload;
+      procedure CopyToBuffer(const aDest: PUTF8Char; const aMaxBytes: Integer = -1); overload;
+      procedure CopyToBuffer(const aDest: PWIDEChar; const aMaxChars: Integer = -1); overload;
+
+      function BeginsWith(const aString: ANSIString; const aCaseMode: TCaseSensitivity): Boolean;
+      function CompareWith(const aString: ANSIString; const aCaseMode: TCaseSensitivity): TCompareResult;
+      function Contains(const aChar: ANSIChar; const aCaseMode: TCaseSensitivity): Boolean; overload;
+      function Contains(const aString: ANSIString; const aCaseMode: TCaseSensitivity): Boolean; overload;
+      function Contains(const aNeed: TContainNeeds; const aChars: array of ANSIChar; const aCaseMode: TCaseSensitivity): Boolean; overload;
+      function Contains(const aNeed: TContainNeeds; const aStrings: array of ANSIString; const aCaseMode: TCaseSensitivity): Boolean; overload;
+      function EndsWith(const aString: ANSIString; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean;
       function EqualsText(const aString: ANSIString): Boolean;
-      function Find(const aChar: ANSIChar; var aPos: TCharIndexArray): Boolean; overload;
-      function Find(const aString: ANSIString; var aPos: TCharIndexArray): Boolean; overload;
-      function FindText(const aString: ANSIString; var aPos: TCharIndexArray): Boolean; overload;
-      function FindFirst(const aString: ANSIString; var aPos: Integer): Boolean; overload;
-      function FindFirst(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
-      function FindFirstText(const aString: ANSIString; var aPos: Integer): Boolean; overload;
-      function FindNext(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
-      function FindNext(const aString: ANSIString; var aPos: Integer): Boolean; overload;
-      function FindLast(const aChar: ANSIChar; var aPos: Integer): Boolean; overload;
-      function FindLast(const aString: ANSIString; var aPos: Integer): Boolean; overload;
-      function IndexIn(const aArray: array of ANSIString): Integer;
-      function IsIn(const aArray: array of ANSIString): Boolean;
-      function Leftmost(const aCount: Integer): ANSIString;
-      function Rightmost(const aCount: Integer): ANSIString;
+
+      function Find(const aChar: ANSIChar; var aPos: Integer; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function Find(const aString: ANSIString; var aPos: Integer; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function Find(const aChar: ANSIChar; var aPos: TCharIndexArray; const aCaseMode: TCaseSensitivity = csCaseSensitive): Integer; overload;
+      function Find(const aString: ANSIString; var aPos: TCharIndexArray; const aCaseMode: TCaseSensitivity = csCaseSensitive): Integer; overload;
+//      function FindFirst(const aChar: ANSIChar; const aCaseMode: TCaseSensitivity = csCaseSensitive): IStringSearch; overload;
+//      function FindFirst(const aString: ANSIString; const aCaseMode: TCaseSensitivity = csCaseSensitive): IStringSearch; overload;
+      function FindLast(const aChar: ANSIChar; var aPos: Integer; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+      function FindLast(const aString: ANSIString; var aPos: Integer; const aCaseMode: TCaseSensitivity = csCaseSensitive): Boolean; overload;
+//      function FindLast(const aChar: ANSIChar; const aCaseMode: TCaseSensitivity = csCaseSensitive): IStringSearch; overload;
+//      function FindLast(const aString: ANSIString; const aCaseMode: TCaseSensitivity = csCaseSensitive): IStringSearch; overload;
+
+      function IndexIn(const aArray: array of ANSIString; const aCaseMode: TCaseSensitivity): Integer;
+      function IsOneOf(const aArray: array of ANSIString; const aCaseMode: TCaseSensitivity): Boolean;
+      function Leading(const aCount: Integer): ANSIString;
+      function Substr(const aStart: Integer; const aCount: Integer): ANSIString;
+      function Trailing(const aCount: Integer): ANSIString;
+
       function Split(const aChar: ANSIChar; var aLeft, aRight: ANSIString): Boolean; overload;
       function Split(const aChar: ANSIChar; var aParts: TANSIStringArray): Boolean; overload;
 
-      function Delete(const aStart, aCount: Integer): ANSIString;
-      function Embrace(const aBraceChar: ASCIIChar = ''''): ANSIString;
-      function Enquote(const aQuoteChar: ANSIChar = ''''): ANSIString;
-      function ExtractLeft(const aCount: Integer): ANSIString;
-      function ExtractRight(const aCount: Integer): ANSIString;
       function Lowercase: ANSIString;
-      function PadLeft(const aCount: Integer; const aChar: ASCIIChar): ANSIString; overload;
-      function PadRight(const aCount: Integer; const aChar: ASCIIChar): ANSIString; overload;
-      function PadToLengthLeft(const aMaxLen: Integer; const aChar: ASCIIChar): ANSIString; overload;
-      function PadToLengthRight(const aMaxLen: Integer; const aChar: ASCIIChar): ANSIString; overload;
-      function Remove(const aString: ANSIString; const aFlags: TReplaceFlags): ANSIString; overload;
-      function Replace(const aString: ANSIString; const aFindStr, aReplaceStr: ANSIString; const aFlags: TReplaceFlags): ANSIString; overload;
-      function Trim(const aChar: ASCIIChar): ANSIString; overload;
-      function TrimLeft(const aChar: ASCIIChar): ANSIString; overload;
-      function TrimLeft(const aCount: Integer): ANSIString; overload;
-      function TrimRight(const aChar: ASCIIChar): ANSIString; overload;
-      function TrimRight(const aCount: Integer): ANSIString; overload;
+      function Uppercase: ANSIString;
+
+      function Embrace(const aBraceChar: ANSIChar): ANSIString;
+      function Enquote(const aQuoteChar: ANSIChar): ANSIString;
+      function ExtendLeft(const aMaxLen: Integer; const aChar: ANSIChar): ANSIString; overload;
+      function ExtendRight(const aMaxLen: Integer; const aChar: ANSIChar): ANSIString; overload;
+      function PadLeft(const aCount: Integer; const aChar: ANSIChar): ANSIString; overload;
+      function PadRight(const aCount: Integer; const aChar: ANSIChar): ANSIString; overload;
+
+      function Delete(const aStart, aCount: Integer): ANSIString;
+      function Extract(const aStart, aCount: Integer): ANSIString;
+      function ExtractLeading(const aCount: Integer): ANSIString;
+      function ExtractTrailing(const aCount: Integer): ANSIString;
+      function Remove(const aScope: TStringScope; const aString: ANSIString; const aCaseMode: TCaseSensitivity = csCaseSensitive): ANSIString;
+      function Replace(const aScope: TStringScope; const aFindStr, aReplaceStr: ANSIString; const aCaseMode: TCaseSensitivity = csCaseSensitive): ANSIString;
+      function RemoveLeading(const aCount: Integer): ANSIString; overload;
+      function RemoveLeading(const aChar: ANSIChar): ANSIString; overload;
+      function RemoveTrailing(const aCount: Integer): ANSIString; overload;
+      function RemoveTrailing(const aChar: ANSIChar): ANSIString; overload;
+      function Trim(const aCount: Integer): ANSIString; overload;
+      function Trim(const aChar: ANSIChar): ANSIString; overload;
       function Unbrace: ANSIString;
       function Unquote: ANSIString;
-      function Uppercase: ANSIString;
+  end;
+
+
+(*
+    TANSIStringSearch = class(TCOMInterfacedObject, IStringSearch)
+    private
+      fInitialPos: Integer;
+      fPos: Integer;
+      fString: IANSIString;
+      fTarget: ANSIString;
+    public
+      constructor CreateFromStart(const aString: IANSIString; const aTarget: ANSIString);
+      constructor CreateFromEnd(const aString: IANSIString; const aTarget: ANSIString);
+
+    private // IStringSearch -------------------------------------
+      function get_EOF: Boolean;
+      function get_Pos: Integer;
+      procedure set_Pos(const aValue: Integer);
+
+      function First: Boolean;
+      function Last: Boolean;
+      function Next: Boolean;
+      function Previous: Boolean;
+      procedure Reset;
+
+      property EOF: Boolean read get_EOF;
+      property Pos: Integer read get_Pos write set_Pos;
     end;
+*)
+
 
 
 implementation
 
   uses
-  {$ifdef FASTSTRINGS}
-    FastStrings,
-  {$endif}
   { vcl: }
   {$ifdef DELPHIXE4_OR_LATER}
     ANSIStrings,
   {$endif}
-    SysUtils,
-    Windows;
+    Windows,
+  { deltics: }
+    Deltics.Strings.FXUtils;
 
 
+  type TStepCharProcA = procedure(var aChar: PANSIChar);
 
+  procedure StepForward(var aChar: PANSIChar);  begin Inc(aChar); end;
+  procedure StepBack(var aChar: PANSIChar);     begin Dec(aChar); end;
 
 
 { TANSIChar }
@@ -199,28 +250,43 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.BeginsWith(const aString: ANSIString): Boolean;
-  var
-    alen: Integer;
+  function TANSIString.AsPointer: PANSIChar;
   begin
-    alen := System.Length(aString);
-
-    result := (alen <= System.Length(BOX))
-          and (CompareStringA(LOCALE_USER_DEFAULT, 0,
-                              PANSIChar(BOX), alen,
-                              PANSIChar(aString), alen) = CSTR_EQUAL);
+    result := PANSIChar(BOX);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.BeginsWithText(const aString: ANSIString): Boolean;
+  function TANSIString.AllocANSI: PANSIChar;
+  begin
+    result := ANSI.AllocANSI(BOX);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TANSIString.AllocUTF8: PUTF8Char;
+  begin
+    result := ANSI.AllocUTF8(BOX);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TANSIString.AllocWIDE: PWIDEChar;
+  begin
+    result := ANSI.AllocWIDE(BOX);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TANSIString.BeginsWith(const aString: ANSIString;
+                                  const aCaseMode: TCaseSensitivity): Boolean;
   var
     alen: Integer;
   begin
     alen := System.Length(aString);
 
     result := (alen <= System.Length(BOX))
-          and (CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+          and (CompareStringA(LOCALE_USER_DEFAULT, FXCOMPAREFLAG_CASE[aCaseMode],
                               PANSIChar(BOX), alen,
                               PANSIChar(aString), alen) = CSTR_EQUAL);
   end;
@@ -234,16 +300,60 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.Leftmost(const aCount: Integer): ANSIString;
+  function TANSIString.EndsWith(const aString: ANSIString;
+                                const aCaseMode: TCaseSensitivity): Boolean;
+  var
+    alen: Integer;
   begin
-    result := Copy(BOX, 1, aCount);
+    alen := System.Length(aString);
+
+    result := (alen <= System.Length(BOX))
+          and (CompareStringA(LOCALE_USER_DEFAULT, FXCOMPAREFLAG_CASE[aCaseMode],
+                              PANSIChar(Integer(@BOX) - alen), alen,
+                              PANSIChar(aString), alen) = CSTR_EQUAL);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.Length: Integer;
+  function TANSIString.Leading(const aCount: Integer): ANSIString;
   begin
-    result := System.Length(BOX);
+    result := System.Copy(BOX, 1, aCount);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TANSIString.Substr(const aStart: Integer;
+                              const aCount: Integer): ANSIString;
+  begin
+    result := System.Copy(BOX, aStart, aCount);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TANSIString.get_Length: Integer;
+  begin
+    result := Length(BOX);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TANSIString.get_Value: ANSIString;
+  begin
+    result := BOX;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIString.set_Value(const aValue: ANSIString);
+  begin
+    BOX := aValue;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIString.set_Length(const aValue: Integer);
+  begin
+    SetLength(BOX, aValue);
   end;
 
 
@@ -262,67 +372,104 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.CompareWith(const aString: ANSIString): Integer;
+  function TANSIString.CompareWith(const aString: ANSIString;
+                                   const aCaseMode: TCaseSensitivity): TCompareResult;
   begin
-    result := CompareStringA(LOCALE_USER_DEFAULT, 0,
+    result := CompareStringA(LOCALE_USER_DEFAULT, FXCOMPAREFLAG_CASE[aCaseMode],
                              PANSIChar(BOX), System.Length(BOX),
                              PANSIChar(aString), System.Length(aString)) - CSTR_EQUAL;
+
+    result := IntToCompareResult(result);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.CompareWithText(const aString: ANSIString): Integer;
+  function TANSIString.Contains(const aChar: ANSIChar;
+                                const aCaseMode: TCaseSensitivity): Boolean;
+  var
+    notUsed: Integer;
   begin
-    result := CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                             PANSIChar(BOX), System.Length(BOX),
-                             PANSIChar(aString), System.Length(aString)) - CSTR_EQUAL;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.Contains(const aChar: ANSIChar): Boolean;
-  begin
-  {$ifdef FASTSTRINGS}
-    result := FastStrings.FastCharPos(BOX, aChar, 1) <> 0;
-  {$else}
-    result := System.Pos(aChar, BOX) <> 0;
-  {$endif}
+    result := Find(aChar, notUsed, aCaseMode);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.Contains(const aString: ANSIString): Boolean;
-  begin
-  {$ifdef FASTSTRINGS}
-    result := FastStrings.FastPos(BOX, aString, System.Length(BOX), System.Length(aString), 1) <> 0;
-  {$else}
-    result := System.Pos(aString, BOX) <> 0;
-  {$endif}
+  function TANSIString.Contains(const aString: ANSIString;
+                                const aCaseMode: TCaseSensitivity): Boolean;
+  var
+    notUsed: Integer;
+  begin
+    result := Find(aString, notUsed, aCaseMode);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.ContainsText(const aChar: ANSIChar): Boolean;
+  function TANSIString.Contains(const aNeed: TContainNeeds;
+                                const aChars: array of ANSIChar;
+                                const aCaseMode: TCaseSensitivity): Boolean;
   var
-    pos: Integer;
+    i: Integer;
+    notUsed: Integer;
+    foundOne: Boolean;
   begin
-    result := FindFirstText(aChar, pos);
+    foundOne := FALSE;
+
+    for i := Low(aChars) to High(aChars) do
+    begin
+      result := Find(aChars[i], notUsed, aCaseMode);
+
+      if FXContains.HasResult(aNeed, result, foundOne) then
+        EXIT;
+    end;
+
+    FXContains.CheckFinalResult(aNeed, result, foundOne);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.ContainsText(const aString: ANSIString): Boolean;
+  function TANSIString.Contains(const aNeed: TContainNeeds;
+                                const aStrings: array of ANSIString;
+                                const aCaseMode: TCaseSensitivity): Boolean;
   var
-    pos: Integer;
+    i: Integer;
+    notUsed: Integer;
+    foundOne: Boolean;
   begin
-    result := FindFirstText(aString, pos);
+    foundOne := FALSE;
+
+    for i := Low(aStrings) to High(aStrings) do
+    begin
+      result := Find(aStrings[i], notUsed, aCaseMode);
+
+      if FXContains.HasResult(aNeed, result, foundOne) then
+        EXIT;
+    end;
+
+    FXContains.CheckFinalResult(aNeed, result, foundOne);
   end;
 
 
-{ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.Data: PANSIChar;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIString.CopyToBuffer(const aDest: PANSIChar;
+                                     const aMaxBytes: Integer);
   begin
-    result := PANSIChar(BOX);
+    ANSI.CopyToBuffer(BOX, aDest, aMaxBytes);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIString.CopyToBuffer(const aDest: PUTF8Char;
+                                     const aMaxBytes: Integer);
+  begin
+    ANSI.CopyToBuffer(BOX, aDest, aMaxBytes);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIString.CopyToBuffer(const aDest: PWIDEChar;
+                                     const aMaxChars: Integer);
+  begin
+    ANSI.CopyToBuffer(BOX, aDest, aMaxChars);
   end;
 
 
@@ -335,376 +482,298 @@ implementation
   end;
 
 
+
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TANSIString.Find(const aChar: ANSIChar;
-                            var aPos: TCharIndexArray): Boolean;
+                            var   aPos: Integer;
+                            const aCaseMode: TCaseSensitivity): Boolean;
   var
-    i, j: Integer;
-    strLen: Integer;
-    firstChar: PANSIChar;
-    currChar: PANSIChar;
+    i: Integer;
+    boxLen: Integer;
+    first: PANSIChar;
+    curr: PANSIChar;
   begin
+    aPos    := 0;
     result  := FALSE;
-    strLen  := System.Length(BOX);
-    if (strLen = 0) then
+
+    boxLen  := System.Length(BOX);
+    if (boxLen = 0) then
       EXIT;
 
-    SetLength(aPos, strLen);
-    j         := 0;
-    firstChar := @BOX[1];
-    currChar  := firstChar;
+    first := PANSIChar(BOX);
+    curr  := first;
 
-    for i := Pred(strLen) downto 0 do
-    begin
-      if (currChar^ = aChar) then
-      begin
-        aPos[j] := (currChar - firstChar) + 1;
-        Inc(j);
-      end;
-      Inc(currChar);
+    case aCaseMode of
+      csCaseSensitive : for i := Pred(boxLen) downto 0 do
+                        begin
+                          result := (curr^ = aChar);
+                          if result then
+                            BREAK;
+
+                          Inc(curr);
+                        end;
+
+      csIgnoreCase    : for i := Pred(boxLen) downto 0 do
+                        begin
+                          result := CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                                                   curr, 1, @aChar, 1) = CSTR_EQUAL;
+                          if result then
+                            BREAK;
+
+                          Inc(curr);
+                        end;
     end;
-    SetLength(aPos, j);
-    result := (j > 0);
+
+    if result then
+      aPos := (curr - first) + 1;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TANSIString.Find(const aString: ANSIString;
-                            var aPos: TCharIndexArray): Boolean;
+                            var   aPos: Integer;
+                            const aCaseMode: TCaseSensitivity): Boolean;
   var
-    i, j: Integer;
-    currChar: PANSIChar;
-    firstChar: PANSIChar;
-    psub: PANSIChar;
-    strlen: Integer;
-    sublen: Integer;
+    i: Integer;
+    boxLen: Integer;
+    strLen: Integer;
+    first: PANSIChar;
+    curr: PANSIChar;
   begin
-    result  := FALSE;
-    subLen  := System.Length(aString);
-    strLen  := System.Length(BOX);
-    if (strLen = 0) or (strlen = 0) or (sublen > strlen)then
+    aPos   := 0;
+    result := FALSE;
+
+    boxLen := System.Length(BOX);
+    strLen := System.Length(aString);
+    if (boxLen = 0) or (strLen = 0) or (strLen > boxLen) then
       EXIT;
 
-    SetLength(aPos, strlen);
+    first := PANSIChar(BOX);
+    curr  := first;
 
-    j         := 0;
-    firstChar := PANSIChar(BOX);
-    currChar  := firstChar;
-    psub      := PANSIChar(aString);
-
-    for i := (strlen - sublen) downto 0 do
+    for i := (boxLen - strLen) downto 0 do
     begin
-      result := Windows.CompareStringA(LOCALE_USER_DEFAULT, 0,
-                                       currChar, sublen,
-                                       psub, sublen) = CSTR_EQUAL;
+      result := CompareStringA(LOCALE_USER_DEFAULT, FXCOMPAREFLAG_CASE[aCaseMode],
+                               curr, strLen, PANSIChar(aString), strLen) = CSTR_EQUAL;
       if result then
-      begin
-        aPos[j] := (currChar - firstChar) + 1;
-        Inc(j)
-      end;
+        BREAK;
 
-      Inc(currChar);
+      Inc(curr);
     end;
 
-    SetLength(aPos, j);
-    result := (j > 0);
+    if result then
+      aPos := (curr - first) + 1;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.FindText(const aString: ANSIString;
-                                var aPos: TCharIndexArray): Boolean;
+  function TANSIString.Find(const aChar: ANSIChar;
+                            var   aPos: TCharIndexArray;
+                            const aCaseMode: TCaseSensitivity): Integer;
   var
-    i, j: Integer;
-    currChar: PANSIChar;
-    firstChar: PANSIChar;
-    psub: PANSIChar;
+    i: Integer;
     strlen: Integer;
-    sublen: Integer;
+    firstChar: PANSIChar;
+    currChar: PANSIChar;
   begin
-    result  := FALSE;
-    subLen  := System.Length(aString);
-    strLen  := System.Length(BOX);
-    if (strLen = 0) or (strlen = 0) or (sublen > strlen)then
+    result := 0;
+    SetLength(aPos, 0);
+
+    strlen  := System.Length(BOX);
+
+    if (strlen = 0) then
       EXIT;
 
-    SetLength(aPos, strlen);
-
-    j         := 0;
-    firstChar := PANSIChar(BOX);
+    SetLength(aPos, strlen);
+    firstChar := PANSIChar(BOX);
     currChar  := firstChar;
-    psub      := PANSIChar(aString);
 
-    for i := (strlen - sublen) downto 0 do
-    begin
-      result := Windows.CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                                       currChar, sublen,
-                                       psub, sublen) = CSTR_EQUAL;
-      if result then
-      begin
-        aPos[j] := (currChar - firstChar) + 1;
-        Inc(j)
-      end;
+    case aCaseMode of
+      csCaseSensitive : for i := Pred(strlen) downto 0 do
+                        begin
+                          if (currChar^ = aChar) then
+                          begin
+                            aPos[result] := (currChar - firstChar) + 1;
+                            Inc(result);
+                          end;
 
-      Inc(currChar);
-    end;
+                          Inc(currChar);
+                        end;
 
-    SetLength(aPos, j);
-    result := (j > 0);
+      csIgnoreCase    : for i := Pred(strlen) downto 0 do
+                        begin
+                          if CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                                            currChar, 1, @aChar, 1) = CSTR_EQUAL then
+                          begin
+                            aPos[result] := (currChar - firstChar) + 1;
+                            Inc(result);
+                          end;
+
+                          Inc(currChar);
+                        end;
+    end;
+
+    SetLength(aPos, result);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.FindFirst(const aString: ANSIString;
-                                 var aPos: Integer): Boolean;
-  begin
-  {$ifdef FASTSTRINGS}
-    aPos := FastStrings.FastPos(BOX, aString, System.Length(BOX), System.Length(aString), 1);
-  {$else}
-    aPos := System.Pos(aString, BOX);
-  {$endif}
-    result := aPos <> 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.FindFirstText(const aString: ANSIString;
-                                     var aPos: Integer): Boolean;
+  function TANSIString.Find(const aString: ANSIString;
+                            var   aPos: TCharIndexArray;
+                            const aCaseMode: TCaseSensitivity): Integer;
+  const
+    NORMALISE: array[FALSE..TRUE] of Cardinal = (0, NORM_IGNORECASE);
   var
     i: Integer;
     currChar: PANSIChar;
     firstChar: PANSIChar;
-    psub: PANSIChar;
-    strlen: Integer;
-    sublen: Integer;
+    pstr: PANSIChar;
+    boxLen: Integer;
+    strLen: Integer;
   begin
-    result  := FALSE;
-    subLen  := System.Length(aString);
-    strLen  := System.Length(BOX);
-    if (strLen = 0) or (strlen = 0) or (sublen > strlen)then
+    result  := 0;
+    SetLength(aPos, 0);
+
+    strLen  := System.Length(aString);
+    boxLen  := System.Length(BOX);
+    if (boxLen = 0) or (strLen = 0) or (strLen > boxLen)then
       EXIT;
 
+    SetLength(aPos, boxLen);
+    pstr      := PANSIChar(aString);
     firstChar := PANSIChar(BOX);
     currChar  := firstChar;
-    psub      := PANSIChar(aString);
-    for i := (strlen - sublen) downto 0 do
+
+    for i := (boxLen - strLen) downto 0 do
     begin
-      result := Windows.CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-                                       currChar, sublen,
-                                       psub, sublen) = CSTR_EQUAL;
-      if result then
-        BREAK;
+      if (Windows.CompareStringA(LOCALE_USER_DEFAULT, FXCOMPAREFLAG_CASE[aCaseMode],
+                                 currChar, strLen, pstr, strLen) = CSTR_EQUAL) then
+      begin
+        aPos[result] := (currChar - firstChar) + 1;
+        Inc(result)
+      end;
 
       Inc(currChar);
     end;
 
-    if result then
-      aPos := (currChar - firstChar) + 1
-    else
-      aPos := 0;
+    SetLength(aPos, result);
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TANSIString.FindLast(const aChar: ANSIChar;
-                                var   aPos: Integer): Boolean;
-  {$ifdef FASTSTRINGS}
-    begin
-      aPos    := FastStrings.FastPosBack(BOX, aChar, System.Length(BOX), 1, System.Length(BOX));
-      result  := aPos <> 0;
-    end;
-  {$else}
-    var
-      i: Integer;
-      strLen: Integer;
-      firstChar: PANSIChar;
-      currChar: PANSIChar;
-    begin
-      strLen  := System.Length(BOX);
-      aPos    := 0;
-      result  := FALSE;
-      if (strLen = 0) then
-        EXIT;
+                                var   aPos: Integer;
+                                const aCaseMode: TCaseSensitivity): Boolean;
+  var
+    i: Integer;
+    boxLen: Integer;
+    first: PANSIChar;
+    curr: PANSIChar;
+  begin
+    aPos    := 0;
+    result  := FALSE;
 
-      firstChar := @BOX[1];
-      currChar  := @BOX[strLen];
+    boxLen  := System.Length(BOX);
+    if (boxLen = 0) then
+      EXIT;
+
+    first := @BOX[1];
+    curr  := @BOX[boxLen];
 
-      for i := Pred(strLen) downto 0 do
-      begin
-        result := (currChar^ = aChar);
-        if result then
-          BREAK;
-        Dec(currChar);
-      end;
+    case aCaseMode of
+      csCaseSensitive : for i := Pred(boxLen) downto 0 do
+                        begin
+                          result := (curr^ = aChar);
+                          if result then
+                            BREAK;
 
-      if result then
-        aPos := (currChar - firstChar) + 1;
-    end;
-  {$endif}
+                          Dec(curr);
+                        end;
+
+      csIgnoreCase    : for i := Pred(boxLen) downto 0 do
+                        begin
+                          result := CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                                                   curr, 1, @aChar, 1) = CSTR_EQUAL;
+                          if result then
+                            BREAK;
+
+                          Dec(curr);
+                        end;
+    end;
+
+    if result then
+      aPos := (curr - first) + 1;
+  end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TANSIString.FindLast(const aString: ANSIString;
-                                var   aPos: Integer): Boolean;
-  {$ifdef FASTSTRINGS}
-    begin
-      aPos    := FastStrings.FastPosBack(BOX, aString, System.Length(BOX), System.Length(aString), System.Length(BOX));
-      result  := aPos <> 0;
-    end;
-  {$else}
-    var
-      i: Integer;
-      strLen: Integer;
-      subLen: Integer;
-      firstChar: PANSIChar;
-      currChar: PANSIChar;
-      initialChar: PANSIChar;
-    begin
-      strLen  := System.Length(BOX);
-      subLen  := System.Length(aString);
-      aPos    := 0;
-      result  := FALSE;
-
-      if (subLen > strLen) or (subLen = 0) or (strLen = 0) then
-        EXIT;
-
-      firstChar   := @BOX[1];
-      initialChar := @aString[1];
-      currChar    := @BOX[strLen];
-
-      for i := (strLen - subLen) downto 0 do
-      begin
-        result := (currChar^ = initialChar^);
-        if result and CompareMem(currChar, initialChar, subLen) then
-          BREAK;
-        Dec(currChar);
-      end;
-
-      if result then
-        aPos := (currChar - firstChar) + 1;
-    end;
-{$endif}
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.FindNext(const aChar: ANSIChar;
-                                var aPos: Integer): Boolean;
-  {$ifdef FASTSTRINGS}
-    begin
-      ASSERT(aPos >= 0);
-
-      aPos := FastStrings.FastCharPos(BOX, aChar, aPos);
-      result := aPos > 0;
-    end;
-  {$else}
+                                var   aPos: Integer;
+                                const aCaseMode: TCaseSensitivity): Boolean;
   var
     i: Integer;
+    boxLen: Integer;
     strLen: Integer;
-    currChar: PANSIChar;
+    first: PANSIChar;
+    curr: PANSIChar;
   begin
-    ASSERT(aPos >= 0);
-
+    aPos    := 0;
     result  := FALSE;
-    strLen  := System.Length(BOX);
 
-    if (aPos >= strLen) then
-    begin
-      aPos := 0;
+    boxLen  := System.Length(BOX);
+    strLen  := System.Length(aString);
+    if (boxLen = 0) or (strLen = 0) or (strLen > boxLen) then
       EXIT;
-    end;
+
+    first := @BOX[1];
+    curr  := @BOX[(boxLen - strLen) + 1];
 
-    currChar := @BOX[aPos + 1];
-    for i := Pred(strLen) downto aPos do
+    for i := (boxLen - strLen) downto 0 do
     begin
-      result := (currChar^ = aChar);
-      if result then
-        BREAK;
-      Inc(currChar);
-    end;
-
-    if result then
-      aPos := (currChar - @BOX[1]) + 1
-    else
-      aPos := 0;
-  {$endif}
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.FindNext(const aString: ANSIString;
-                                var aPos: Integer): Boolean;
-  var
-    i: Integer;
-    strLen: Integer;
-    subLen: Integer;
-    firstChar: PANSIChar;
-    initialChar: PANSIChar;
-    currChar: PANSIChar;
-  begin
-  ASSERT(aPos >= 0);
-
-    result  := FALSE;
-    strLen  := System.Length(BOX);
-    subLen  := System.Length(aString);
-
-    if ((aPos + subLen) > strLen) or (strLen = 0) or (subLen = 0) then
-    begin
-      aPos := 0;
-      EXIT;
-    end;
-
-    firstChar   := @BOX[1];
-    initialChar := @aString[1];
-    currChar    := @BOX[aPos + 1];
-    for i := (strLen - subLen) downto aPos do
-    begin
-      result := (currChar^ = initialChar^) and CompareMem(currChar, initialChar, subLen);
+      result := CompareStringA(LOCALE_USER_DEFAULT, FXCOMPAREFLAG_CASE[aCaseMode],
+                               curr, strLen, PANSIChar(aString), strLen) = CSTR_EQUAL;
       if result then
         BREAK;
 
-      Inc(currChar);
+      Dec(curr);
     end;
 
     if result then
-      aPos := (currChar - firstChar) + 1
-    else
-      aPos := 0;
+      aPos := (curr - first) + 1;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.FindFirst(const aChar: ANSIChar;
-                                 var aPos: Integer): Boolean;
-  begin
-  {$ifdef FASTSTRINGS}
-    aPos := FastStrings.FastCharPos(BOX, aChar, 1);
-  {$else}
-    aPos := System.Pos(aChar, BOX);
-  {$endif}
-    result := aPos > 0;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.IndexIn(const aArray: array of ANSIString): Integer;
+  function TANSIString.IndexIn(const aArray: array of ANSIString;
+                               const aCaseMode: TCaseSensitivity): Integer;
   var
     i: Integer;
   begin
-    for i := 0 to Pred(System.Length(aArray)) do
-      if (aArray[i] = BOX) then
-      begin
-        result := i;
-        EXIT;
-      end;
+    case aCaseMode of
+      csCaseSensitive : for i := 0 to Pred(System.Length(aArray)) do
+                          if (BOX = aArray[i]) then
+                          begin
+                            result := i;
+                            EXIT;
+                          end;
+
+      csIgnoreCase    : for i := 0 to Pred(System.Length(aArray)) do
+                          if EqualsText(aArray[i]) then
+                          begin
+                            result := i;
+                            EXIT;
+                          end;
+    end;
 
     result := -1;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.IsIn(const aArray: array of ANSIString): Boolean;
+  function TANSIString.IsOneOf(const aArray: array of ANSIString;
+                               const aCaseMode: TCaseSensitivity): Boolean;
   begin
-    result := IndexIn(aArray) <> -1;
+    result := IndexIn(aArray, aCaseMode) <> -1;
   end;
 
 
@@ -717,7 +786,7 @@ implementation
     aLeft   := BOX;
     aRight  := '';
 
-    result := FindFirst(aChar, p);
+    result := Find(aChar, p);
     if NOT result then
       EXIT;
 
@@ -734,7 +803,7 @@ implementation
     p: TCharIndexArray;
     plen: Integer;
   begin
-    result := Find(aChar, p);
+    result := Find(aChar, p) > 0;
     if NOT result then
       EXIT;
 
@@ -784,7 +853,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.Rightmost(const aCount: Integer): ANSIString;
+  function TANSIString.Trailing(const aCount: Integer): ANSIString;
   begin
     result := Copy(BOX, (System.Length(BOX) - aCount) + 1, aCount);
   end;
@@ -800,11 +869,12 @@ implementation
   function TANSIString.Delete(const aStart, aCount: Integer): ANSIString;
   begin
     System.Delete(BOX, aStart, aCount);;
+    result := BOX;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.Embrace(const aBraceChar: ASCIIChar): ANSIString;
+  function TANSIString.Embrace(const aBraceChar: ANSIChar): ANSIString;
   begin
     BOX     := ANSI.Embrace(BOX, aBraceChar);
     result  := BOX;
@@ -820,18 +890,30 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.ExtractLeft(const aCount: Integer): ANSIString;
+  function TANSIString.Extract(const aStart, aCount: Integer): ANSIString;
   begin
-    result := Copy(BOX, 1, aCount);
-    System.Delete(BOX, 1, aCount);
+    result := System.Copy(BOX, aStart, aCount);
+    System.Delete(BOX, aStart, aCount);;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.ExtractRight(const aCount: Integer): ANSIString;
+  function TANSIString.ExtractLeading(const aCount: Integer): ANSIString;
   begin
-    result := Copy(BOX, (System.Length(BOX) - aCount) + 1, aCount);
-    SetLength(BOX, System.Length(BOX) - aCount);
+    result := System.Copy(BOX, 1, aCount);
+    System.Delete(BOX, 1, aCount);;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TANSIString.ExtractTrailing(const aCount: Integer): ANSIString;
+  var
+    start: Integer;
+  begin
+    start   := (System.Length(BOX) - aCount) + 1;
+    result  := Copy(BOX, start, aCount);
+
+    SetLength(BOX, Pred(start));
   end;
 
 
@@ -850,7 +932,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TANSIString.PadLeft(const aCount: Integer;
-                               const aChar: ASCIIChar): ANSIString;
+                               const aChar: ANSIChar): ANSIString;
   begin
     BOX     := ANSI.PadLeft(BOX, aCount, aChar);
     result  := BOX;
@@ -859,7 +941,7 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TANSIString.PadRight(const aCount: Integer;
-                                const aChar: ASCIIChar): ANSIString;
+                                const aChar: ANSIChar): ANSIString;
   begin
     BOX     := ANSI.PadRight(BOX, aCount, aChar);
     result  := BOX;
@@ -867,53 +949,62 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.PadToLengthLeft(const aMaxLen: Integer;
-                                       const aChar: ASCIIChar): ANSIString;
+  function TANSIString.ExtendLeft(const aMaxLen: Integer;
+                                  const aChar: ANSIChar): ANSIString;
   begin
-    BOX     := ANSI.PadToLengthLeft(BOX, aMaxLen, aChar);
+    BOX     := ANSI.ExtendLeft(BOX, aMaxLen, aChar);
     result  := BOX;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.PadToLengthRight(const aMaxLen: Integer;
-                                        const aChar: ASCIIChar): ANSIString;
+  function TANSIString.ExtendRight(const aMaxLen: Integer;
+                                   const aChar: ANSIChar): ANSIString;
   begin
-    BOX     := ANSI.PadToLengthRight(BOX, aMaxLen, aChar);
+    BOX     := ANSI.ExtendRight(BOX, aMaxLen, aChar);
     result  := BOX;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.Remove(const aString: ANSIString;
-                              const aFlags: TReplaceFlags): ANSIString;
+  function TANSIString.Remove(const aScope: TStringScope;
+                              const aString: ANSIString;
+                              const aCaseMode: TCaseSensitivity): ANSIString;
   begin
-    BOX     := ANSI.Replace(BOX, aString, '', aFlags);
+    BOX     := ANSI.Replace(aScope, BOX, aString, '', aCaseMode);
     result  := BOX;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.Replace(const aString: ANSIString;
+  function TANSIString.Replace(const aScope: TStringScope;
                                const aFindStr: ANSIString;
                                const aReplaceStr: ANSIString;
-                               const aFlags: TReplaceFlags): ANSIString;
+                               const aCaseMode: TCaseSensitivity): ANSIString;
   begin
-    BOX     := ANSI.Replace(BOX, aFindStr, aReplaceStr, aFlags);
+    BOX     := ANSI.Replace(aScope, BOX, aFindStr, aReplaceStr, aCaseMode);
     result  := BOX;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.TrimLeft(const aChar: ASCIIChar): ANSIString;
+  function TANSIString.RemoveLeading(const aChar: ANSIChar): ANSIString;
   begin
-    BOX     := ANSI.TrimLeft(BOX, aChar);
+    BOX     := ANSI.RemoveLeading(BOX, aChar);
     result  := BOX;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.Trim(const aChar: ASCIIChar): ANSIString;
+  function TANSIString.Trim(const aCount: Integer): ANSIString;
+  begin
+    BOX     := ANSI.Trim(BOX, aCount);
+    result  := BOX;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TANSIString.Trim(const aChar: ANSIChar): ANSIString;
   begin
     BOX       := ANSI.Trim(BOX, aChar);
     result    := BOX;
@@ -921,25 +1012,25 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.TrimLeft(const aCount: Integer): ANSIString;
+  function TANSIString.RemoveLeading(const aCount: Integer): ANSIString;
   begin
-    BOX     := ANSI.TrimLeft(BOX, aCount);
+    BOX     := ANSI.RemoveLeading(BOX, aCount);
     result  := BOX;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.TrimRight(const aChar: ASCIIChar): ANSIString;
+  function TANSIString.RemoveTrailing(const aChar: ANSIChar): ANSIString;
   begin
-    BOX     := ANSI.TrimRight(BOX, aChar);
+    BOX     := ANSI.RemoveTrailing(BOX, aChar);
     result  := BOX;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TANSIString.TrimRight(const aCount: Integer): ANSIString;
+  function TANSIString.RemoveTrailing(const aCount: Integer): ANSIString;
   begin
-    BOX     := ANSI.TrimRight(BOX, aCount);
+    BOX     := ANSI.RemoveTrailing(BOX, aCount);
     result  := BOX;
   end;
 

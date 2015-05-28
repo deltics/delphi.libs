@@ -53,6 +53,7 @@ interface
 
   uses
     Classes,
+    Deltics.Strings,
     Deltics.StrUtils;
 
 
@@ -85,8 +86,14 @@ interface
       function DoMatches(const aString: String;
                          const aVars: TStrings;
                          const aAllowTypeMismatch: Boolean;
-                         const aIgnoreCase: Boolean): Boolean;
+                         const aCaseMode: TCaseSensitivity): Boolean;
     public
+      class function IsValid(const aTemplate: String = '';
+                             const aVarOpen: String = '[';
+                             const aVarClose: String = ']';
+                             const aTypeMark: String = ':';
+                             const aMutexMark: String = '|'): Boolean;
+
       class function Format(const aTemplate: String;
                             const aArgs: TArrayOfString): String;
       class function Match(const aTemplate: String;
@@ -146,7 +153,6 @@ implementation
 
   uses
     SysUtils,
-    Deltics.Strings,
     Deltics.SysUtils;
 
 
@@ -281,12 +287,35 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TStringTemplate.IsValid(const aTemplate: String;
+                                         const aVarOpen: String;
+                                         const aVarClose: String;
+                                         const aTypeMark: String;
+                                         const aMutexMark: String): Boolean;
+  begin
+    result := FALSE;
+
+    try
+      if (aTemplate <> '') then
+        TStringTemplate.Create(aTemplate, aVarOpen, aVarClose, aTypeMark, aMutexMark).Free;
+
+      result := TRUE;   // Can only reach here if the template is in fact valid
+
+    except
+      // Suppress any errors - we'll just return FALSE
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TStringTemplate.Create(const aTemplate: String;
                                      const aVarOpen: String;
                                      const aVarClose: String;
                                      const aTypeMark: String;
                                      const aMutexMark: String);
   begin
+    inherited Create;
+
     fMutexMark  := aMutexMark;
     fTypeMark   := aTypeMark;
     fVarOpen    := aVarOpen;
@@ -443,7 +472,7 @@ implementation
   function TStringTemplate.DoMatches(const aString: String;
                                      const aVars: TStrings;
                                      const aAllowTypeMismatch: Boolean;
-                                     const aIgnoreCase: Boolean): Boolean;
+                                     const aCaseMode: TCaseSensitivity): Boolean;
 
     procedure AddVar(const aPart: TTemplatePart;
                      const aValue: String;
@@ -510,9 +539,9 @@ implementation
 
       if (part.PartType = ptLiteral) then
       begin
-        if remainder.BeginsWithText(Parts[partIndex].Name) then
+        if remainder.BeginsWith(Parts[partIndex].Name, aCaseMode) then
         begin
-          remainder.TrimLeft(Length(Parts[partIndex].Name));
+          remainder.RemoveLeading(Length(Parts[partIndex].Name));
           Inc(partIndex);
         end
         else
@@ -522,7 +551,7 @@ implementation
       begin
         if part.IsFixedLength then
         begin
-          svar := remainder.ExtractLeft(part.Length);
+          svar := remainder.Leading(part.Length);
           i    := partIndex + 1;
         end
         else
@@ -538,13 +567,8 @@ implementation
 
           if Assigned(nextLiteral) then
           begin
-            if aIgnoreCase then
-              remainder.FindFirstText(nextLiteral.Name, varEnd)
-            else
-              remainder.FindFirst(nextLiteral.Name, varEnd);
-
-            if varEnd > 0 then
-              svar := remainder.Leftmost(varEnd - 1)
+            if remainder.Find(nextLiteral.Name, varEnd, aCaseMode) then
+              svar := remainder.Leading(varEnd - 1)
             else
               BREAK;
           end
@@ -562,7 +586,7 @@ implementation
           AddVar(part, svar, ok);
           if ok then
           begin
-            remainder.TrimLeft(Length(svar));
+            remainder.RemoveLeading(Length(svar));
             BREAK;
           end
           else
@@ -579,7 +603,7 @@ implementation
       end;
     end;
 
-    result := result AND NOT Assigned(remainder);
+    result := result and (NOT Assigned(remainder) or (remainder.Length = 0));
 
     if result and Assigned(aVars) then
       for i := 0 to Pred(aVars.Count) do
@@ -598,7 +622,7 @@ implementation
                                    const aVars: TStrings;
                                    const aAllowTypeMismatch: Boolean): Boolean;
   begin
-    result := DoMatches(aString, aVars, aAllowTypeMismatch, FALSE);
+    result := DoMatches(aString, aVars, aAllowTypeMismatch, csCaseSensitive);
   end;
 
 
@@ -608,7 +632,7 @@ implementation
                                        const aVars: TStrings;
                                        const aAllowTypeMismatch: Boolean): Boolean;
   begin
-    result := DoMatches(aString, aVars, aAllowTypeMismatch, TRUE);
+    result := DoMatches(aString, aVars, aAllowTypeMismatch, csIgnoreCase);
   end;
 
 

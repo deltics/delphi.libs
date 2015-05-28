@@ -10,45 +10,49 @@ interface
   type
     TANSIFnTests = class(TTestCase)
       procedure Transcoding;
+      procedure fn_Alloc;
+      procedure fn_CopyToBuffer;
+      procedure fn_Len;
+
       procedure fn_Compare;
-      procedure fn_CompareText;
-      procedure fn_Coalesce;
-      procedure fn_Concat;
-      procedure fn_Embrace;
-      procedure fn_Enquote;
+      procedure fn_SameString;
+      procedure fn_SameText;
       procedure fn_IsLowercase;
       procedure fn_IsUppercase;
-      procedure fn_Len;
+      procedure fn_Find;
+      procedure fn_FindNext;
+
+      procedure fn_Concat;
+      procedure fn_StringOf;
+
       procedure fn_Lowercase;
+      procedure fn_Uppercase;
+
+      procedure fn_Embrace;
+      procedure fn_Enquote;
+      procedure fn_ExtendLeft;
+      procedure fn_ExtendRight;
       procedure fn_PadLeft;
       procedure fn_PadRight;
-      procedure fn_PadToLengthLeft;
-      procedure fn_PadToLengthRight;
-      procedure fn_RepeatString;
-      procedure fn_SameText;
-      procedure fn_StringOfChar;
-      procedure fn_TrimLeft;
-      procedure fn_TrimRight;
+
+      procedure fn_RemoveLeading;
+      procedure fn_RemoveTrailing;
+      procedure fn_Trim;
       procedure fn_Unbrace;
       procedure fn_Unquote;
-      procedure fn_Uppercase;
     end;
 
 
     TANSITests = class(TTestCase)
       procedure Transcoding;
+      procedure fn_BeginsWith;
       procedure fn_Compare;
       procedure fn_Contains;
-      procedure fn_ContainsText;
       procedure fn_EqualsText;
       procedure fn_Find;
-      procedure fn_FindText;
-      procedure fn_FindFirst;
-      procedure fn_FindFirstText;
-      procedure fn_FindNext;
-      procedure fn_FindLast;
       procedure fn_IsLowercase;
       procedure fn_IsUppercase;
+      procedure fn_Remove;
       procedure fn_Replace;
       procedure fn_Split;
       procedure fn_Lowercase;
@@ -72,88 +76,61 @@ implementation
 
 { TANSIFnTests }
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSIFnTests.Transcoding;
   begin
     Test('ANSI.Encode!').Expect(ANSI.Encode(SRCS)).Equals(SRCA);
-    Test('STR.FromANSI!').Expect(STR.FromANSI(SRCA)).Equals(SRCS);
 
-    Test('FromUTF8(utf8string)!').Expect(ANSI.FromUTF8(SRCU)).Equals(SRCA);
-    Test('FromUTF8(buffer)!').Expect(ANSI.FromUTF8(@SRCU[1], Length(SRCU))).Equals(SRCA);
+    Test('FromUTF8(string)!').Expect(ANSI.FromUTF8(SRCU)).Equals(SRCA);
+    Test('FromUTF8(buffer)!').Expect(ANSI.FromUTF8(PUTF8Char(SRCU))).Equals(SRCA);
 
-    Test('FromWIDE!').Expect(ANSI.FromWide(SRCW)).Equals(SRCA);
+    Test('FromWIDE(string)!').Expect(ANSI.FromWide(SRCW)).Equals(SRCA);
+    Test('FromWIDE(buffer)!').Expect(ANSI.FromWide(PWIDEChar(SRCW))).Equals(SRCA);
   end;
 
 
-  procedure TANSIFnTests.fn_Coalesce;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_Alloc;
+  var
+    p: Pointer;
+    pANSI: PANSIChar absolute p;
+    pWIDE: PWIDEChar absolute p;
+    pUTF8: PUTF8Char absolute p;
   begin
-    Test('ANSI.Coalesce(array)').Expect(ANSI.Coalesce(['a', 'bee', 'c'], ',')).Equals('a,bee,c');
-    Test('ANSI.Coalesce(array)').Expect(ANSI.Coalesce(['a', '', 'c'], ',')).Equals('a,c');
+    pANSI := ANSI.AllocANSI(SRCA);
+
+    Test('ANSI.AllocANSI result').Expect(p).IsAssigned;
+    Test('ANSI.AllocANSI buffer length').Expect(ANSI.Len(pANSI)).Equals(Length(SRCA));
+    Test('ANSI.AllocANSI buffer content').Expect(p).Equals(PANSIString(SRCA), Length(SRCA));
+
+    FreeMem(pANSI);
+
+    pWIDE := ANSI.AllocWIDE(SRCA);
+
+    Test('ANSI.AllocWIDE result').Expect(p).IsAssigned;
+    Test('ANSI.AllocWIDE buffer length').Expect(WIDE.Len(pWIDE)).Equals(Length(SRCW));
+    Test('ANSI.AllocWIDE buffer content').Expect(p).Equals(PWIDEString(SRCW), Length(SRCW) * 2);
+
+    FreeMem(pWIDE);
+
+    pUTF8 := ANSI.AllocUTF8(SRCA);
+
+    Test('ANSI.AllocUTF8 result').Expect(p).IsAssigned;
+    Test('ANSI.AllocUTF8 buffer length').Expect(UTF8.Len(pUTF8)).Equals(Length(SRCU));
+    Test('ANSI.AllocUTF8 buffer content').Expect(p).Equals(PUTF8String(SRCU), Length(SRCU));
+
+    FreeMem(pUTF8);
   end;
 
 
-  procedure TANSIFnTests.fn_Compare;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_CopyToBuffer;
   begin
-    Test('ANSI.Compare(a, A)').Expect(ANSI.Compare('a', 'A')).LessThan(0);
-    Test('ANSI.Compare(A, a)').Expect(ANSI.Compare('A', 'a')).GreaterThan(0);
-    Test('ANSI.Compare(a, a)').Expect(ANSI.Compare('a', 'a')).Equals(0);
+
   end;
 
 
-  procedure TANSIFnTests.fn_CompareText;
-  begin
-    Test('ANSI.CompareText(a, A)').Expect(ANSI.CompareText('a', 'A')).Equals(0);
-    Test('ANSI.CompareText(A, a)').Expect(ANSI.CompareText('A', 'a')).Equals(0);
-    Test('ANSI.CompareText(a, a)').Expect(ANSI.CompareText('a', 'a')).Equals(0);
-  end;
-
-
-  procedure TANSIFnTests.fn_Concat;
-  begin
-    Test('ANSI.Concat(array)').Expect(ANSI.Concat(['a', 'bee', 'c'], ',')).Equals('a,bee,c');
-    Test('ANSI.Concat(array)').Expect(ANSI.Concat(['a', '', 'c'], ',')).Equals('a,,c');
-  end;
-
-
-  procedure TANSIFnTests.fn_Embrace;
-  begin
-    Test.Expect(ANSI.Embrace('abc')).Equals('(abc)');
-    Test.Expect(ANSI.Embrace('abc', '(')).Equals('(abc)');
-    Test.Expect(ANSI.Embrace('abc', '[')).Equals('[abc]');
-    Test.Expect(ANSI.Embrace('abc', '{')).Equals('{abc}');
-    Test.Expect(ANSI.Embrace('abc', '<')).Equals('<abc>');
-    Test.Expect(ANSI.Embrace('abc', '#')).Equals('#abc#');
-  end;
-
-
-  procedure TANSIFnTests.fn_Enquote;
-  begin
-    Test('ANSI.Enquote(''Some Mothers Do ''Ave ''Em'')').Expect(ANSI.Enquote('Some Mothers Do ''Ave ''Em')).Equals('''Some Mothers Do ''''Ave ''''Em''');
-    Test('ANSI.Enquote(''Some Mothers Do ''Ave ''Em'', ''"'')').Expect(ANSI.Enquote('Some Mothers Do ''Ave ''Em', '"')).Equals('"Some Mothers Do ''Ave ''Em"');
-    Test('ANSI.Enquote(''Mother knows best'')').Expect(ANSI.Enquote('Mother knows best')).Equals('''Mother knows best''');
-    Test('ANSI.Enquote(''Mother knows best'', ''"'')').Expect(ANSI.Enquote('Mother knows best', '"')).Equals('"Mother knows best"');
-  end;
-
-
-  procedure TANSIFnTests.fn_IsLowercase;
-  begin
-    Test('ANSI.IsLowercase(a)').Expect(ANSI.IsLowercase('a')).IsTRUE;
-    Test('ANSI.IsLowercase(A)').Expect(ANSI.IsLowercase('A')).IsFALSE;
-    Test('ANSI.IsLowercase(1)').Expect(ANSI.IsLowercase('1')).IsFALSE;
-    Test('ANSI.IsLowercase(?)').Expect(ANSI.IsLowercase('?')).IsFALSE;
-    Test('ANSI.IsLowercase(™)').Expect(ANSI.IsLowercase('™')).IsFALSE;
-  end;
-
-
-  procedure TANSIFnTests.fn_IsUppercase;
-  begin
-    Test('ANSI.IsUppercase(a)').Expect(ANSI.IsUppercase('a')).IsFALSE;
-    Test('ANSI.IsUppercase(A)').Expect(ANSI.IsUppercase('A')).IsTRUE;
-    Test('ANSI.IsUppercase(1)').Expect(ANSI.IsUppercase('1')).IsFALSE;
-    Test('ANSI.IsUppercase(?)').Expect(ANSI.IsUppercase('?')).IsFALSE;
-    Test('ANSI.IsUppercase(™)').Expect(ANSI.IsUppercase('™')).IsFALSE;
-  end;
-
-
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSIFnTests.fn_Len;
   const
     STR: ANSIString = 'test';
@@ -166,16 +143,307 @@ implementation
   end;
 
 
-  procedure TANSIFnTests.fn_Lowercase;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_Compare;
   begin
-    Test('ANSI.Lowercase(a)').Expect(ANSI.Lowercase('a')).Equals('a');
-    Test('ANSI.Lowercase(A)').Expect(ANSI.Lowercase('A')).Equals('a');
-    Test('ANSI.Lowercase(1)').Expect(ANSI.Lowercase('1')).Equals('1');
-    Test('ANSI.Lowercase(?)').Expect(ANSI.Lowercase('?')).Equals('?');
-    Test('ANSI.Lowercase(â„¢)').Expect(ANSI.Lowercase('â„¢')).Equals('â„¢');
+    Test('ANSI.Compare(a, A)').Expect(ANSI.Compare('a', 'A')).Equals(isLesser);
+    Test('ANSI.Compare(A, a)').Expect(ANSI.Compare('A', 'a')).Equals(isGreater);
+    Test('ANSI.Compare(a, a)').Expect(ANSI.Compare('a', 'a')).Equals(isEqual);
+
+    Test('ANSI.Compare(c, A)').Expect(ANSI.Compare('c', 'A')).Equals(isGreater);
+    Test('ANSI.Compare(c, a)').Expect(ANSI.Compare('c', 'a')).Equals(isGreater);
+    Test('ANSI.Compare(a, c)').Expect(ANSI.Compare('a', 'c')).Equals(isLesser);
+    Test('ANSI.Compare(A, c)').Expect(ANSI.Compare('A', 'c')).Equals(isLesser);
+
+    Test('ANSI.Compare(a, A, csIgnoreCase)').Expect(ANSI.Compare('a', 'A', csIgnoreCase)).Equals(isEqual);
+    Test('ANSI.Compare(A, a, csIgnoreCase)').Expect(ANSI.Compare('A', 'a', csIgnoreCase)).Equals(isEqual);
+    Test('ANSI.Compare(a, a, csIgnoreCase)').Expect(ANSI.Compare('a', 'a', csIgnoreCase)).Equals(isEqual);
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_SameString;
+  begin
+    Test('ANSI.SameString(abc, ABC)').Expect(ANSI.SameString('abc', 'ABC')).IsFALSE;
+    Test('ANSI.SameString(ABC, abc)').Expect(ANSI.SameString('ABC', 'abc')).IsFALSE;
+    Test('ANSI.SameString(abc, abc)').Expect(ANSI.SameString('abc', 'abc')).IsTRUE;
+    Test('ANSI.SameString(abc, abc)').Expect(ANSI.SameString('abc', 'abcd')).IsFALSE;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_SameText;
+  begin
+    Test('ANSI.SameText(abc, ABC)').Expect(ANSI.SameText('abc', 'ABC')).IsTRUE;
+    Test('ANSI.SameText(ABC, abc)').Expect(ANSI.SameText('ABC', 'abc')).IsTRUE;
+    Test('ANSI.SameText(abc, abc)').Expect(ANSI.SameText('abc', 'abc')).IsTRUE;
+    Test('ANSI.SameText(abc, abc)').Expect(ANSI.SameText('abc', 'abcd')).IsFALSE;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_IsLowercase;
+  const
+    CHARS : array[0..6] of ANSIChar   = ('a', 'â',                         {} 'A', 'Â', '1', '?', '™');
+    STRS  : array[0..8] of ANSIString = ('abc', 'a1', 'âbc?', 'windows™',  {} 'ABC', 'A1', 'ABC?', 'Windows™', '');
+    LAST_LOWER_CHAR = 1;
+    LAST_LOWER_STR  = 3;
+  var
+    i: Integer;
+  begin
+    for i := Low(CHARS) to High(CHARS) do
+      Test('ANSI.IsLowercase(%s)', [CHARS[i]]).Expect(ANSI.IsLowercase(CHARS[i])).Equals(i <= LAST_LOWER_CHAR);
+
+    for i := Low(STRS) to High(STRS) do
+      Test('ANSI.IsLowercase(%s)', [STRS[i]]).Expect(ANSI.IsLowercase(STRS[i])).Equals(i <= LAST_LOWER_STR);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_IsUppercase;
+  const
+    CHARS : array[0..6] of ANSIChar   = ('A', 'Â',                         {} 'a', 'â', '1', '?', '™');
+    STRS  : array[0..8] of ANSIString = ('ABC', 'A1', 'ÂBC?', 'WINDOWS™',  {} 'abc', 'a1', 'abc?', 'Windows™', '');
+    LAST_UPPER_CHAR = 1;
+    LAST_UPPER_STR  = 3;
+  var
+    i: Integer;
+  begin
+    for i := Low(CHARS) to High(CHARS) do
+      Test('ANSI.IsUppercase(%s)', [CHARS[i]]).Expect(ANSI.IsUppercase(CHARS[i])).Equals(i <= LAST_UPPER_CHAR);
+
+    for i := Low(STRS) to High(STRS) do
+      Test('ANSI.IsUppercase(%s)', [STRS[i]]).Expect(ANSI.IsUppercase(STRS[i])).Equals(i <= LAST_UPPER_STR);
+  end;
+
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_Find;
+  const
+    STR : ANSIString  = 'abcdefghijklmn';
+    f   : ANSIChar    = 'f';
+    G   : ANSIChar    = 'G';
+    z   : ANSIChar    = 'z';
+    def : ANSIString  = 'def';
+    GHI : ANSIString  = 'GHI';
+    xyz : ANSIString  = 'xyz';
+  var
+    p: Integer;
+  begin
+  // Find Char tests
+
+    Test('ANSI.Find(%s, %s, POS)!', [STR, f]).Expect(ANSI.Find(STR, f, p)).IsTRUE;
+    Test('POS').Expect(p).Equals(6);
+
+    Test('ANSI.Find(%s, %s, POS)!', [STR, G]).Expect(ANSI.Find(STR, G, p)).IsFALSE;
+    Test('POS').Expect(p).Equals(0);
+
+    Test('ANSI.Find(%s, %s, POS)!', [STR, z]).Expect(ANSI.Find(STR, z, p)).IsFALSE;
+    Test('POS').Expect(p).Equals(0);
+
+  // Find String tests
+
+    Test('ANSI.Find(%s, %s, POS)!', [STR, def]).Expect(ANSI.Find(STR, def, p)).IsTRUE;
+    Test('POS').Expect(p).Equals(4);
+
+    Test('ANSI.Find(%s, %s, POS)!', [STR, GHI]).Expect(ANSI.Find(STR, GHI, p)).IsFALSE;
+    Test('POS').Expect(p).Equals(0);
+
+    Test('ANSI.Find(%s, %s, POS)!', [STR, xyz]).Expect(ANSI.Find(STR, xyz, p)).IsFALSE;
+    Test('POS').Expect(p).Equals(0);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_FindNext;
+  const              // 0         1         2
+    STR : ANSIString  = 'abcdefghijklmnabcdef';
+    f   : ANSIChar    = 'f';
+    G   : ANSIChar    = 'G';
+    z   : ANSIChar    = 'z';
+    def : ANSIString  = 'def';
+    GHI : ANSIString  = 'GHI';
+    xyz : ANSIString  = 'xyz';
+  var
+    p: Integer;
+  begin
+  // FindNext Char tests
+
+    p := -1;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, f, p]).Expect(ANSI.FindNext(STR, f, p)).IsTRUE;
+    Test('POS').Expect(p).Equals(6);
+
+    p := 0;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, f, p]).Expect(ANSI.FindNext(STR, f, p)).IsTRUE;
+    Test('POS').Expect(p).Equals(6);
+
+    p := 1;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, f, p]).Expect(ANSI.FindNext(STR, f, p)).IsTRUE;
+    Test('POS').Expect(p).Equals(6);
+
+    p := 6;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, f, p]).Expect(ANSI.FindNext(STR, f, p)).IsTRUE;
+    Test('POS').Expect(p).Equals(6);
+
+    p := 7;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, f, p]).Expect(ANSI.FindNext(STR, f, p)).IsTRUE;
+    Test('POS').Expect(p).Equals(20);
+
+    p := 20;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, f, p]).Expect(ANSI.FindNext(STR, f, p)).IsTRUE;
+    Test('POS').Expect(p).Equals(20);
+
+    p := 21;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, f, p]).Expect(ANSI.FindNext(STR, f, p)).IsFALSE;
+    Test('POS').Expect(p).Equals(0);
+
+    p := 10;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, G, p]).Expect(ANSI.FindNext(STR, G, p)).IsFALSE;
+    Test('POS').Expect(p).Equals(0);
+
+    p := 10;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, z, p]).Expect(ANSI.FindNext(STR, z, p)).IsFALSE;
+    Test('POS').Expect(p).Equals(0);
+
+
+  // FindNext String tests
+
+    p := -1;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, def, p]).Expect(ANSI.FindNext(STR, def, p)).IsTRUE;
+    Test('POS').Expect(p).Equals(4);
+
+    p := 0;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, def, p]).Expect(ANSI.FindNext(STR, def, p)).IsTRUE;
+    Test('POS').Expect(p).Equals(4);
+
+    p := 1;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, def, p]).Expect(ANSI.FindNext(STR, def, p)).IsTRUE;
+    Test('POS').Expect(p).Equals(4);
+
+    p := 4;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, def, p]).Expect(ANSI.FindNext(STR, def, p)).IsTRUE;
+    Test('POS').Expect(p).Equals(4);
+
+    p := 5;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, def, p]).Expect(ANSI.FindNext(STR, def, p)).IsTRUE;
+    Test('POS').Expect(p).Equals(18);
+
+    p := 0;
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, GHI, p]).Expect(ANSI.FindNext(STR, GHI, p)).IsFALSE;
+    Test('POS').Expect(p).Equals(0);
+
+    Test('ANSI.FindNext(%s, %s, POS [=%d])!', [STR, xyz, p]).Expect(ANSI.FindNext(STR, xyz, p)).IsFALSE;
+    Test('POS').Expect(p).Equals(0);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_Concat;
+  begin
+    Test('ANSI.Concat(array)').Expect(ANSI.Concat(['a', 'bee', 'c'])).Equals('abeec');
+    Test('ANSI.Concat(array)').Expect(ANSI.Concat(['a', '', 'c'])).Equals('ac');
+
+    Test('ANSI.Concat(array)').Expect(ANSI.Concat(['a', 'bee', 'c'], ',')).Equals('a,bee,c');
+    Test('ANSI.Concat(array)').Expect(ANSI.Concat(['a', '', 'c'], ',')).Equals('a,,c');
+
+    Test('ANSI.Concat(array)').Expect(ANSI.Concat(['a', 'bee', 'c'], ', ')).Equals('a, bee, c');
+    Test('ANSI.Concat(array)').Expect(ANSI.Concat(['a', '', 'c'], ', ')).Equals('a, , c');
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_StringOf;
+  begin
+    Test('ANSI.StringOf('''', 10)').Expect(ANSI.StringOf('', 10)).Equals('');
+    Test('ANSI.StringOf(''foo'', 0)').Expect(ANSI.StringOf('foo', 0)).Equals('');
+    Test('ANSI.StringOf(''foo'', 3)').Expect(ANSI.StringOf('foo', 3)).Equals('foofoofoo');
+
+    Test('ANSI.StringOf(''*'', 0)').Expect(ANSI.StringOf('*', 0)).Equals('');
+    Test('ANSI.StringOf(''*'', 3)').Expect(ANSI.StringOf('*', 3)).Equals('***');
+  end;
+
+
+
+
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_Lowercase;
+  const
+    SOURCE  : array[0..6] of ANSIString = ('a', 'âbc', 'ÂBC', 'A', '1', 'Exp', 'Windows™');
+    RESULT  : array[0..6] of ANSIString = ('a', 'âbc', 'âbc', 'a', '1', 'exp', 'windows™');
+  var
+    i: Integer;
+  begin
+    for i := Low(SOURCE) to High(Source) do
+      Test('ANSI.Lowercase(%s)', [SOURCE[i]]).Expect(ANSI.Lowercase(SOURCE[i])).Equals(RESULT[i]);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_Uppercase;
+  const
+    SOURCE  : array[0..6] of ANSIString = ('a', 'âbc', 'ÂBC', 'A', '1', 'Exp', 'Windows™');
+    RESULT  : array[0..6] of ANSIString = ('A', 'ÂBC', 'ÂBC', 'A', '1', 'EXP', 'WINDOWS™');
+  var
+    i: Integer;
+  begin
+    for i := Low(SOURCE) to High(Source) do
+      Test('ANSI.Uppercase(%s)', [SOURCE[i]]).Expect(ANSI.Uppercase(SOURCE[i])).Equals(RESULT[i]);
+  end;
+
+
+
+
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_Embrace;
+  begin
+    // Default braces ( )
+    Test('ANSI.Embrace()').Expect(ANSI.Embrace('')).Equals('()');
+    Test('ANSI.Embrace(abc)').Expect(ANSI.Embrace('abc')).Equals('(abc)');
+
+    // Embracing an empty string
+    Test('ANSI.Embrace('''', [)').Expect(ANSI.Embrace('', '[')).Equals('[]');
+    Test('ANSI.Embrace('''', {)').Expect(ANSI.Embrace('', '{')).Equals('{}');
+    Test('ANSI.Embrace('''', <)').Expect(ANSI.Embrace('', '<')).Equals('<>');
+    Test('ANSI.Embrace('''', #)').Expect(ANSI.Embrace('', '#')).Equals('##');
+    Test('ANSI.Embrace('''', !)').Expect(ANSI.Embrace('', '!')).Equals('!!');
+
+    // Embracing a string with a braced pair
+    Test('ANSI.Embrace(abc, ()').Expect(ANSI.Embrace('abc', '(')).Equals('(abc)');
+    Test('ANSI.Embrace(abc, [)').Expect(ANSI.Embrace('abc', '[')).Equals('[abc]');
+    Test('ANSI.Embrace(abc, {)').Expect(ANSI.Embrace('abc', '{')).Equals('{abc}');
+    Test('ANSI.Embrace(abc, <)').Expect(ANSI.Embrace('abc', '<')).Equals('<abc>');
+
+    // Embracing a string with non-brace character
+    Test('ANSI.Embrace(abc, #)').Expect(ANSI.Embrace('abc', '#')).Equals('#abc#');
+    Test('ANSI.Embrace(abc, !)').Expect(ANSI.Embrace('abc', '!')).Equals('!abc!');
+    Test('ANSI.Embrace(abc, @)').Expect(ANSI.Embrace('abc', '@')).Equals('@abc@');
+    Test('ANSI.Embrace(abc, $)').Expect(ANSI.Embrace('abc', '$')).Equals('$abc$');
+    Test('ANSI.Embrace(abc, &)').Expect(ANSI.Embrace('abc', '&')).Equals('&abc&');
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_Enquote;
+  begin
+    Test('ANSI.Enquote('''')').Expect(ANSI.Enquote('')).Equals('''''');
+    Test('ANSI.Enquote('''', ''"'')').Expect(ANSI.Enquote('', '"')).Equals('""');
+
+    Test('ANSI.Enquote(''Mother knows best'')').Expect(ANSI.Enquote('Mother knows best')).Equals('''Mother knows best''');
+    Test('ANSI.Enquote(''Mother knows best'', ''"'')').Expect(ANSI.Enquote('Mother knows best', '"')).Equals('"Mother knows best"');
+
+    Test('ANSI.Enquote(''Some Mothers Do ''Ave ''Em'')').Expect(ANSI.Enquote('Some Mothers Do ''Ave ''Em')).Equals('''Some Mothers Do ''''Ave ''''Em''');
+    Test('ANSI.Enquote(''Some Mothers Do ''Ave ''Em'', '''''')').Expect(ANSI.Enquote('Some Mothers Do ''Ave ''Em', '''')).Equals('''Some Mothers Do ''''Ave ''''Em''');
+    Test('ANSI.Enquote(''Some Mothers Do ''Ave ''Em'', ''"'')').Expect(ANSI.Enquote('Some Mothers Do ''Ave ''Em', '"')).Equals('"Some Mothers Do ''Ave ''Em"');
+    Test('ANSI.Enquote(''Some Mothers Do ''Ave ''Em'', '''''', ''\'')').Expect(ANSI.Enquote('Some Mothers Do ''Ave ''Em', '''', '\')).Equals('''Some Mothers Do \''Ave \''Em''');
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSIFnTests.fn_PadLeft;
   begin
     Test('ANSI.PadLeft(''foo'', 4, '' '')').Expect(ANSI.PadLeft('foo', 4, ' ')).Equals('    foo');
@@ -184,6 +452,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSIFnTests.fn_PadRight;
   begin
     Test('ANSI.PadRight(''foo'', 4, '' '')').Expect(ANSI.PadRight('foo', 4, ' ')).Equals('foo    ');
@@ -192,62 +461,67 @@ implementation
   end;
 
 
-  procedure TANSIFnTests.fn_PadToLengthLeft;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_ExtendLeft;
   begin
-    Test('ANSI.PadToLengthLeft(''foo'', 4, '' '')').Expect(ANSI.PadToLengthLeft('foo', 4, ' ')).Equals(' foo');
-    Test('ANSI.PadToLengthLeft(''foo'', 3, '' '')').Expect(ANSI.PadToLengthLeft('foo', 3, ' ')).Equals('foo');
-    Test('ANSI.PadToLengthLeft(''foo'', 2, '' '')').Expect(ANSI.PadToLengthLeft('foo', 2, ' ')).Equals('foo');
+    Test('ANSI.ExtendLeft(''foo'', 10)').Expect(ANSI.ExtendLeft('foo', 10)).Equals('       foo');
+    Test('ANSI.ExtendLeft(''foo'', 10, '' '')').Expect(ANSI.ExtendLeft('foo', 10, ' ')).Equals('       foo');
+    Test('ANSI.ExtendLeft(''foo'', 10, ''x'')').Expect(ANSI.ExtendLeft('foo', 10, 'x')).Equals('xxxxxxxfoo');
+
+    Test('ANSI.ExtendLeft(''foo'', 3, '' '')').Expect(ANSI.ExtendLeft('foo', 3, ' ')).Equals('foo');
+    Test('ANSI.ExtendLeft(''foo'', 2, '' '')').Expect(ANSI.ExtendLeft('foo', 2, ' ')).Equals('foo');
   end;
 
 
-  procedure TANSIFnTests.fn_PadToLengthRight;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_ExtendRight;
   begin
-    Test('ANSI.PadToLengthRight(''foo'', 4, '' '')').Expect(ANSI.PadToLengthRight('foo', 4, ' ')).Equals('foo ');
-    Test('ANSI.PadToLengthRight(''foo'', 3, '' '')').Expect(ANSI.PadToLengthRight('foo', 3, ' ')).Equals('foo');
-    Test('ANSI.PadToLengthRight(''foo'', 2, '' '')').Expect(ANSI.PadToLengthRight('foo', 2, ' ')).Equals('foo');
+    Test('ANSI.ExtendRight(''foo'', 10)').Expect(ANSI.ExtendRight('foo', 10)).Equals('foo       ');
+    Test('ANSI.ExtendRight(''foo'', 10, '' '')').Expect(ANSI.ExtendRight('foo', 10, ' ')).Equals('foo       ');
+    Test('ANSI.ExtendRight(''foo'', 10, ''x'')').Expect(ANSI.ExtendRight('foo', 10, 'x')).Equals('fooxxxxxxx');
+
+    Test('ANSI.ExtendRight(''foo'', 3, '' '')').Expect(ANSI.ExtendRight('foo', 3, ' ')).Equals('foo');
+    Test('ANSI.ExtendRight(''foo'', 2, '' '')').Expect(ANSI.ExtendRight('foo', 2, ' ')).Equals('foo');
   end;
 
 
-  procedure TANSIFnTests.fn_RepeatString;
+
+
+
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_RemoveLeading;
   begin
-    Test('ANSI.RepeatString(''foo'', 0)').Expect(ANSI.RepeatString('foo', 0)).Equals('');
-    Test('ANSI.RepeatString(''foo'', 3)').Expect(ANSI.RepeatString('foo', 3)).Equals('foofoofoo');
+    Test('ANSI.RemoveLeading(''   foo'')').Expect(ANSI.RemoveLeading('   foo')).Equals('foo');
+    Test('ANSI.RemoveLeading(''   foo'', ''.'')').Expect(ANSI.RemoveLeading('   foo', '.')).Equals('   foo');
+    Test('ANSI.RemoveLeading(''   foo'', 1)').Expect(ANSI.RemoveLeading('   foo', 1)).Equals('  foo');
+    Test('ANSI.RemoveLeading(''   foo'', 4)').Expect(ANSI.RemoveLeading('   foo', 4)).Equals('oo');
   end;
 
 
-  procedure TANSIFnTests.fn_SameText;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_RemoveTrailing;
   begin
-    Test('ANSI.SameText(a, A)').Expect(ANSI.SameText('a', 'A')).IsTRUE;
-    Test('ANSI.SameText(A, a)').Expect(ANSI.SameText('A', 'a')).IsTRUE;
-    Test('ANSI.SameText(a, a)').Expect(ANSI.SameText('a', 'a')).IsTRUE;
+    Test('ANSI.RemoveTrailing(''foo   '')').Expect(ANSI.RemoveTrailing('foo   ')).Equals('foo');
+    Test('ANSI.RemoveTrailing(''foo   '', ''.'')').Expect(ANSI.RemoveTrailing('foo   ', '.')).Equals('foo   ');
+    Test('ANSI.RemoveTrailing(''foo   '', 1)').Expect(ANSI.RemoveTrailing('foo   ', 1)).Equals('foo  ');
+    Test('ANSI.RemoveTrailing(''foo   '', 4)').Expect(ANSI.RemoveTrailing('foo   ', 4)).Equals('fo');
   end;
 
 
-  procedure TANSIFnTests.fn_StringOfChar;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSIFnTests.fn_Trim;
   begin
-    Test('ANSI.StringOfChar(''foo'', 0)').Expect(ANSI.StringOfChar('*', 0)).Equals('');
-    Test('ANSI.StringOfChar(''foo'', 3)').Expect(ANSI.StringOfChar('*', 3)).Equals('***');
+    Test('ANSI.Trim(''   foo   '')').Expect(ANSI.Trim('   foo   ')).Equals('foo');
+    Test('ANSI.Trim(''   foo   '', ''.'')').Expect(ANSI.Trim('   foo   ', '.')).Equals('   foo   ');
+    Test('ANSI.Trim(''   foo   '', 1)').Expect(ANSI.Trim('   foo   ', 1)).Equals('  foo  ');
+    Test('ANSI.Trim(''   foo   '', 4)').Expect(ANSI.Trim('   foo   ', 4)).Equals('o');
+    Test('ANSI.Trim(''   foo   '', 5)').Expect(ANSI.Trim('   foo   ', 5)).Equals('');
   end;
 
 
-  procedure TANSIFnTests.fn_TrimLeft;
-  begin
-    Test('ANSI.TrimLeft(''   foo'')').Expect(ANSI.TrimLeft('   foo')).Equals('foo');
-    Test('ANSI.TrimLeft(''   foo'', ''.'')').Expect(ANSI.TrimLeft('   foo', '.')).Equals('   foo');
-    Test('ANSI.TrimLeft(''   foo'', 1)').Expect(ANSI.TrimLeft('   foo', 1)).Equals('  foo');
-    Test('ANSI.TrimLeft(''   foo'', 4)').Expect(ANSI.TrimLeft('   foo', 4)).Equals('oo');
-  end;
-
-
-  procedure TANSIFnTests.fn_TrimRight;
-  begin
-    Test('ANSI.TrimRight(''foo   '')').Expect(ANSI.TrimRight('foo   ')).Equals('foo');
-    Test('ANSI.TrimRight(''foo   '', ''.'')').Expect(ANSI.TrimRight('foo   ', '.')).Equals('foo   ');
-    Test('ANSI.TrimRight(''foo   '', 1)').Expect(ANSI.TrimRight('foo   ', 1)).Equals('foo  ');
-    Test('ANSI.TrimRight(''foo   '', 4)').Expect(ANSI.TrimRight('foo   ', 4)).Equals('fo');
-  end;
-
-
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSIFnTests.fn_Unbrace;
   begin
     Test('ANSI.Unbrace(''(abc)'')').Expect(ANSI.Unbrace('(abc)')).Equals('abc');
@@ -257,9 +531,11 @@ implementation
     Test('ANSI.Unbrace(''<abc>'')').Expect(ANSI.Unbrace('<abc>')).Equals('abc');
     Test('ANSI.Unbrace(''#abc#'')').Expect(ANSI.Unbrace('#abc#')).Equals('abc');
     Test('ANSI.Unbrace(''?abc?'')').Expect(ANSI.Unbrace('?abc?')).Equals('abc');
+    Test('ANSI.Unbrace(''abc'')').Expect(ANSI.Unbrace('abc')).Equals('abc');
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSIFnTests.fn_Unquote;
   begin
     Test('ANSI.Unquote(''Some Mothers Do ''''Ave ''''Em'')').Expect(ANSI.Unquote('''Some Mothers Do ''''Ave ''''Em''')).Equals('Some Mothers Do ''Ave ''Em');
@@ -269,14 +545,6 @@ implementation
   end;
 
 
-  procedure TANSIFnTests.fn_Uppercase;
-  begin
-    Test('ANSI.Uppercase(a)').Expect(ANSI.Uppercase('a')).Equals('A');
-    Test('ANSI.Uppercase(A)').Expect(ANSI.Uppercase('A')).Equals('A');
-    Test('ANSI.Uppercase(1)').Expect(ANSI.Uppercase('1')).Equals('1');
-    Test('ANSI.Uppercase(?)').Expect(ANSI.Uppercase('?')).Equals('?');
-    Test('ANSI.Uppercase(™)').Expect(ANSI.Uppercase('™')).Equals('™');
-  end;
 
 
 
@@ -288,6 +556,7 @@ implementation
 
 { TANSITests ------------------------------------------------------------------------------------- }
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSITests.Transcoding;
   var
     str: IANSIString;
@@ -298,6 +567,13 @@ implementation
     Test('ANSI(string).ToString').Expect(str.ToString).Equals(SRCS);
     Test('ANSI(string).ToUTF8').Expect(str.ToUTF8).Equals(SRCU);
     Test('ANSI(string).ToWIDE').Expect(str.ToWIDE).Equals(SRCW);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSITests.fn_BeginsWith;
+  begin
+
   end;
 
 
@@ -327,16 +603,18 @@ implementation
       Test(WIDE.FromANSI(CASES[i].A + ' = ' + CASES[i].B + '!'))
         .Expect(ANSI(CASES[i].A).CompareWith(CASES[i].B)).Equals(0);
 
-    for i := (NUM_LT + NUM_EQ) to Pred(Length(CASES)) do
-      Test(WIDE.FromANSI(CASES[i].A + ' > ' + CASES[i].B + '!'))
-        .Expect(ANSI(CASES[i].A).CompareWith(CASES[i].B)).Equals(1);
+    for i := (NUM_LT + NUM_EQ) to Pred(Length(CASES)) do with CASES[i] do
+      Test('ANSI(%s).CompareWith(%s) = isGreater!', [A, B]).Expect(ANSI(A).CompareWith(B)).Equals(1);
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSITests.fn_Contains;
   const
     STR: ANSIString = 'The quick fox!';
   begin
+    Note('Case Sensitive');
+
     Test('contains ''T''').Expect(ANSI(STR).Contains('T')).IsTRUE;
     Test('contains ''t''').Expect(ANSI(STR).Contains('t')).IsFALSE;
     Test('contains ''!''').Expect(ANSI(STR).Contains('!')).IsTRUE;
@@ -348,27 +626,24 @@ implementation
     Test('contains ''fox!''').Expect(ANSI(STR).Contains('fox!')).IsTRUE;
     Test('contains ''quick''').Expect(ANSI(STR).Contains('quick')).IsTRUE;
     Test('contains ''brown''').Expect(ANSI(STR).Contains('brown')).IsFALSE;
+
+    Note('Ignore Case');
+
+    Test('contains ''T''').Expect(ANSI(STR).Contains('T', csIgnoreCase)).IsTRUE;
+    Test('contains ''t''').Expect(ANSI(STR).Contains('t', csIgnoreCase)).IsTRUE;
+    Test('contains ''!''').Expect(ANSI(STR).Contains('!', csIgnoreCase)).IsTRUE;
+    Test('contains ''Q''').Expect(ANSI(STR).Contains('Q', csIgnoreCase)).IsTRUE;
+    Test('contains ''q''').Expect(ANSI(STR).Contains('q', csIgnoreCase)).IsTRUE;
+    Test('contains ''Z''').Expect(ANSI(STR).Contains('Z', csIgnoreCase)).IsFALSE;
+
+    Test('contains ''the''').Expect(ANSI(STR).Contains('the', csIgnoreCase)).IsTRUE;
+    Test('contains ''Fox!''').Expect(ANSI(STR).Contains('Fox!', csIgnoreCase)).IsTRUE;
+    Test('contains ''QUICK''').Expect(ANSI(STR).Contains('QUICK', csIgnoreCase)).IsTRUE;
+    Test('contains ''brown''').Expect(ANSI(STR).Contains('brown', csIgnoreCase)).IsFALSE;
   end;
 
 
-  procedure TANSITests.fn_ContainsText;
-  const
-    STR: ANSIString = 'The quick fox!';
-  begin
-    Test('contains ''T''').Expect(ANSI(STR).ContainsText('T')).IsTRUE;
-    Test('contains ''t''').Expect(ANSI(STR).ContainsText('t')).IsTRUE;
-    Test('contains ''!''').Expect(ANSI(STR).ContainsText('!')).IsTRUE;
-    Test('contains ''Q''').Expect(ANSI(STR).ContainsText('Q')).IsTRUE;
-    Test('contains ''q''').Expect(ANSI(STR).ContainsText('q')).IsTRUE;
-    Test('contains ''Z''').Expect(ANSI(STR).ContainsText('Z')).IsFALSE;
-
-    Test('contains ''the''').Expect(ANSI(STR).ContainsText('the')).IsTRUE;
-    Test('contains ''Fox!''').Expect(ANSI(STR).ContainsText('Fox!')).IsTRUE;
-    Test('contains ''QUICK''').Expect(ANSI(STR).ContainsText('QUICK')).IsTRUE;
-    Test('contains ''brown''').Expect(ANSI(STR).ContainsText('brown')).IsFALSE;
-  end;
-
-
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSITests.fn_EqualsText;
   const
     CASES: array[0..3] of TANSIStringAB = (
@@ -380,18 +655,33 @@ implementation
   var
     i: Integer;
   begin
-    for i := 0 to Pred(Length(CASES)) do
-      Test(CASES[i].A + ' same text as ' + CASES[i].B + '!')
-        .Expect(ANSI(CASES[i].A).EqualsText(CASES[i].B)).IsTRUE;
+    for i := 0 to Pred(Length(CASES)) do with CASES[i] do
+      Test('ANSI(%s).EqualsText(%s)!', [A, B]).Expect(ANSI(A).EqualsText(B)).IsTRUE;
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSITests.fn_Find;
   const            // 0         1         2         3         4
     STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!â„¢';
   var
+    p: Integer;
     pa: TCharIndexArray;
   begin
+    Note('aCaseMode = csCaseSensitive');
+
+    ANSI(STR).Find('â„¢', p);    Test('FirstPos of ''â„¢''').Expect(p).Equals(46);
+
+    ANSI(STR).Find('T', p);      Test('FirstPos of ''T''').Expect(p).Equals(1);
+    ANSI(STR).Find('!', p);      Test('FirstPos of ''!''').Expect(p).Equals(21);
+    ANSI(STR).Find('q', p);      Test('FirstPos of ''q''').Expect(p).Equals(5);
+    ANSI(STR).Find('Z', p);      Test('FirstPos of ''Z''').Expect(p).Equals(0);
+
+    ANSI(STR).Find('The', p);    Test('FirstPos of ''The''').Expect(p).Equals(1);
+    ANSI(STR).Find('fox!', p);   Test('FirstPos of ''fox!''').Expect(p).Equals(18);
+    ANSI(STR).Find('quick', p);  Test('FirstPos of ''quick''').Expect(p).Equals(5);
+    ANSI(STR).Find('brown', p);  Test('FirstPos of ''brown''').Expect(p).Equals(0);
+
     ANSI(STR).Find('T', pa); Test('2 Positions of ''T''').Expect(Length(pa)).Equals(2).IsRequired;
                              Test('First ''T''').Expect(pa[0]).Equals(1);
                              Test('Second ''T''').Expect(pa[1]).Equals(32);
@@ -406,66 +696,42 @@ implementation
                              Test('Third ''q''').Expect(pa[2]).Equals(36);
 
     ANSI(STR).Find('z', pa); Test('No Positions of ''z''').Expect(Length(pa)).Equals(0);
+
+
+    Note('aCaseMode = csIgnoreCase');
+
+    ANSI(STR).Find('i', p, csIgnoreCase);      Test('First ''i''').Expect(p).Equals(7);
+    ANSI(STR).Find('I', p, csIgnoreCase);      Test('First ''I''').Expect(p).Equals(7);
+
+    ANSI(STR).Find('t', p, csIgnoreCase);      Test('First ''t''').Expect(p).Equals(1);
+    ANSI(STR).Find('!', p, csIgnoreCase);      Test('First ''!''').Expect(p).Equals(21);
+    ANSI(STR).Find('Q', p, csIgnoreCase);      Test('First ''Q''').Expect(p).Equals(5);
+    ANSI(STR).Find('Z', p, csIgnoreCase);      Test('First ''Z''').Expect(p).Equals(0);
+
+    ANSI(STR).Find('THE',   p, csIgnoreCase);  Test('First ''THE''').Expect(p).Equals(1);
+    ANSI(STR).Find('FOX!',  p, csIgnoreCase);  Test('First ''FOX!''').Expect(p).Equals(18);
+    ANSI(STR).Find('QUICK', p, csIgnoreCase);  Test('First ''QUICK''').Expect(p).Equals(5);
+    ANSI(STR).Find('BROWN', p, csIgnoreCase);  Test('First ''BROWN''').Expect(p).Equals(0);
+
+    ANSI(STR).Find('T', pa, csIgnoreCase); Test('2 Positions of ''T''').Expect(Length(pa)).Equals(2).IsRequired;
+                                           Test('First ''T''').Expect(pa[0]).Equals(1);
+                                           Test('Second ''T''').Expect(pa[1]).Equals(32);
+
+    ANSI(STR).Find('!', pa, csIgnoreCase); Test('2 Positions of ''!''').Expect(Length(pa)).Equals(2).IsRequired;
+                                           Test('First ''!''').Expect(pa[0]).Equals(21);
+                                           Test('Second ''!''').Expect(pa[1]).Equals(45);
+
+    ANSI(STR).Find('q', pa, csIgnoreCase); Test('3 Positions of ''q''').Expect(Length(pa)).Equals(3).IsRequired;
+                                           Test('First ''q''').Expect(pa[0]).Equals(5);
+                                           Test('Second ''q''').Expect(pa[1]).Equals(12);
+                                           Test('Third ''q''').Expect(pa[2]).Equals(36);
+
+    ANSI(STR).Find('z', pa, csIgnoreCase); Test('No Positions of ''z''').Expect(Length(pa)).Equals(0);
   end;
 
 
-  procedure TANSITests.fn_FindText;
-  const// 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-  var
-    p: Integer;
-    pa: TCharIndexArray;
-  begin
-    ANSI(STR).FindFirstText('i', p);      Test('FirstPos of ''i''').Expect(p).Equals(7);
-    ANSI(STR).FindFirstText('I', p);      Test('FirstPos of ''I''').Expect(p).Equals(7);
-
-    ANSI(STR).FindFirstText('t', p);      Test('FirstPos of ''t''').Expect(p).Equals(1);
-    ANSI(STR).FindFirstText('!', p);      Test('FirstPos of ''!''').Expect(p).Equals(21);
-    ANSI(STR).FindFirstText('Q', p);      Test('FirstPos of ''Q''').Expect(p).Equals(5);
-    ANSI(STR).FindFirstText('Z', p);      Test('FirstPos of ''Z''').Expect(p).Equals(0);
-
-    ANSI(STR).FindFirstText('THE', p);    Test('FirstPos of ''THE''').Expect(p).Equals(1);
-    ANSI(STR).FindFirstText('FOX!', p);   Test('FirstPos of ''FOX!''').Expect(p).Equals(18);
-    ANSI(STR).FindFirstText('QUICK', p);  Test('FirstPos of ''QUICK''').Expect(p).Equals(5);
-    ANSI(STR).FindFirstText('BROWN', p);  Test('FirstPos of ''BROWN''').Expect(p).Equals(0);
-
-    ANSI(STR).FindText('T', pa); Test('2 Positions of ''T''').Expect(Length(pa)).Equals(2).IsRequired;
-                                 Test('First ''T''').Expect(pa[0]).Equals(1);
-                                 Test('Second ''T''').Expect(pa[1]).Equals(32);
-
-    ANSI(STR).FindText('!', pa); Test('2 Positions of ''!''').Expect(Length(pa)).Equals(2).IsRequired;
-                                 Test('First ''!''').Expect(pa[0]).Equals(21);
-                                 Test('Second ''!''').Expect(pa[1]).Equals(45);
-
-    ANSI(STR).FindText('q', pa); Test('3 Positions of ''q''').Expect(Length(pa)).Equals(3).IsRequired;
-                                 Test('First ''q''').Expect(pa[0]).Equals(5);
-                                 Test('Second ''q''').Expect(pa[1]).Equals(12);
-                                 Test('Third ''q''').Expect(pa[2]).Equals(36);
-
-    ANSI(STR).FindText('z', pa); Test('No Positions of ''z''').Expect(Length(pa)).Equals(0);
-  end;
-
-
-  procedure TANSITests.fn_FindFirst;
-  const            // 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!â„¢';
-  var
-    p: Integer;
-  begin
-    ANSI(STR).FindFirst('â„¢', p);      Test('FirstPos of ''â„¢''').Expect(p).Equals(46);
-
-    ANSI(STR).FindFirst('T', p);      Test('FirstPos of ''T''').Expect(p).Equals(1);
-    ANSI(STR).FindFirst('!', p);      Test('FirstPos of ''!''').Expect(p).Equals(21);
-    ANSI(STR).FindFirst('q', p);      Test('FirstPos of ''q''').Expect(p).Equals(5);
-    ANSI(STR).FindFirst('Z', p);      Test('FirstPos of ''Z''').Expect(p).Equals(0);
-
-    ANSI(STR).FindFirst('The', p);    Test('FirstPos of ''The''').Expect(p).Equals(1);
-    ANSI(STR).FindFirst('fox!', p);   Test('FirstPos of ''fox!''').Expect(p).Equals(18);
-    ANSI(STR).FindFirst('quick', p);  Test('FirstPos of ''quick''').Expect(p).Equals(5);
-    ANSI(STR).FindFirst('brown', p);  Test('FirstPos of ''brown''').Expect(p).Equals(0);
-  end;
-
-
+(*
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSITests.fn_FindFirstText;
   const// 0         1         2         3         4
     STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
@@ -487,6 +753,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSITests.fn_FindNext;
   const// 0         1         2         3         4
     STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
@@ -511,6 +778,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSITests.fn_FindLast;
   const// 0         1         2         3         4
     STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
@@ -527,8 +795,9 @@ implementation
     ANSI(STR).FindLast('quick', p);   Test('FindLast of ''quick''').Expect(p).Equals(36);
     ANSI(STR).FindLast('brown', p);   Test('FindLast of ''brown''').Expect(p).Equals(0);
   end;
+*)
 
-
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSITests.fn_IsLowercase;
   const
     STR_VECTOR: array[0..2] of TANSIStringAB = (
@@ -565,6 +834,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSITests.fn_IsUppercase;
   const
     STR_VECTOR: array[0..2] of TANSIStringAB = (
@@ -601,6 +871,7 @@ implementation
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSITests.fn_Split;
   const
     STAR: ANSIChar = '*';
@@ -639,6 +910,7 @@ implementation
 
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSITests.fn_Lowercase;
   const
     STR_VECTOR: array[0..3] of TANSIStringAB = (
@@ -668,18 +940,34 @@ implementation
   end;
 
 
-  procedure TANSITests.fn_Replace;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSITests.fn_Remove;
   begin
-    Test('ANSI.Replace(''Food of the Gods'', ''o'', '''')').Expect(ANSI.Replace('Food of the Gods', 'o', '', [rfReplaceAll])).Equals('Fd f the Gds');
-    Test('ANSI.Replace(''Food of the Gods'', ''od'', '''')').Expect(ANSI.Replace('Food of the Gods', 'od', '', [rfReplaceAll])).Equals('Fo of the Gs');
-    Test('ANSI.Replace(''Waiting for Godo'', ''o'', '''')').Expect(ANSI.Replace('Waiting for Godo', 'o', '', [rfReplaceAll])).Equals('Waiting fr Gd');
+    Test('ANSI.Remove(''Food of the Gods'', ''o'')').Expect(ANSI.Remove(ssAll, 'Food of the Gods', 'o')).Equals('Fd f the Gds');
+    Test('ANSI.Remove(''Food of the Gods'', ''od'')').Expect(ANSI.Remove(ssAll, 'Food of the Gods', 'od')).Equals('Fo of the Gs');
 
-    Test('ANSI.Replace(''Food of the Gods'', ''o'', ''oo'')').Expect(ANSI.Replace('Food of the Gods', 'o', 'oo', [rfReplaceAll])).Equals('Fooood oof the Goods');
+    Test('ANSI.Remove(''Food of the Gods'', ''f'')').Expect(ANSI.Remove(ssAll, 'Food of the Gods', 'f')).Equals('Food o the Gods');
+    Test('ANSI.Remove(''Food of the Gods'', ''f'', [rsIgnoreCase])').Expect(ANSI.Remove(ssAll, 'Food of the Gods', 'f', csIgnoreCase)).Equals('ood o the Gods');
 
-    Test('ANSI.Replace(''Food of the Gods'', ''o'', '''')').Expect(ANSI.Replace('Food of the Gods', 'o', '', [])).Equals('Fod of the Gods');
+    Test('ANSI.Remove(''Food of the Gods'', ''o'', [rsOnce])').Expect(ANSI.Remove(ssFirst, 'Food of the Gods', 'o')).Equals('Fod of the Gods');
   end;
 
 
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TANSITests.fn_Replace;
+  begin
+    Test('ANSI.Replace(''Food of the Gods'', ''o'', '''')').Expect(ANSI.Replace(ssAll, 'Food of the Gods', 'o', '')).Equals('Fd f the Gds');
+    Test('ANSI.Replace(''Food of the Gods'', ''od'', '''')').Expect(ANSI.Replace(ssAll, 'Food of the Gods', 'od', '')).Equals('Fo of the Gs');
+    Test('ANSI.Replace(''Waiting for Godo'', ''o'', '''')').Expect(ANSI.Replace(ssAll, 'Waiting for Godo', 'o', '')).Equals('Waiting fr Gd');
+
+    Test('ANSI.Replace(''Food of the Gods'', ''o'', ''oo'')').Expect(ANSI.Replace(ssAll, 'Food of the Gods', 'o', 'oo')).Equals('Fooood oof the Goods');
+
+    Test('ANSI.Replace(''Food of the Gods'', ''o'', '''')').Expect(ANSI.Replace(ssFirst, 'Food of the Gods', 'o', '')).Equals('Fod of the Gods');
+    Test('ANSI.Replace(''Food of the Gods'', ''o'', '''')').Expect(ANSI.Replace(ssLast, 'Food of the Gods', 'o', '')).Equals('Food of the Gds');
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TANSITests.fn_Uppercase;
   const
     STR_VECTOR: array[0..3] of TANSIStringAB = (
@@ -707,6 +995,11 @@ implementation
     for i := 0 to Pred(Length(CHAR_VECTOR)) do
       Test(CHAR_VECTOR[i].A).Expect(ANSI.Uppercase(CHAR_VECTOR[i].A)).Equals(CHAR_VECTOR[i].B);
   end;
+
+
+
+
+
 
 
 

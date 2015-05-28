@@ -9,16 +9,14 @@ interface
 
 
   type
-    TANSIPerformance = class(TStringPerformanceCase)
+    TANSIPerformance = class(TStringPerformanceCase, INameCase)
+    private
+      function NameForCase: UnicodeString;
     published
-      procedure SystemPosChar;
-      procedure SystemPosStr;
-      procedure PosChar;
-      procedure NPosChar;
-      procedure RPosChar;
-      procedure PosStr;
-      procedure NPosStr;
-      procedure RPosStr;
+      procedure Pos_Char;
+      procedure Pos_Str;
+      procedure Pos_NextChar;
+      procedure Pos_NextStr;
     end;
 
 
@@ -29,88 +27,58 @@ implementation
     Deltics.Strings;
 
 
+  const             // 0         1         2         3         4
+    STR : ANSIString = 'The quick, quick fox!  I said: The quick fox!';
+    F   : ANSIChar   = 'f';
+    FOX : ANSIString = 'fox';
 
 
 { TANSIPerformance ------------------------------------------------------------------------------- }
 
-  procedure TANSIPerformance.SystemPosChar;
-  const// 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIChar = 'f';
+  function TANSIPerformance.NameForCase: UnicodeString;
   begin
-    Pos(FOX, STR);
+    result := 'Deltics.Strings (ANSI)';
   end;
 
-  procedure TANSIPerformance.SystemPosStr;
-  const// 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIString = 'fox';
-  begin
-    Pos(FOX, STR);
-  end;
 
-  procedure TANSIPerformance.PosChar;
+  procedure TANSIPerformance.Pos_Char;
   const// 0         1         2         3         4
     STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
     FOX: ANSIChar = 'f';
   var
     p: Integer;
   begin
-    ANSI.Pos(STR, FOX, p);
+    ANSI.Find(STR, FOX, p);
   end;
 
 
-  procedure TANSIPerformance.NPosChar;
-  const               // 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIChar = 'f';
+  procedure TANSIPerformance.Pos_NextChar;
   var
     p: Integer;
   begin
-    p := 18;
-    ANSI.NPos(STR, FOX, p);
+    p := 21;
+    ANSI.FindNext(STR, F, p);
   end;
 
-  procedure TANSIPerformance.RPosChar;
-  const// 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIChar = 'f';
+
+  procedure TANSIPerformance.Pos_Str;
   var
     p: Integer;
   begin
-    ANSI.RPos(STR, FOX, p);
+    ANSI.Find(STR, FOX, p);
   end;
 
-  procedure TANSIPerformance.PosStr;
-  const// 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIString = 'fox';
+
+  procedure TANSIPerformance.Pos_NextStr;
   var
     p: Integer;
   begin
-    ANSI.Pos(STR, FOX, p);
+    p := 21;
+    ANSI.FindNext(STR, FOX, p);
   end;
 
-  procedure TANSIPerformance.NPosStr;
-  const               // 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIString = 'fox';
-  var
-    p: Integer;
-  begin
-    p := 18;
-    ANSI.NPos(STR, FOX, p);
-  end;
 
-  procedure TANSIPerformance.RPosStr;
-  const// 0         1         2         3         4
-    STR: ANSIString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: ANSIString = 'fox';
-  var
-    p: Integer;
-  begin
-    ANSI.RPos(STR, FOX, p);
-  end;
+
 
 
 end.

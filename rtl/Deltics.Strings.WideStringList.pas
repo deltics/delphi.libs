@@ -724,15 +724,15 @@ implementation
 
   function TALTStrings.get_ValueFromIndex(aIndex: Integer): ALTString;
   var
-    value: IALTString;
+    value: ALTString;
     p: Integer;
   begin
     if aIndex >= 0 then
     begin
-      value := ALT(Get(aIndex));
+      value := Get(aIndex);
 
-      if value.FindFirst(NameValueSeparator, p) then
-        result := value.TrimLeft(p)
+      if ALT.Find(value, NameValueSeparator, p) then
+        result := ALT.RemoveLeading(value, p)
       else
         result := '';
     end
@@ -1210,11 +1210,10 @@ implementation
 
 
   function TALTStringList.CompareStrings(const aS1, aS2: ALTString): Integer;
+  const
+    CASEMODE: array[FALSE..TRUE] of TCaseSensitivity = (csIgnoreCase, csCaseSensitive);
   begin
-    if CaseSensitive then
-      result := ALT.Compare(aS1, aS2)
-    else
-      result := ALT.CompareText(aS1, aS2);
+    result := ALT.Compare(aS1, aS2, CASEMODE[CaseSensitive]);
   end;
 
 

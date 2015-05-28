@@ -323,9 +323,9 @@ implementation
   var
     local: TJSONObject;
   begin
-    local := TJSONObject.CreateFromString(UTF8.Encode(PRETTY_OBJECT)) as TJSONObject;
+    local := TJSONObject.CreateFromUTF8(UTF8.Encode(PRETTY_OBJECT)) as TJSONObject;
     try
-      Inspect('AsDisplayText').Value(local.AsDisplayText);
+      Inspect('AsDisplayText').Monospaced.Value(local.AsDisplayText);
 
       Test('First value').Expect(local['first'].AsInteger).Equals(10);
       Test('Second value').Expect(local['second'].AsBoolean).Equals(TRUE);
@@ -345,7 +345,7 @@ implementation
 
       local.AsString := WIDE.FromUTF8(UTF8.Encode(PRETTY_OBJECT));
 
-      Inspect('AsDisplayText').Value(local.AsDisplayText);
+      Inspect('AsDisplayText').MonoSpaced.Value(local.AsDisplayText);
 
       Test('First value').Expect(local['first'].AsInteger).Equals(10);
       Test('Second value').Expect(local['second'].AsBoolean).Equals(TRUE);

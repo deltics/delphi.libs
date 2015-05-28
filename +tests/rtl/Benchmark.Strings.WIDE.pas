@@ -9,16 +9,21 @@ interface
 
 
   type
-    TWIDEPerformance = class(TStringPerformanceCase)
-      procedure SystemPosChar;
-      procedure SystemPosStr;
-      procedure FindFirstChar;
-      procedure FindFirstStr;
+    TWIDEPerformance = class(TStringPerformanceCase, INameCase)
+    private
+      function NameForCase: UnicodeString;
+    published
+      procedure Pos_Char;
+      procedure Pos_Str;
+      procedure Pos_NextChar;
+      procedure Pos_NextStr;
+(*
       procedure FindFirstText;
       procedure FindNextChar;
       procedure FindNextStr;
       procedure FindLastChar;
       procedure FindLastStr;
+*)
     end;
 
 
@@ -29,45 +34,54 @@ implementation
     Deltics.Strings;
 
 
+  const                // 0         1         2         3         4
+    STR : UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
+    F   : WIDEChar      = 'f';
+    FOX : UnicodeString = 'fox';
+
+
 
 { TWIDEPerformance ------------------------------------------------------------------------------- }
 
-  procedure TWIDEPerformance.SystemPosChar;
-  const// 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: WideChar = 'f';
+  function TWIDEPerformance.NameForCase: UnicodeString;
   begin
-    Pos(FOX, STR);
+    result := 'Deltics.Strings (WIDE)';
   end;
 
-  procedure TWIDEPerformance.SystemPosStr;
-  const// 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: UnicodeString = 'fox';
-  begin
-    Pos(FOX, STR);
-  end;
 
-  procedure TWIDEPerformance.FindFirstChar;
-  const// 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: WideChar = 'f';
+  procedure TWIDEPerformance.Pos_Char;
   var
     p: Integer;
   begin
-    WIDE(STR).FindFirst(FOX, p);
+    WIDE.Find(STR, FOX, p);
   end;
 
-  procedure TWIDEPerformance.FindFirstStr;
-  const// 0         1         2         3         4
-    STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
-    FOX: UnicodeString = 'fox';
+
+  procedure TWIDEPerformance.Pos_NextChar;
   var
     p: Integer;
   begin
-    WIDE(STR).FindFirst(FOX, p);
+    WIDE.FindNext(STR, FOX, p);
   end;
 
+
+  procedure TWIDEPerformance.Pos_Str;
+  var
+    p: Integer;
+  begin
+    WIDE.Find(STR, FOX, p);
+  end;
+
+
+  procedure TWIDEPerformance.Pos_NextStr;
+  var
+    p: Integer;
+  begin
+    WIDE.FindNext(STR, FOX, p);
+  end;
+
+
+(*
   procedure TWIDEPerformance.FindFirstText;
   const// 0         1         2         3         4
     STR: UnicodeString = 'The quick, quick fox!  I said: The quick fox!';
@@ -75,7 +89,7 @@ implementation
   var
     p: Integer;
   begin
-    WIDE(STR).FindFirstText(FOX, p);
+    WIDE(STR).Find(FOX, p);
   end;
 
 
@@ -109,7 +123,7 @@ implementation
     p: Integer;
   begin
     p := 18;
-    WIDE(STR).FindNext(FOX, p);
+    WIDE(STR).Find(FOX, p);
   end;
 
 
@@ -121,9 +135,9 @@ implementation
     p: Integer;
   begin
     p := 18;
-    WIDE(STR).FindNext(FOX, p);
+    WIDE(STR).Find(FOX, p);
   end;
-
+*)
 
 
 

@@ -17,7 +17,8 @@ interface
 implementation
 
   uses
-//    Benchmark.Strings.ANSI,
+    Benchmark.Strings.RTL,
+    Benchmark.Strings.ANSI,
 //    Benchmark.Strings.STR,
 //    Benchmark.Strings.UTF8,
     Benchmark.Strings.WIDE;
@@ -33,8 +34,12 @@ implementation
 
 
 initialization
-  Smoketest.Compare([//TANSIPerformance,
-                     //TSTRPerformance,
-                     //TUTF8Performance,
+  Smoketest.Compare([TRTLPerformanceW,
                      TWIDEPerformance]).RunningFor(5).RunsOf(200).Iterations;
+
+  Smoketest.Compare([TRTLPerformanceA,
+                    {$ifdef FASTSTRINGS}
+                     TFastStringsPerformance,
+                    {$endif}
+                     TANSIPerformance]).RunningFor(5).RunsOf(200).Iterations;
 end.

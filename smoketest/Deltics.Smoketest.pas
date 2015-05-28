@@ -790,7 +790,7 @@ interface
       procedure EndRun;
       procedure StartRun;
       procedure AddCompilerVersionResult(const aCase: TPerformanceCase; const aFilename: UnicodeString; const aTag: UnicodeString);
-      procedure AddWithResult(const aCase: TPerformanceCase; const aBaseline: UnicodeString);
+//      procedure AddWithResult(const aCase: TPerformanceCase; const aBaseline: UnicodeString);
 
       property CompilerVersionResults: TBenchmark read fCompilerVersionResults;
       property On_Finished: TMultiCastNotify read fOn_Finished;
@@ -2312,9 +2312,9 @@ implementation
     for i := 0 to Pred(Count) do
     begin
       Child[i].AsObject(candidate);
-      if (candidate.Reference = childName)
-       or ANSISameText(candidate.Name, childName)
-       or ANSISameText(candidate.DisplayName, childName) then
+      if (childName = candidate.Reference)
+       or WIDE.SameText(childName, candidate.Name)
+       or WIDE.SameText(childName, candidate.DisplayName) then
       begin
         result := candidate;
         BREAK;
@@ -2408,11 +2408,8 @@ implementation
     if (fName = '') then
     begin
       fName := ClassName;
-    {$ifdef NEWSTRINGS}
+
       if (fName[1] = 'T') and WIDE(fName[2]).IsUppercase then
-    {$else}
-      if (fName[1] = 'T') and WIDE.IsUppercase(fName[2]) then
-    {$endif}
         Delete(fName, 1, 1);
 
       fName := CamelCapsToWords(fName);
@@ -3017,13 +3014,14 @@ implementation
   end;
 
 
+(*
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TSmoketest.AddWithResult(const aCase: TPerformanceCase;
                                      const aBaseline: UnicodeString);
   begin
     // TODO: AddWithResult
   end;
-
+*)
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TSmoketest.FindArticle(const aPath: UnicodeString): TTestArticle;
@@ -3507,7 +3505,7 @@ implementation
 
     result := inherited SetDisplayName;
 
-    if WIDE(result).BeginsWithText('TUnitTest_') then
+    if WIDE(result).BeginsWith('TUnitTest_', csIgnoreCase) then
     begin
       Delete(result, 1, 10);
     end
@@ -3713,11 +3711,15 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   destructor TTestCase.Destroy;
   begin
+  {$typedaddress OFF}
     FreeAndNIL([@fInitialDelegates,
                 @fFinalDelegates,
                 @fIncidents,
                 @fCases]);
     inherited;
+  {$ifdef TYPEDADDRESS}
+    {$typedaddress ON}
+  {$endif}
   end;
 
 
@@ -3760,8 +3762,8 @@ implementation
     for i := 0 to Pred(fCases.Count) do
     begin
       result := get_CaseByIndex(i);
-      if ANSISameText(result.Name, aName)
-       or ANSISameText(result.DisplayName, aName) then
+      if WIDE.SameText(aName, result.Name)
+       or WIDE.SameText(aName, result.DisplayName) then
         EXIT;
     end;
 
@@ -3834,8 +3836,8 @@ implementation
     for i := 0 to Pred(DelegateCount) do
     begin
       result := get_MethodByIndex(i);
-      if ANSISameText(result.Name, aName)
-       or ANSISameText(result.DisplayName, aName) then
+      if WIDE.SameText(aName, result.Name)
+       or WIDE.SameText(aName, result.DisplayName) then
         EXIT;
     end;
 
@@ -4042,7 +4044,7 @@ implementation
   function TTestCase.Inspect(aName: ANSIString;
                              aArgs: array of const): IInspector;
   begin
-    result := Inspect(WideFormat(WIDE.FromANSI(aName), aArgs));
+    result := Inspect(WIDE.FromANSI(aName), aArgs);
   end;
 
 
@@ -4057,7 +4059,7 @@ implementation
   function TTestCase.Inspect(aName: UnicodeString;
                              aArgs: array of const): IInspector;
   begin
-    result := Inspect(WideFormat(aName, aArgs));
+    result := Inspect(WIDE.Format(aName, aArgs));
   end;
 
 
@@ -4073,7 +4075,7 @@ implementation
   function TTestCase.Inspect(aName: UTF8String;
                              aArgs: array of const): IInspector;
   begin
-    result := Inspect(WideFormat(WIDE.FromUTF8(aName), aArgs));
+    result := Inspect(WIDE.FromUTF8(aName), aArgs);
   end;
 {$endif}
 
@@ -4100,9 +4102,10 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TTestCase.Note(aMessage: UnicodeString; const aArgs: array of const);
+  procedure TTestCase.Note(aMessage: UnicodeString;
+                           const aArgs: array of const);
   begin
-    Note(WideFormat(aMessage, aArgs));
+    Note(WIDE.Format(aMessage, aArgs));
   end;
 
 
@@ -4274,7 +4277,7 @@ implementation
   function TTestCase.Test(aName: UnicodeString;
                           aArgs: array of const): ITest;
   begin
-    result := Test(WideFormat(aName, aArgs));
+    result := Test(WIDE.Format(aName, aArgs));
   end;
 
 
@@ -4764,7 +4767,7 @@ implementation
     i: Integer;
   begin
     for i := 0 to Pred(DelegateCount) do
-      if ANSISameText(Delegate[i].Name, aName) then
+      if WIDE.SameText(Delegate[i].Name, aName) then
       begin
         result := Delegate[i] as IPerformanceMethod;
         EXIT;
@@ -5594,7 +5597,7 @@ implementation
   procedure TInspector.Emit(const aString: UnicodeString;
                             const aArgs: array of const);
   begin
-    Output(WideFormat(aString, aArgs));
+    Output(WIDE.Format(aString, aArgs));
   end;
 
 
@@ -5607,21 +5610,26 @@ implementation
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TInspector.Emit(aBuffer: Pointer; aSize: Integer);
+  const
+    HEX: array[0..15] of WIDEChar = ('0','1','2','3','4','5','6','7','8','9',
+                                     'a','b','c','d','e','f');
   var
-    i: Integer;
+    i, idx: Integer;
     s: UnicodeString;
-    p: PChar;
+    p: PByte;
   begin
     p := aBuffer;
-    s := '';
+    SetLength(s, aSize * 3);
 
-    for i := 0 to Pred(aSize) do
+    idx := 1;
+    for i := 1 to aSize do
     begin
-      s := s + Format('%.2x ', [Byte(p^)]);
+      s[idx]     := HEX[(p^ and $f0) shr 4];
+      s[idx + 1] := HEX[(p^ and $0f)];
+      s[idx + 2] := ' ';
       Inc(p);
+      Inc(idx, 3);
     end;
-
-    SetLength(s, Length(s) - 1);
 
     Emit(s);
   end;
@@ -6123,7 +6131,7 @@ implementation
     original: UnicodeString;
   begin
     original  := aString;
-    aString   := StringReplace(original, aToken,  aValue, [rfIgnoreCase, rfReplaceAll]);
+    aString   := StringReplace(original, aToken,  aValue, [SysUtils.rfIgnoreCase, SysUtils.rfReplaceAll]);
     result    := (aString <> original);
   end;
 

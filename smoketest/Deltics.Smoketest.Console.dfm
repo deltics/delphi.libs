@@ -1,9 +1,9 @@
 object SmokeTestConsole: TSmokeTestConsole
   Left = 290
   Top = 205
+  Width = 938
+  Height = 473
   Caption = 'Smoketest'
-  ClientHeight = 446
-  ClientWidth = 930
   Color = clWindow
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -160,6 +160,7 @@ object SmokeTestConsole: TSmokeTestConsole
         Height = 21
         Style = csDropDownList
         Ctl3D = False
+        ItemHeight = 13
         ParentCtl3D = False
         TabOrder = 0
         Visible = False
@@ -196,7 +197,7 @@ object SmokeTestConsole: TSmokeTestConsole
     Left = 80
     Top = 56
     Bitmap = {
-      494C010105000900900014001400FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010105000900040014001400FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000500000002800000001002000000000000032
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
