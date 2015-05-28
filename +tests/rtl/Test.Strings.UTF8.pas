@@ -73,7 +73,7 @@ implementation
   begin
     tm := UTF8.Encode('™');
 
-    Test('UTF8.Encode(''™'')').Expect(@tm[1]).Equals(@ENCODED[0], 3);
+    Test('UTF8.Encode(''™'')').Expect(Addr(tm[1])).Equals(@ENCODED[0], 3);
 
     Test('ANSI.FromUTF8()').Expect(ANSI.FromUTF8(tm)).Equals('™');
     Test('WIDE.FromUTF8()').Expect(WIDE.FromUTF8(tm)).Equals('™');

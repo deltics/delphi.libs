@@ -224,9 +224,9 @@ implementation
     SetLength(aPos, strLen);
 
     j           := 0;
-    firstChar   := @BOX[1];
+    firstChar   := Addr(BOX[1]);
     currChar    := firstChar;
-    initialChar := @aString[1];
+    initialChar := Addr(aString[1]);
 
     for i := Pred(strLen) downto 0 do
     begin
@@ -311,8 +311,8 @@ implementation
     if (sublen > strlen) or (sublen = 0) or (strlen = 0) then
       EXIT;
 
-    firstChar   := @BOX[1];
-    initialChar := @aString[1];
+    firstChar   := Addr(BOX[1]);
+    initialChar := Addr(aString[1]);
     currChar    := Addr(BOX[strlen]);
 
     for i := (strlen - sublen) downto 0 do
@@ -371,8 +371,8 @@ implementation
       EXIT;
     end;
 
-    firstChar   := @BOX[1];
-    initialChar := @aString[1];
+    firstChar   := Addr(BOX[1]);
+    initialChar := Addr(aString[1]);
     currChar    := Addr(BOX[aPos + 1]);
 
     for i := (strLen - subLen) downto aPos do
