@@ -55,8 +55,10 @@ interface
     Classes,
     SysUtils,
   { deltics: }
+    Deltics.Classes,
     Deltics.Memento,
-    Deltics.Strings;
+    Deltics.Strings,
+    Deltics.Unicode;
 
 
   type
@@ -150,6 +152,7 @@ interface
     protected
       function get_EOF: Boolean;
       procedure AcquireStream(const aStream: TStream; const aIsOwn: Boolean); override;
+      procedure ResetBuffer;
     public
       constructor Create(const aStream: TStream; const aBufSize: Integer);
       function Read(var aBuffer; aCount: Integer): Integer; override;
@@ -188,76 +191,6 @@ interface
 
 
   function StreamPositionMemento(const aStream: TStream): IStreamPositionMemento;
-
-
-  type
-    ECharEncoding = class(Exception);
-
-    TCharEncoding = (
-                     ceASCII,
-                     ceANSI,
-                     ceUTF8,
-                     ceUTF16,
-                     ceUTF16LE,
-                     ceUTF16BE,
-                     ceUTF32,
-                     ceUTF32BE,
-                     ceUTF32LE
-                    );
-    TCharEncodings = set of TCharEncoding;
-
-
-    TEncodingEnforcement = (
-                            encConfirm,
-                            encOverride
-                           );
-
-
-    TUnicodeStream = class(TStreamDecorator)
-    private
-      fBOMPresent: Boolean;
-      fEncoding: TCharEncoding;
-      fCodepoint: Cardinal;
-      fNeedCodepoint: Boolean;
-      constructor Create(const aBuffer; const aBufferSize: Integer); overload;
-    protected
-      procedure Initialise(const aDefaultEncoding: TCharEncoding);
-    public
-      constructor Create(const aEncoding: TCharEncoding = ceUTF8); overload;
-      constructor Create(const aStream: TStream;
-                         const aDefaultEncoding: TCharEncoding = ceUTF8); overload;
-      constructor Create(const aString: String); overload;
-      constructor Create(const aString: WideString); overload;
-      constructor CreateUTF8(const aString: UTF8String);
-      procedure CheckEncoding(const aEncoding: TCharEncoding);
-      function DetectEncoding(const aDefault: TCharEncoding): TCharEncoding;
-      procedure LoadFromFile(const aFileName: String); overload;
-      procedure LoadFromFile(const aFileName: String; const aDefaultEncoding: TCharEncoding); overload;
-      function ReadChar(var aChar: ANSIChar): Boolean; overload;
-      function ReadChar(var aChar: WideChar): Boolean; overload;
-      function ReadLine: String;
-      function ReadString: String; overload;
-      function ReadString(const aMaxChars: Integer): String; overload;
-      procedure Reset;
-      property BOMPresent: Boolean read fBOMPresent;
-      property Encoding: TCharEncoding read fEncoding write fEncoding;
-      property EOF;
-    end;
-
-
-(*
-    function CharLower(const aChar: WideChar): WideChar;
-    function CharUpper(const aChar: WideChar): WideChar;
-    function IsCharLower(const aChar: ANSIChar): Boolean; overload;
-    function IsCharLower(const aChar: WideChar): Boolean; overload;
-    function IsCharUpper(const aChar: ANSIChar): Boolean; overload;
-    function IsCharUpper(const aChar: WideChar): Boolean; overload;
-*)
-
-    function ReadCodePoint(const aStream: TStream;
-                           var aCodePoint: Cardinal;
-                           const aEncoding: TCharEncoding): Boolean; {$if CompilerVersion > 18} inline; {$ifend}
-
 
 
 
@@ -546,6 +479,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TBufferedStreamReader.ResetBuffer;
+  begin
+    fBufCurr  := NIL;
+    fBufEnd   := NIL;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   constructor TBufferedStreamReader.Create(const aStream: TStream; const aBufSize: Integer);
   begin
     inherited;
@@ -597,11 +538,19 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TBufferedStreamReader.Seek(const aOffset: Int64;
                                             aOrigin: TSeekOrigin): Int64;
+  var
+    oldPos: Int64;
   begin
     if (aOffset = 0) and (aOrigin = soCurrent) then
       result := fStream.Position - (Integer(fBufEnd) - Integer(fBufCurr))
     else
-      result := inherited Seek(aOffset, aOrigin);
+    begin
+      oldPos := fStream.Position;
+      fStream.Seek(aOffset, aOrigin);
+
+      if fStream.Position <> oldPos then
+        Resetbuffer;
+    end;
   end;
 
 
@@ -780,545 +729,6 @@ implementation
 
 
 
-
-
-
-
-  const
-    BOM_UTF8      : array[0..2] of Byte = ($EF, $BB, $BF);
-    BOM_UTF16BE   : array[0..1] of Byte = ($FE, $FF);
-    BOM_UTF16LE   : array[0..1] of Byte = ($FF, $FE);
-    BOM_UTF32BE   : array[0..3] of Byte = ($00, $00, $FE, $FF);
-    BOM_UTF32LE   : array[0..3] of Byte = ($FF, $FE, $00, $00);
-
-
-
-(*
-  function CharLower(const aChar: WideChar): WideChar;
-  var
-    wc: array[0..1] of WideChar;
-  begin
-    wc[0] := aChar;
-    wc[1] := WideChar(0);
-
-    result := Windows.CharLowerW(@wc[0])^;
-  end;
-
-
-  function CharUpper(const aChar: WideChar): WideChar;
-  var
-    wc: array[0..1] of WideChar;
-  begin
-    wc[0] := aChar;
-    wc[1] := WideChar(0);
-
-    result := Windows.CharUpperW(@wc[0])^;
-  end;
-
-
-  function IsCharLower(const aChar: ANSIChar): Boolean;
-  begin
-    result := Windows.IsCharLowerA(aChar);
-  end;
-
-
-  function IsCharLower(const aChar: WideChar): Boolean;
-  begin
-    result := Windows.IsCharLowerW(aChar);
-  end;
-
-
-  function IsCharUpper(const aChar: ANSIChar): Boolean;
-  begin
-    result := Windows.IsCharUpperA(aChar);
-  end;
-
-
-  function IsCharUpper(const aChar: WideChar): Boolean;
-  begin
-    result := Windows.IsCharUpperW(aChar);
-  end;
-*)
-
-
-
-
-
-
-{ TUnicodeStream --------------------------------------------------------------------------------- }
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TUnicodeStream.Create(const aEncoding: TCharEncoding);
-  begin
-    inherited Create(NIL);
-    AcquireStream(TMemoryStream.Create, TRUE);
-    fEncoding := aEncoding;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TUnicodeStream.Create(const aStream: TStream;
-                                    const aDefaultEncoding: TCharEncoding);
-  begin
-    inherited Create(aStream);
-    Initialise(aDefaultEncoding);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TUnicodeStream.Create(const aBuffer;
-                                    const aBufferSize: Integer);
-  var
-    bytes: TMemoryStream;
-  begin
-    inherited Create(NIL);
-
-    bytes := TMemoryStream.Create;
-    bytes.Write(aBuffer, aBufferSize);
-    bytes.Position := 0;
-
-    AcquireStream(bytes, TRUE);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TUnicodeStream.Create(const aString: String);
-  var
-    size: Integer;
-    encoding: TCharEncoding;
-  begin
-  {$ifdef UNICODE}
-    size := Length(aString) * StringElementSize(aString);
-  {$else}
-    size := Length(aString);
-  {$endif}
-
-    Create(aString[1], size);
-
-  {$ifdef UNICODE}
-    case StringCodePage(aString) of
-      CP_UTF7   : encoding := ceUTF8; // Not really, but does it matter ?
-      CP_UTF8   : encoding := ceUTF8;
-      1200      : encoding := ceUTF16LE;
-      1201      : encoding := ceUTF16BE;
-      12000     : encoding := ceUTF32LE;
-      12001     : encoding := ceUTF32BE;
-    else
-      encoding := ceANSI;
-    end;
-  {$else}
-    encoding := ceANSI;
-  {$endif}
-
-    Initialise(encoding);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TUnicodeStream.Create(const aString: WideString);
-  begin
-    Create(aString[1], Length(aString) * 2);
-    Initialise(ceUTF16);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TUnicodeStream.CreateUTF8(const aString: UTF8String);
-  begin
-    Create(aString[1], Length(aString));
-    Initialise(ceUTF8);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TUnicodeStream.LoadFromFile(const aFileName: String);
-  begin
-    LoadFromFile(aFilename, fEncoding);
-  end;
-
-
-  procedure TUnicodeStream.LoadFromFile(const aFileName: String;
-                                        const aDefaultEncoding: TCharEncoding);
-  begin
-    AcquireStream(TMemoryStream.Create, TRUE);
-    TMemoryStream(Stream).LoadFromFile(aFileName);
-    Initialise(aDefaultEncoding);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TUnicodeStream.CheckEncoding(const aEncoding: TCharEncoding);
-  begin
-    if (Encoding = aEncoding) then
-      EXIT;
-
-    case aEncoding of
-      ceASCII,
-      ceANSI  : if (Encoding = ceUTF8) and NOT BOMPresent then
-                begin
-                  fEncoding := aEncoding;
-                  EXIT;
-                end;
-
-      ceUTF16 : if (Encoding in [ceUTF16BE, ceUTF16LE]) then
-                  EXIT;
-      ceUTF32 : if (Encoding in [ceUTF32BE, ceUTF32LE]) then
-                  EXIT;
-    end;
-
-    raise ECharEncoding.Create('Unexpected file encoding (' + GetEnumName(TypeInfo(TCharEncoding), Ord(Encoding)) + ')');
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TUnicodeStream.DetectEncoding(const aDefault: TCharEncoding): TCharEncoding;
-  var
-    bom: array[0..3] of Byte;
-    oldPos: IStreamPositionMemento;
-    bytesRead: Integer;
-    detected: TCharEncoding;
-
-    function TestBOM(const aBOM: array of Byte;
-                     const aEncoding: TCharEncoding): Boolean;
-    begin
-      if (bytesRead < Length(aBOM)) then
-        result := FALSE
-      else
-        result := CompareMem(@bom, @aBOM, Length(aBOM));
-
-      if result then
-      begin
-        detected := aEncoding;
-        oldPos.Position := oldPos.Position + Length(aBOM);
-
-        fBOMPresent := TRUE;
-      end;
-    end;
-
-  begin
-    result      := fEncoding;
-    detected    := ceANSI;
-    fBOMPresent := FALSE;
-
-    // If the stream is too small to contain a BOM (smallest possible
-    //  encoding header is 2 bytes) we cannot do any detection
-
-    if ((Size - Position) < 2) then
-      EXIT;
-
-    // ... with the longest possible being 4 bytes
-    oldPos    := StreamPositionMemento(self);
-    bytesRead := Read(bom, 4);
-    if NOT TestBOM(BOM_UTF32BE, ceUTF32BE) then
-      if NOT TestBOM(BOM_UTF32LE, ceUTF32LE) then
-        if NOT TestBOM(BOM_UTF16BE, ceUTF16BE) then
-          if NOT TestBOM(BOM_UTF16LE, ceUTF16LE) then
-            if NOT TestBOM(BOM_UTF8, ceUTF8) then
-              oldPos.Recall;
-
-    if (detected = ceANSI) then
-    begin
-      if (bytesRead >= 2) and (bom[1] = 0) then
-        detected := ceUTF16LE
-      else
-        detected := aDefault;
-    end;
-
-    result := detected;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TUnicodeStream.Initialise(const aDefaultEncoding: TCharEncoding);
-  begin
-    StreamPositionMemento(self);
-    fEncoding       := DetectEncoding(aDefaultEncoding);
-    fNeedCodepoint  := TRUE;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TUnicodeStream.ReadChar(var aChar: ANSIChar): Boolean;
-  begin
-    case Encoding of
-      ceANSI: result := (Stream.Read(aChar, 1) = 1);
-
-    else
-      result := FALSE;
-      ASSERT(FALSE, 'Not yet implemented');
-
-      {
-        TODO:
-
-          if need codepoint then
-
-            ReadCodePoint
-            if < $128 then
-
-              return ANSIChar(codepoint)
-
-            else
-              if (codepoint >= $10000 <= $10FFFF) then
-                transcode surrogate pair, convert to fANSIChars[]
-              else
-                convert to fANSIChars[]
-
-              set ANSI char index = 1
-              set need codepoint = FALSE
-
-              return fANSIChars[1]
-
-          else
-            Inc fANSICharIndex
-            return fANSIChars[fANSICharIndex]
-
-            if last char then
-              set need codepoint = TRUE
-      }
-    end;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TUnicodeStream.ReadChar(var aChar: WideChar): Boolean;
-  begin
-    case Encoding of
-      ceUTF16LE : result := self.Read(aChar, 2) = 2;
-
-      ceUTF16,
-      ceUTF16BE : begin
-                    result := self.Read(aChar, 2) = 2;
-                    aChar := WideChar(ReverseBytes(Word(aChar)));
-                  end;
-    else
-      if fNeedCodePoint then
-      begin
-        result  := ReadCodePoint(self, fCodePoint, Encoding);
-        if (fCodepoint >= $10000) and (fCodepoint <= $10FFFF) then
-        begin
-          aChar          := WideChar(((fCodePoint - $10000) div $400) + $D800);
-          fNeedCodePoint := FALSE;
-        end
-        else
-          aChar := WideChar(fCodePoint);
-      end
-      else
-      begin
-        aChar   := WideChar(((fCodePoint - $10000) mod $400) + $DC00);
-        result  := TRUE;
-        fNeedCodePoint := TRUE;
-      end;
-    end;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TUnicodeStream.ReadLine: String;
-  var
-    c: Char;
-    oldPos: Int64;
-  begin
-    result := '';
-
-    while ReadChar(c) and (c <> #13) and (c <> #10) do
-      result := result + c;
-
-    // If we ended on a carriage return and the next character is a line feed
-    //  we skip it (which we will have achieved by simply having read it
-    //  already!), but having read it to test it, if it is NOT a line feed then
-    //  we have to rewind to where we are right now
-
-    if (c = #13) then
-    begin
-      oldPos := Stream.Position;
-      if ReadChar(c) and (c <> #10) then
-        Stream.Position := oldPos;
-    end;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TUnicodeStream.ReadString: String;
-  var
-    i: Integer;
-    c: Char;
-    oldEncoding: TCharEncoding;
-  begin
-    oldEncoding := Encoding;
-    try
-      Encoding := DetectEncoding(Encoding);
-
-      SetLength(result, Size - Position);
-      i := 1;
-      while ReadChar(c) and (c <> #0) do
-      begin
-        result[i] := c;
-        Inc(i);
-      end;
-
-      SetLength(result, i - 1);
-    finally
-      Encoding := oldEncoding;
-    end;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TUnicodeStream.ReadString(const aMaxChars: Integer): String;
-  var
-    i: Integer;
-    c: Char;
-    oldEncoding: TCharEncoding;
-  begin
-    oldEncoding := Encoding;
-    try
-      Encoding := DetectEncoding(Encoding);
-      result  := '';
-
-      i := aMaxChars;
-      while (i > 0) and ReadChar(c) and (c <> #0) do
-      begin
-        result := result + c;
-        Dec(i);
-      end;
-    finally
-      Encoding := oldEncoding;
-    end;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TUnicodeStream.Reset;
-  begin
-    Position := 0;
-    Initialise(Encoding);
-  end;
-
-
-
-
-
-
-
-
-
-
-{ Library Routines ------------------------------------------------------------------------------- }
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function ReadCodePoint(const aStream: TStream;
-                         var aCodepoint: Cardinal;
-                         const aEncoding: TCharEncoding): Boolean;
-  var
-    b: array[1..6] of Byte;
-    wc: Word;
-    surrogate: Word;
-  begin
-    result := FALSE;
-
-    case aEncoding of
-      ceASCII,
-      ceANSI    : begin
-                    // TODO: handle/support MBCS
-
-                    result      := aStream.Read(b[1], 1) = 1;
-                    aCodepoint  := Cardinal(b[1]);
-                  end;
-
-      ceUTF8    : begin
-                    result := aStream.Read(b[1], 1) = 1;
-
-                    case b[1] of
-                        0..127  : aCodepoint := Cardinal(b[1]);
-
-                      192..223  : begin
-                                    result      := aStream.Read(b[2], 1) = 1;
-                                    aCodepoint  := ((b[1] - 192) * 64)
-                                                 +  (b[2] - 128);
-                                  end;
-
-                      224..239  : begin
-                                    result      := aStream.Read(b[2], 2) = 2;
-                                    aCodepoint  := ((b[1] - 224) * 4096)
-                                                 + ((b[2] - 128) * 64)
-                                                 +  (b[3] - 128);
-                                  end;
-
-                      240..247  : begin
-                                    result      := aStream.Read(b[2], 3) = 3;
-                                    aCodepoint  := ((b[1] - 240) * 262144)
-                                                 + ((b[2] - 224) * 4096)
-                                                 + ((b[3] - 128) * 64)
-                                                 +  (b[4] - 128);
-                                  end;
-
-                      248..251  : begin
-                                    result      := aStream.Read(b[2], 4) = 4;
-                                    aCodepoint  := ((b[1] - 248) * 16777216)
-                                                 + ((b[1] - 240) * 262144)
-                                                 + ((b[2] - 224) * 4096)
-                                                 + ((b[3] - 128) * 64)
-                                                 +  (b[4] - 128);
-                                  end;
-
-                      252..253  : begin
-                                    result      := aStream.Read(b[2], 5) = 5;
-                                    aCodepoint  := ((b[1] - 252) * 1073741824)
-                                                 + ((b[2] - 248) * 16777216)
-                                                 + ((b[3] - 240) * 262144)
-                                                 + ((b[4] - 224) * 4096)
-                                                 + ((b[5] - 128) * 64)
-                                                 +  (b[6] - 128);
-                                  end;
-
-                      254..255  : // BOM Characters - should not encounter these in an actual encoding!
-                                  raise ECharEncoding.Create('Invalid UTF8 stream');
-                    end;
-                  end;
-
-      ceUTF16,
-      ceUTF16BE : begin
-                    // INTEL is Little-Endian so we need to re-order the bytes in each of the
-                    //  words as we read them.  WORD ORDER (in UTF16) is not affected by BYTE order
-
-                    result  := aStream.Read(wc, 2) = 2;
-                    wc      := WORD(Byte(wc) or (wc shr 8));
-
-                    case wc of
-                      $D800..$DFFF  : begin
-                                        result      := aStream.Read(surrogate, 2) = 2;
-                                        surrogate   := WORD(Byte(surrogate) or (surrogate shr 8));
-                                        aCodepoint  := ((wc or $D800) shl 10) + (surrogate or $DC00);
-                                      end;
-                    else
-                      aCodepoint := Cardinal(wc);
-                    end;
-                  end;
-
-      ceUTF16LE : begin
-                    result := aStream.Read(wc, 2) = 2;
-                    case wc of
-                      $D800..$DFFF  : begin
-                                        result      := aStream.Read(surrogate, 2) = 2;
-                                        aCodepoint  := ((wc or $D800) shl 10) + (surrogate or $DC00);
-                                      end;
-                    else
-                      aCodepoint := Cardinal(wc);
-                    end;
-                  end;
-
-      ceUTF32,
-      ceUTF32BE : begin
-                    // INTEL is Little-Endian so we need to re-order the bytes in the longword
-
-                    result      := aStream.Read(b, 4) = 4;
-                    aCodepoint  := Cardinal((b[4] shl 24) + (b[3] shl 16) + (b[2] shl 8) + b[1]);
-                  end;
-
-      ceUTF32LE : result := aStream.Read(aCodepoint, 4) = 4;
-    end;
-  end;
 
 
 

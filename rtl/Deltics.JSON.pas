@@ -59,8 +59,8 @@ interface
     TypInfo,
   { deltics: }
     Deltics.DateUtils,
-    Deltics.Streams,
-    Deltics.Strings;
+    Deltics.Strings,
+    Deltics.Unicode;
 
 
   type
@@ -220,14 +220,13 @@ interface
         function get_IsNull: Boolean; override;
         procedure Add(const aValue: TJSONValue); overload; virtual; abstract;
       public
-        class function CreateFromFile(const aFilename: UnicodeString): TJSONText;
-        class function CreateFromStream(const aStream: TStream): TJSONText;
-      {$ifdef UNICODE}
-        class function CreateFromString(const aString: RawByteString): TJSONText;
-      {$else}
-        class function CreateFromString(const aString: ANSIString): TJSONText; overload;
-        class function CreateFromString(const aString: WideString): TJSONText; overload;
-      {$endif}
+        class function CreateFromFile(const aFilename: UnicodeString; const aBufferKB: Word = 4): TJSONText;
+        class function CreateFromStream(const aStream: TStream; const aBufferKB: Word = 4): TJSONText; overload;
+        class function CreateFromStream(const aStream: TStream; const aDefaultEncoding: TEncoding; const aBufferKB: Word = 4): TJSONText; overload;
+        class function CreateFromANSI(const aString: ANSIString): TJSONText;
+        class function CreateFromUTF8(const aString: UTF8String): TJSONText;
+        class function CreateFromWIDE(const aString: UnicodeString): TJSONText;
+        class function CreateFromString(const aString: String): TJSONText;
         function Add(const aName: UnicodeString; const aValue: TJSONText): TJSONText; overload;
         function Add(const aName: UnicodeString; const aValue: Boolean): TJSONBoolean; overload;
         function Add(const aName: UnicodeString; const aValue: Integer): TJSONInteger; overload;
@@ -248,8 +247,9 @@ interface
         function AddDouble(const aName: UnicodeString; const aValue: Double): TJSONNumber;
         procedure AddNull(const aName: UnicodeString);
         function AddObject(const aName: UnicodeString = ''): TJSONObject;
-        procedure LoadFromFile(const aFileName: UnicodeString);
-        procedure LoadFromStream(const aStream: TStream);
+        procedure Load(const aSource: IUnicodeReader);
+        procedure LoadFromFile(const aFileName: UnicodeString; const aEncoding: TEncoding; const aBufferKB: Word);
+        procedure LoadFromStream(const aStream: TStream; const aEncoding: TEncoding; const aBufferKB: Word);
         procedure SaveToFile(const aFileName: UnicodeString; const aCompact: Boolean = FALSE);
         procedure SaveToStream(const aStream: TStream; const aCompact: Boolean = FALSE);
         procedure Wipe; override; abstract;
@@ -310,7 +310,7 @@ interface
           class function TryCreate(const aString: UnicodeString): TJSONObject;
           constructor Create; overload; override;
           constructor Create(const aString: UnicodeString); reintroduce; overload;
-          constructor CreateFromFile(const aFilename: UnicodeString);
+          constructor CreateFromFile(const aFilename: UnicodeString; const aEncoding: TEncoding; const aBufferKB: Word = 4);
           destructor Destroy; override;
           procedure Clear; override;
           function Clone: TJSONObject; reintroduce;
@@ -319,7 +319,7 @@ interface
           procedure Delete(const aValueName: UnicodeString); overload;
           function FindValue(const aName: UnicodeString): TJSONValue;
           procedure CopyFrom(const aSource: TJSONValue); override;
-          procedure LoadFromStream(const aStream: TStream);
+          procedure LoadFromStream(const aStream: TStream; const aEncoding: TEncoding; const aBufferKB: Word);
           function OptBoolean(const aName: UnicodeString; const aDefault: Boolean = FALSE): Boolean;
           function OptDateTime(const aName: UnicodeString; const aDefault: TDateTime = 0): TDateTime;
           function OptEnum(const aName: UnicodeString; const aTypeInfo: PTypeInfo; const aDefault: Integer = 0): Integer;
@@ -336,19 +336,19 @@ interface
         end;
 
 
-    TJSONStreamReader = class
+    TJSONReader = class
     private
-      fStream: TUnicodeStream;
+      fNextChar: WideChar;
+      fNextCharReady: Boolean;
+      fSource: IUnicodeReader;
       function EOF: Boolean;
       function NextChar: WideChar;
       function NextRealChar: WideChar;
       function ReadChar: WideChar;
       function ReadRealChar: WideChar; overload;
-      function ReadRealChar(var aPosition: Int64): WideChar; overload;
       function ReadString(const aQuoted: Boolean = TRUE): UnicodeString;
     public
-      constructor Create(const aStream: TStream);
-      destructor Destroy; override;
+      constructor Create(const aSource: IUnicodeReader);
       function ReadArray: TJSONArray;
       function ReadObject: TJSONObject;
       function ReadValue: TJSONValue;
@@ -698,13 +698,14 @@ implementation
 { TJSONText -------------------------------------------------------------------------------------- }
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function TJSONText.CreateFromFile(const aFilename: UnicodeString): TJSONText;
+  class function TJSONText.CreateFromFile(const aFilename: UnicodeString;
+                                          const aBufferKB: Word): TJSONText;
   var
     stream: TFileStream;
   begin
     stream := TFileStream.Create(aFilename, fmOpenRead or fmShareDenyWrite);
     try
-      result := CreateFromStream(stream);
+      result := CreateFromStream(stream, aBufferKB);
 
     finally
       stream.Free;
@@ -713,11 +714,16 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function TJSONText.CreateFromStream(const aStream: TStream): TJSONText;
+  class function TJSONText.CreateFromStream(const aStream: TStream;
+                                            const aBufferKB: Word): TJSONText;
   var
-    reader: TJSONStreamReader;
+    source: IUnicodeReader;
+    reader: TJSONReader;
   begin
-    reader := TJSONStreamReader.Create(aStream);
+    // TODO: Default Encoding ? (move aEncoding to last param and make optional ?)
+
+    source := TUnicodeReader.OfStream(aStream, TEncoding.ASCII, aBufferKB);
+    reader := TJSONReader.Create(source);
     try
       result := reader.ReadValue as TJSONText;
 
@@ -727,82 +733,88 @@ implementation
   end;
 
 
-{$ifdef UNICODE}
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function TJSONText.CreateFromString(const aString: RawByteString): TJSONText;
+  class function TJSONText.CreateFromStream(const aStream: TStream;
+                                            const aDefaultEncoding: TEncoding;
+                                            const aBufferKB: Word): TJSONText;
   var
-    stream: TStream;
-    reader: TJSONStreamReader;
+    source: IUnicodeReader;
+    reader: TJSONReader;
   begin
-    reader := NIL;
-    stream := NIL;
+    source := TUnicodeReader.OfStream(aStream, aDefaultEncoding, aBufferKB);
+    reader := TJSONReader.Create(source);
     try
-      // TODO: TMemoryReaderStream
-      case StringElementSize(aString) of
-        1 : begin
-              stream := TMemoryStream.Create;
-              stream.Write(aString[1], Length(aString));
-              stream.Position := 0;
-            end;
-        2 : stream := TStringStream.Create(aString);
-      end;
-
-      reader := TJSONStreamReader.Create(stream);
-
       result := reader.ReadValue as TJSONText;
 
     finally
       reader.Free;
-      stream.Free;
-    end;
-  end;
-{$else}
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function TJSONText.CreateFromString(const aString: ANSIString): TJSONText;
-  var
-    stream: TStream;
-    reader: TJSONStreamReader;
-  begin
-    reader := NIL;
-    stream := NIL;
-    try
-      stream := TStringStream.Create(aString);
-
-      reader := TJSONStreamReader.Create(stream);
-
-      result := reader.ReadValue as TJSONText;
-
-    finally
-      reader.Free;
-      stream.Free;
     end;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function TJSONText.CreateFromString(const aString: WideString): TJSONText;
+  class function TJSONText.CreateFromANSI(const aString: ANSIString): TJSONText;
   var
-    stream: TStream;
-    reader: TJSONStreamReader;
+    source: IUnicodeReader;
+    reader: TJSONReader;
   begin
-    reader := NIL;
-    stream := NIL;
+    source := TUnicodeReader.OfANSI(aString);
+
+    reader := TJSONReader.Create(source);
     try
-      // TODO: TMemoryReaderStream
-      stream := TMemoryStream.Create;
-      stream.Write(aString[1], Length(aString) * 2);
-      stream.Position := 0;
-
-      reader := TJSONStreamReader.Create(stream);
-
       result := reader.ReadValue as TJSONText;
 
     finally
       reader.Free;
-      stream.Free;
     end;
   end;
-{$endif}
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TJSONText.CreateFromUTF8(const aString: UTF8String): TJSONText;
+  var
+    source: IUnicodeReader;
+    reader: TJSONReader;
+  begin
+    source := TUnicodeReader.OfUTF8(aString);
+
+    reader := TJSONReader.Create(source);
+    try
+      result := reader.ReadValue as TJSONText;
+
+    finally
+      reader.Free;
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TJSONText.CreateFromWIDE(const aString: UnicodeString): TJSONText;
+  var
+    source: IUnicodeReader;
+    reader: TJSONReader;
+  begin
+    source := TUnicodeReader.OfWIDE(aString);
+
+    reader := TJSONReader.Create(source);
+    try
+      result := reader.ReadValue as TJSONText;
+
+    finally
+      reader.Free;
+    end;
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class function TJSONText.CreateFromString(const aString: String): TJSONText;
+  begin
+  {$ifdef UNICODE}
+    result := CreateFromWIDE(aString);
+  {$else}
+    result := CreateFromANSI(aString);
+  {$endif}
+  end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
@@ -1175,44 +1187,55 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TJSONText.LoadFromFile(const aFileName: UnicodeString);
+  procedure TJSONText.Load(const aSource: IUnicodeReader);
   var
-    stream: TFileStream;
+    reader: TJSONReader;
+    loaded: TJSONValue;
   begin
-    stream := TFileStream.Create(aFileName, fmOpenRead or fmShareDenyWrite);
+    reader := NIL;
+    loaded := NIL;
     try
-      LoadFromStream(stream);
+      Clear;
+
+      if NOT aSource.EOF then
+      begin
+        reader := TJSONReader.Create(aSource);
+        loaded := reader.ReadValue;
+
+        if Assigned(loaded) then
+          CopyFrom(loaded);
+      end;
 
     finally
-      stream.Free;
+      loaded.Free;
+      reader.Free;
     end;
   end;
 
 
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TJSONText.LoadFromStream(const aStream: TStream);
+  procedure TJSONText.LoadFromFile(const aFileName: UnicodeString;
+                                   const aEncoding: TEncoding;
+                                   const aBufferKB: Word);
   var
-    reader: TJSONStreamReader;
-    source: TJSONValue;
+    stream: TFileStream;
+    reader: IUnicodeReader;
   begin
-    reader := NIL;
-    source := NIL;
-    try
-      Clear;
+    stream := TFileStream.Create(aFileName, fmOpenRead or fmShareDenyWrite);
+    reader := TUnicodeReader.AsOwnerOfStream(stream, aEncoding, aBufferKB);
 
-      if (aStream.Position < aStream.Size) then
-      begin
-        reader := TJSONStreamReader.Create(aStream);
-        source := reader.ReadValue;
+    Load(reader);
+  end;
 
-        if Assigned(source) then
-          CopyFrom(source);
-      end;
 
-    finally
-      source.Free;
-      reader.Free;
-    end;
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TJSONText.LoadFromStream(const aStream: TStream;
+                                     const aEncoding: TEncoding;
+                                     const aBufferKB: Word);
+  var
+    reader: IUnicodeReader;
+  begin
+    reader := TUnicodeReader.OfStream(aStream, aEncoding, aBufferKB);
+    Load(reader);
   end;
 
 
@@ -1220,9 +1243,9 @@ implementation
   procedure TJSONText.SaveToFile(const aFileName: UnicodeString;
                                  const aCompact: Boolean);
   var
-    stream: TStringStream;
+    stream: TMemoryStream;
   begin
-    stream := TStringStream.Create;
+    stream := TMemoryStream.Create;
     try
       SaveToStream(stream, aCompact);
       stream.SaveToFile(aFileName);
@@ -1446,15 +1469,10 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TJSONArray.DoSetAsString(const aValue: UnicodeString);
   var
-    stream: TUnicodeStream;
+    source: IUnicodeReader;
   begin
-    stream := TUnicodeStream.Create(aValue);
-    try
-      LoadFromStream(stream);
-
-    finally
-      stream.Free;
-    end;
+    source := TUnicodeReader.OfWIDE(aValue);
+    Load(source);
   end;
 
 
@@ -1898,11 +1916,13 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TJSONObject.CreateFromFile(const aFilename: UnicodeString);
+  constructor TJSONObject.CreateFromFile(const aFilename: UnicodeString;
+                                         const aEncoding: TEncoding;
+                                         const aBufferKB: Word);
   begin
     Create;
 
-    LoadFromFile(aFilename);
+    LoadFromFile(aFilename, aEncoding, aBufferKB);
   end;
 
 
@@ -2049,16 +2069,12 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TJSONObject.DoSetAsString(const aValue: UnicodeString);
   var
-    stream: TUnicodeStream;
+    source: IUnicodeReader;
   begin
     inherited;
 
-    stream := TUnicodeStream.Create(aValue);
-    try
-      LoadFromStream(stream);
-    finally
-      stream.Free;
-    end;
+    source:= TUnicodeReader.OfWIDE(aValue);
+    Load(source);
   end;
 
 
@@ -2089,25 +2105,29 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  procedure TJSONObject.LoadFromStream(const aStream: TStream);
+  procedure TJSONObject.LoadFromStream(const aStream: TStream;
+                                       const aEncoding: TEncoding;
+                                       const aBufferKB: Word);
   var
-    reader: TJSONStreamReader;
-    source: TJSONValue;
+    source: IUnicodeReader;
+    reader: TJSONReader;
+    loaded: TJSONValue;
   begin
-    reader := NIL;
-    source := NIL;
-    try
-      reader := TJSONStreamReader.Create(aStream);
-      source := reader.ReadValue;
+    source := TUnicodeReader.OfStream(aStream, aEncoding, aBufferKB);
 
-      if NOT (source is TJSONObject) then
+    loaded := NIL;
+    reader := TJSONReader.Create(source);
+    try
+      loaded := reader.ReadValue;
+
+      if NOT (loaded is TJSONObject) then
         raise EJSONError.Create('Stream does not contain a JSON object');
 
       Clear;
-      CopyFrom(source);
+      CopyFrom(loaded);
 
     finally
-      source.Free;
+      loaded.Free;
       reader.Free;
     end;
   end;
@@ -2197,99 +2217,72 @@ implementation
 
 
 
-{ TJSONStreamReader ------------------------------------------------------------------------------ }
+{ TJSONReader ------------------------------------------------------------------------------ }
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  constructor TJSONStreamReader.Create(const aStream: TStream);
+  constructor TJSONReader.Create(const aSource: IUnicodeReader);
   begin
     inherited Create;
 
-    fStream := TUnicodeStream.Create(aStream);
+    fSource := aSource;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  destructor TJSONStreamReader.Destroy;
+  function TJSONReader.EOF: Boolean;
   begin
-    FreeAndNIL(fStream);
-
-    inherited;
+    result := fSource.EOF;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TJSONStreamReader.EOF: Boolean;
+  function TJSONReader.NextChar: WideChar;
   begin
-    result := fStream.EOF;
-  end;
+    if NOT fNextCharReady then
+      fNextCharReady := fSource.ReadChar(fNextChar);
+
+    result := fNextChar;
+   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TJSONStreamReader.NextChar: WideChar;
-  var
-    pos: Int64;
-  begin
-    pos     := fStream.Position;
-    result  := ReadChar;
-    fStream.Position := pos;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TJSONStreamReader.NextRealChar: WideChar;
-  var
-    pos: Int64;
-  begin
-    result := ReadRealChar(pos);
-    if result <> #0 then
-      fStream.Position := pos;
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TJSONStreamReader.ReadChar: WideChar;
-  begin
-    fStream.ReadChar(result);
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TJSONStreamReader.ReadRealChar: WideChar;
+  function TJSONReader.NextRealChar: WideChar;
   const
     WHITESPACE = [' ', #13, #10, #9];
   begin
-    if EOF then
-    begin
+    repeat
+      result := ReadChar;
+    until EOF or NOT (ANSIChar(result) in WHITESPACE);
+
+    if (ANSIChar(result) in WHITESPACE) then
       result := #0;
-      EXIT;
-    end;
 
-    fStream.ReadChar(result);
-
-    while NOT EOF and (ANSIChar(result) in WHITESPACE) do
-      fStream.ReadChar(result);
+    fNextChar       := result;
+    fNextCharReady  := TRUE;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TJSONStreamReader.ReadRealChar(var aPosition: Int64): WideChar;
+  function TJSONReader.ReadChar: WideChar;
+  begin
+    if fNextCharReady then
+    begin
+      result := fNextChar;
+      fNextCharReady := FALSE;
+    end
+    else
+      fSource.ReadChar(result);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  function TJSONReader.ReadRealChar: WideChar;
   const
     WHITESPACE = [' ', #13, #10, #9];
   begin
-    if EOF then
-    begin
-      result := #0;
-      EXIT;
-    end;
-
-    aPosition := fStream.Position;
-    fStream.ReadChar(result);
-
-    while NOT EOF and (ANSIChar(result) in WHITESPACE) do
-    begin
-      aPosition := fStream.Position;
-      fStream.ReadChar(result);
-    end;
+    repeat
+      result := ReadChar;
+    until EOF or NOT (ANSIChar(result) in WHITESPACE);
 
     if (ANSIChar(result) in WHITESPACE) then
       result := #0;
@@ -2297,16 +2290,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TJSONStreamReader.ReadArray: TJSONArray;
+  function TJSONReader.ReadArray: TJSONArray;
   var
     value: TJSONValue;
   begin
     result := TJSONArray.Create;
 
-    if NextRealChar <> '[' then
+    if ReadRealChar <> '[' then
       raise EJSONStreamError.Create('Expected ''[''');
-
-    ReadRealChar;
 
     if (NextRealChar = ']') then
     begin
@@ -2336,16 +2327,14 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TJSONStreamReader.ReadObject: TJSONObject;
+  function TJSONReader.ReadObject: TJSONObject;
   var
     c: WideChar;
     name: UnicodeString;
     value: TJSONValue;
   begin
-    if NextRealChar <> '{' then
+    if ReadRealChar <> '{' then
       raise EJSONStreamError.Create('Expected ''{''');
-
-    ReadRealChar;
 
     result := TJSONObject.Create;
     try
@@ -2387,7 +2376,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TJSONStreamReader.ReadString(const aQuoted: Boolean): UnicodeString;
+  function TJSONReader.ReadString(const aQuoted: Boolean): UnicodeString;
   {
     NOTE: This effectively duplicates the functionality of TJSONString.Decode
            but it is far more efficient to decode inline than it would be to
@@ -2411,10 +2400,8 @@ implementation
   begin
     if aQuoted then
     begin
-      if (NextRealChar <> '"') then
+      if (ReadRealChar <> '"') then
         raise EJSONStreamError.Create('Expected ''"''');
-
-      ReadRealChar;
     end;
 
     if EOF then
@@ -2458,7 +2445,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function TJSONStreamReader.ReadValue: TJSONValue;
+  function TJSONReader.ReadValue: TJSONValue;
   var
     c: WideChar;
     s: UnicodeString;
