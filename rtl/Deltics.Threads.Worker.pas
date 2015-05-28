@@ -211,7 +211,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TWorkerThread.get_Terminated: Boolean;
   begin
-    result := State.InState[tsTerminated];
+    result := State.InAny([tsTerminating, tsTerminated]);
   end;
 
 
@@ -326,7 +326,7 @@ implementation
       begin
         State.Leave(tsInitialising);
 
-        SetHandle(BeginThread(NIL, StackSize * 1024, @WorkerProc, Pointer(self), CREATE_SUSPENDED, id));
+        SetHandle(BeginThread(NIL, StackSize * 1024, Addr(WorkerProc), Pointer(self), CREATE_SUSPENDED, id));
         if (Handle = 0) then
           raise EThread.CreateFmt('Error creating thread: %s', [SysErrorMessage(GetLastError)]);
 

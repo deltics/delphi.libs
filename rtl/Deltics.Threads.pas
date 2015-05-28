@@ -163,7 +163,7 @@ interface
     {
       A lightweight thread class.  A Motile is typically used to spawn some autonomous
        background process with minimal overhead.  A motile thread typically will run
-       either once then terminate and die or run continuously until explcitily
+       either once then terminate and die or run continuously until explicitly
        terminated.
 
       Whether it runs once or continuously is specified in the "work ethic" of the
@@ -689,7 +689,7 @@ implementation
     if Running then
       EXIT;
 
-    fHandle:= BeginThread(NIL, StackSize * 1024, @MotileProc, Pointer(self), CREATE_SUSPENDED, fID);
+    fHandle:= BeginThread(NIL, StackSize * 1024, Addr(MotileProc), Pointer(self), CREATE_SUSPENDED, fID);
     if fHandle = 0 then
       raise EThread.CreateFmt('Error creating motile: %s', [SysErrorMessage(GetLastError)]);
 

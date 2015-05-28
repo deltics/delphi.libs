@@ -75,10 +75,11 @@ implementation
     uid: TGUID;
     sl: TStringList;
   begin
-    AutoFree([@sl]);
+    AutoFree(Addr(sl));
 
     CoCreateGUID(uid);
     Inspect('GUID').Value(uid);
+    Inspect('GUID (hex)').Value(@uid, sizeof(uid));
 
     sl := TStringList.Create;
     sl.Add('First item');
