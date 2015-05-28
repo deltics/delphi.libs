@@ -69,6 +69,20 @@
   {$UNDEF UNKNOWN_COMPILER_VERSION}
 {$endif VER260}
 
+{$ifdef VER270} // RAD Studio XE6
+  {$define DELPHIXE6}
+  {$UNDEF UNKNOWN_COMPILER_VERSION}
+{$endif VER270}
+
+{$ifdef VER280} // RAD Studio XE7
+  {$define DELPHIXE7}
+  {$UNDEF UNKNOWN_COMPILER_VERSION}
+{$endif VER280}
+
+{$ifdef VER290} // RAD Studio XE8
+  {$define DELPHIXE8}
+  {$UNDEF UNKNOWN_COMPILER_VERSION}
+{$endif VER290}
 
 (*
   Template for adding support for new versions of Delphi as they come along.
@@ -89,6 +103,9 @@
 { ------------------------------------------------------------------------------------------------ }
 
 {.$define DELPHI NEW _OR_EARLIER}
+{$define DELPHIXE8_OR_EARLIER}
+{$define DELPHIXE7_OR_EARLIER}
+{$define DELPHIXE6_OR_EARLIER}
 {$define DELPHIXE5_OR_EARLIER}
 {$define DELPHIXE4_OR_EARLIER}
 {$define DELPHIXE3_OR_EARLIER}
@@ -102,6 +119,9 @@
 {$define DELPHI7_OR_EARLIER}
 
 (* {$ifdef DELPHI NEW}  {$define DELPHI NEW _OR_LATER} {$endif} *)
+{$ifdef DELPHIXE8}  {$define DELPHIXE8_OR_LATER} {$endif}
+{$ifdef DELPHIXE7}  {$define DELPHIXE7_OR_LATER} {$endif}
+{$ifdef DELPHIXE6}  {$define DELPHIXE6_OR_LATER} {$endif}
 {$ifdef DELPHIXE5}  {$define DELPHIXE5_OR_LATER} {$endif}
 {$ifdef DELPHIXE4}  {$define DELPHIXE4_OR_LATER} {$endif}
 {$ifdef DELPHIXE3}  {$define DELPHIXE3_OR_LATER} {$endif}
@@ -115,6 +135,9 @@
 {$ifdef DELPHI7}    {$define DELPHI7_OR_LATER} {$endif}
 
 (* {$ifdef DELPHI NEW _OR_LATER}   {$define DELPHI PREV _OR_LATER}  {$undef DELPHI PREV _OR_EARLIER}  {$endif} *)
+{$ifdef DELPHIXE8_OR_LATER}   {$define DELPHIXE7_OR_LATER}  {$undef DELPHIXE7_OR_EARLIER}  {$endif}
+{$ifdef DELPHIXE7_OR_LATER}   {$define DELPHIXE6_OR_LATER}  {$undef DELPHIXE6_OR_EARLIER}  {$endif}
+{$ifdef DELPHIXE6_OR_LATER}   {$define DELPHIXE5_OR_LATER}  {$undef DELPHIXE5_OR_EARLIER}  {$endif}
 {$ifdef DELPHIXE5_OR_LATER}   {$define DELPHIXE4_OR_LATER}  {$undef DELPHIXE4_OR_EARLIER}  {$endif}
 {$ifdef DELPHIXE4_OR_LATER}   {$define DELPHIXE3_OR_LATER}  {$undef DELPHIXE3_OR_EARLIER}  {$endif}
 {$ifdef DELPHIXE3_OR_LATER}   {$define DELPHIXE2_OR_LATER}  {$undef DELPHIXE2_OR_EARLIER}  {$endif}
@@ -170,3 +193,12 @@
   {$define deltics_smoketest}
 
 {$endif}
+
+{$ifopt T+}
+  {$define TYPEDADDRESS_ON}
+{$endif}
+
+{$ifopt D+}
+  {$define DEBUGINFO_ON}
+{$endif}
+

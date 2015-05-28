@@ -25,7 +25,10 @@ interface
                       dvDelphiXE2,
                       dvDelphiXE3,
                       dvDelphiXE4,
-                      dvDelphiXE5
+                      dvDelphiXE5,
+                      dvDelphiXE6,
+                      dvDelphiXE7,
+                      dvDelphiXE8
                      );
 
     TDelphiEdition = (
@@ -76,7 +79,10 @@ implementation
                              'Delphi XE2',
                              'Delphi XE3',
                              'Delphi XE4',
-                             'Delphi XE5'
+                             'Delphi XE5',
+                             'Delphi XE6',
+                             'Delphi XE7',
+                             'Delphi XE8'
                             );
 
 
@@ -92,7 +98,10 @@ implementation
               {$ifdef DELPHIXE2}dvDelphiXE2{$endif}
               {$ifdef DELPHIXE3}dvDelphiXE3{$endif}
               {$ifdef DELPHIXE4}dvDelphiXE4{$endif}
-              {$ifdef DELPHIXE5}dvDelphiXE5{$endif};
+              {$ifdef DELPHIXE5}dvDelphiXE5{$endif}
+              {$ifdef DELPHIXE6}dvDelphiXE6{$endif}
+              {$ifdef DELPHIXE7}dvDelphiXE7{$endif}
+              {$ifdef DELPHIXE8}dvDelphiXE8{$endif};
   end;
 
 
@@ -112,7 +121,7 @@ implementation
     result := dvUnknown;
 
     for v := High(TDelphiVersion) downto dvUnknown do
-      if STR(aName).ContainsText(PRODUCT_NAME[v]) then
+      if STR(aName).Contains(PRODUCT_NAME[v], csIgnoreCase) then
       begin
         result := v;
         EXIT;
