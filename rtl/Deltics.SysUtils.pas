@@ -153,9 +153,13 @@ interface
   function HexToBin(const aString: String; var aSize: Integer): Pointer; overload;
   procedure HexToBin(const aString: String; var aBuf; const aSize: Integer); overload;
   procedure FillZero(var aDest; const aSize: Integer); overload;
+
   function ReverseBytes(const aValue: Word): Word; overload;
   function ReverseBytes(const aValue: LongWord): LongWord; overload;
   function ReverseBytes(const aValue: Int64): Int64; overload;
+
+  procedure ReverseBytes(aBuffer: System.PWord; const aWords: Integer); overload;
+  procedure ReverseBytes(aBuffer: System.PCardinal; const aCardinals: Integer); overload;
 
   function Round(const aValue: Extended;
                  const aStrategy: TRoundingStrategy = rsDefault): Integer;
@@ -380,7 +384,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function IfThen(aValue: Boolean; aTrue, aFalse: Boolean): Boolean; 
+  function IfThen(aValue: Boolean; aTrue, aFalse: Boolean): Boolean;
   begin
     if aValue then
       result := aTrue
@@ -603,44 +607,48 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TryStringToGUID(const aString: String;
                            var aGUID: TGUID): Boolean;
+  var
+    s: String;
+    src: PChar absolute s;
 
-    function HexByte(p: PChar): Byte;
+    function HexByte(MSN: Integer): Byte;
+    var
+      LSN: Integer;
     begin
-      result := 0;
+      result  := 0;
+      LSN     := MSN + 1;
 
-      case p[0] of
-        '0'..'9':  result := Byte(p[0]) - Byte('0');
-        'a'..'f':  result := (Byte(p[0]) - Byte('a')) + 10;
-        'A'..'F':  result := (Byte(p[0]) - Byte('A')) + 10;
+      case src[MSN] of
+        '0'..'9':  result := Byte(src[MSN]) - Byte('0');
+        'a'..'f':  result := Byte(src[MSN]) - Byte('a') + 10;
+        'A'..'F':  result := Byte(src[MSN]) - Byte('A') + 10;
       end;
 
-      case p[1] of
-        '0'..'9':  result := (result shl 4) or (Byte(p[1]) - Byte('0'));
-        'a'..'f':  result := (result shl 4) or ((Byte(p[1]) - Byte('a')) + 10);
-        'A'..'F':  result := (result shl 4) or ((Byte(p[1]) - Byte('A')) + 10);
+      case src[LSN] of
+        '0'..'9':  result := (Byte(result) shl 4) or (Byte(src[LSN]) - Byte('0'));
+        'a'..'f':  result := (Byte(result) shl 4) or ((Byte(src[LSN]) - Byte('a')) + 10);
+        'A'..'F':  result := (Byte(result) shl 4) or ((Byte(src[LSN]) - Byte('A')) + 10);
       end;
     end;
 
   var
-    s: String;
-    src: PChar;
     dest: array[0..15] of Byte absolute aGUID;
   begin
     s       := '';
     result  := FALSE;
 
-    if (Length(aString) = 32) then
-      s := Copy(aString, 1, 8)  + '-'
-         + Copy(aString, 10, 4) + '-'
-         + Copy(aString, 14, 4) + '-'
-         + Copy(aString, 18, 4) + '-'
-         + Copy(aString, 22, 12);
+    case Length(aString) of
+      32  : s := Copy(aString, 1, 8)  + '-'
+               + Copy(aString, 10, 4) + '-'
+               + Copy(aString, 14, 4) + '-'
+               + Copy(aString, 18, 4) + '-'
+               + Copy(aString, 22, 12);
 
-    if (Length(aString) = 36) then
-      s := aString;
+      36  : s := aString;
 
-    if ((Length(aString) = 38) and (aString[1] = '{') and (aString[38] = '}')) then
-      s := Copy(aString, 2, 36);
+      38  : if (aString[1] = '{') and (aString[38] = '}') then
+              s := Copy(aString, 2, 36);
+    end;
 
     if (s = '') then
       EXIT;
@@ -648,32 +656,30 @@ implementation
     if (s[9] <> '-') or (s[14] <> '-') or (s[19] <> '-') or (s[24] <> '-') then
       EXIT;
 
-    src := PChar(s);
-
     //            1  1 1  1 2  2 2 2 3 3 3
     // 0 2 4 6 -9 1 -4 6 -9 1 -4 6 8 0 2 4
     // ..XX..XX ..XX ..XX ..XX ..XX..XX..XX
 
-    dest[0] := HexByte(@src[6]);
-    dest[1] := HexByte(@src[4]);
-    dest[2] := HexByte(@src[2]);
-    dest[3] := HexByte(@src[0]);
+    dest[0] := HexByte(6);
+    dest[1] := HexByte(4);
+    dest[2] := HexByte(2);
+    dest[3] := HexByte(0);
 
-    dest[4] := HexByte(@src[11]);
-    dest[5] := HexByte(@src[9]);
+    dest[4] := HexByte(11);
+    dest[5] := HexByte(9);
 
-    dest[6] := HexByte(@src[16]);
-    dest[7] := HexByte(@src[14]);
+    dest[6] := HexByte(16);
+    dest[7] := HexByte(14);
 
-    dest[8] := HexByte(@src[19]);
-    dest[9] := HexByte(@src[21]);
+    dest[8] := HexByte(19);
+    dest[9] := HexByte(21);
 
-    dest[10]  := HexByte(@src[24]);
-    dest[11]  := HexByte(@src[26]);
-    dest[12]  := HexByte(@src[28]);
-    dest[13]  := HexByte(@src[30]);
-    dest[14]  := HexByte(@src[32]);
-    dest[15]  := HexByte(@src[34]);
+    dest[10]  := HexByte(24);
+    dest[11]  := HexByte(26);
+    dest[12]  := HexByte(28);
+    dest[13]  := HexByte(30);
+    dest[14]  := HexByte(32);
+    dest[15]  := HexByte(34);
 
     result := TRUE;
   end;
@@ -777,7 +783,7 @@ implementation
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  function ReverseBytes(const aValue: Int64): Int64; overload;
+  function ReverseBytes(const aValue: Int64): Int64;
   begin
     result :=  (((aValue and $ff00000000000000) shr 56)
             or  ((aValue and $00ff000000000000) shr 40)
@@ -787,6 +793,40 @@ implementation
             or  ((aValue and $0000000000ff0000) shl 24)
             or  ((aValue and $000000000000ff00) shl 40)
             or  ((aValue and $00000000000000ff) shl 56));
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure ReverseBytes(      aBuffer: System.PWord;
+                         const aWords: Integer);
+  var
+    i: Integer;
+  begin
+    for i := Pred(aWords) downto 0 do
+    begin
+      aBuffer^ :=  (((aBuffer^ and $ff00) shr 8)
+                 or ((aBuffer^ and $00ff) shl 8));
+      Inc(aBuffer);
+    end;
+  end;
+
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure ReverseBytes(      aBuffer: System.PCardinal;
+                         const aCardinals: Integer);
+  var
+    i: Integer;
+  begin
+    for i := Pred(aCardinals) downto 0 do
+    begin
+      aBuffer^ :=  (((aBuffer^ and $ff000000) shr 24)
+                or  ((aBuffer^ and $00ff0000) shr 8)
+                or  ((aBuffer^ and $0000ff00) shl 8)
+                or  ((aBuffer^ and $000000ff) shl 24));
+
+      Inc(aBuffer);
+    end;
   end;
 
 

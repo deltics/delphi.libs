@@ -632,7 +632,7 @@ initialization
   Application.OnIdle := Application.Idle;
 
 finalization
-  FreeAndNIL([@_AppThread,
-              @_CommandLine,
-              @_VersionInfo]);
+  FreeAndNIL([Addr(_AppThread),
+              Addr(_CommandLine),
+              Addr(_VersionInfo)]);
 end.
