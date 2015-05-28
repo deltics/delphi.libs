@@ -1,16 +1,9 @@
 
-  program rtl.xe4;
+  program rtl.xe8;
 
 uses
   FastMM4,
   Deltics.Smoketest,
-  Deltics.Strings in '..\..\..\rtl\Deltics.Strings.pas',
-  Deltics.Strings.ANSI in '..\..\..\rtl\Deltics.Strings.ANSI.pas',
-  Deltics.Strings.UTF8 in '..\..\..\rtl\Deltics.Strings.UTF8.pas',
-  Deltics.Strings.WIDE in '..\..\..\rtl\Deltics.Strings.WIDE.pas',
-  Deltics.Strings.StringList in '..\..\..\rtl\Deltics.Strings.StringList.pas',
-  Deltics.StringTemplates in '..\..\..\rtl\Deltics.StringTemplates.pas',
-  Deltics.Strings.FXUtils in '..\..\..\rtl\Deltics.Strings.FXUtils.pas',
   Test.JSON in '..\Test.JSON.pas',
   Test.Strings in '..\Test.Strings.pas',
   Test.Strings.STR in '..\Test.Strings.STR.pas',
@@ -21,7 +14,14 @@ uses
   Benchmark.Strings in '..\Benchmark.Strings.pas',
   Benchmark.Strings.ANSI in '..\Benchmark.Strings.ANSI.pas',
   Benchmark.Strings.RTL in '..\Benchmark.Strings.RTL.pas',
-  Benchmark.Strings.WIDE in '..\Benchmark.Strings.WIDE.pas';
+  Benchmark.Strings.WIDE in '..\Benchmark.Strings.WIDE.pas',
+  Deltics.Strings in '..\..\..\rtl\Deltics.Strings.pas',
+  Deltics.Strings.ANSI in '..\..\..\rtl\Deltics.Strings.ANSI.pas',
+  Deltics.Strings.UTF8 in '..\..\..\rtl\Deltics.Strings.UTF8.pas',
+  Deltics.Strings.WIDE in '..\..\..\rtl\Deltics.Strings.WIDE.pas',
+  Deltics.Strings.StringList in '..\..\..\rtl\Deltics.Strings.StringList.pas',
+  Deltics.StringTemplates in '..\..\..\rtl\Deltics.StringTemplates.pas',
+  Deltics.Strings.FXUtils in '..\..\..\rtl\Deltics.Strings.FXUtils.pas';
 
 begin
   Smoketest.Ready;

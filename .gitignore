@@ -20,3 +20,11 @@ bonjour.*.res
 rtl.*.res
 selftest.*.res
 /+tests/tokeniser/projects/*.res
+/+tests/rtl/*.$$$
+/+tests/rtl/projects/*.tmp
+/smoketest/*.ddp
+/+tests/*.tvsconfig
+/+tests/rtl/projects/*.stat
+/+tests/rtl/projects/*.tvsconfig
+/tokeniser/documentation/*.zargo
+/tokeniser/documentation/*.zargo~

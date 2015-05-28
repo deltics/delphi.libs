@@ -54,27 +54,32 @@
         <DCC_Optimize>false</DCC_Optimize>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
-        <DCC_Define>NEWSTRINGS;$(DCC_Define)</DCC_Define>
+        <DCC_TypedAtParameter>true</DCC_TypedAtParameter>
+        <Debugger_RunParams>-r</Debugger_RunParams>
+        <DCC_Define>NoDebugInfo;FullDebugMode;deltics_strings;deltics_json;deltics_sysutils;$(DCC_Define)</DCC_Define>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\Test.JSON.pas"/>
-        <DCCReference Include="..\Test.Strings.pas"/>
-        <DCCReference Include="..\Test.Strings.ANSI.pas"/>
-        <DCCReference Include="..\Test.Strings.UTF8.pas"/>
-        <DCCReference Include="..\Test.Strings.STR.pas"/>
-        <DCCReference Include="..\Test.Strings.WIDE.pas"/>
-        <DCCReference Include="..\Test.StringTemplates.pas"/>
-        <DCCReference Include="..\Benchmark.Strings.pas"/>
-        <DCCReference Include="..\Benchmark.Strings.WIDE.pas"/>
         <DCCReference Include="..\..\..\rtl\Deltics.Strings.pas"/>
         <DCCReference Include="..\..\..\rtl\Deltics.Strings.ANSI.pas"/>
         <DCCReference Include="..\..\..\rtl\Deltics.Strings.UTF8.pas"/>
         <DCCReference Include="..\..\..\rtl\Deltics.Strings.WIDE.pas"/>
-        <DCCReference Include="..\..\..\rtl\Deltics.Strings.WideStringList.pas"/>
+        <DCCReference Include="..\..\..\rtl\Deltics.Strings.StringList.pas"/>
         <DCCReference Include="..\..\..\rtl\Deltics.StringTemplates.pas"/>
+        <DCCReference Include="..\..\..\rtl\Deltics.Strings.FXUtils.pas"/>
+        <DCCReference Include="..\Test.JSON.pas"/>
+        <DCCReference Include="..\Test.Strings.pas"/>
+        <DCCReference Include="..\Test.Strings.STR.pas"/>
+        <DCCReference Include="..\Test.Strings.ANSI.pas"/>
+        <DCCReference Include="..\Test.Strings.WIDE.pas"/>
+        <DCCReference Include="..\Test.Strings.UTF8.pas"/>
+        <DCCReference Include="..\Test.StringTemplates.pas"/>
+        <DCCReference Include="..\Benchmark.Strings.pas"/>
+        <DCCReference Include="..\Benchmark.Strings.ANSI.pas"/>
+        <DCCReference Include="..\Benchmark.Strings.RTL.pas"/>
+        <DCCReference Include="..\Benchmark.Strings.WIDE.pas"/>
         <None Include="rtl.tests.dpr.inc"/>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_2</Key>
