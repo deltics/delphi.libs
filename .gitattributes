@@ -1,0 +1,9 @@
+*.bdsgroup   linguist-language=Delphi
+*.bpg        linguist-language=Delphi
+*.dfm        linguist-language=Delphi
+*.dpk        linguist-language=Delphi
+*.dpr        linguist-language=Delphi
+*.dproj      linguist-language=Delphi
+*.groupproj  linguist-language=Delphi
+*.inc        linguist-language=Delphi
+*.pas        linguist-language=Delphi
