@@ -408,7 +408,7 @@ implementation
                                             Length(keybuf), key,
                                             fDataSize[i], value));
 
-        fKeys[i] := UTF8.Decode(key);
+        fKeys[i] := STR.FromUTF8(key);
         GetMem(fData[i], fDataSize[i] + 1);
         CopyMemory(fData[i], value, fDataSize[i] + 1);
 
