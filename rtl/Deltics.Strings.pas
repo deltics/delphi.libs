@@ -97,6 +97,9 @@ interface
     UTF8Char    = type ANSIChar;
     PUTF8Char   = ^UTF8Char;
 
+    ASCIIString = type ANSIString;
+    ASCIIChar   = type UTF8Char;
+
     TCharIndexArray   = array of Integer;
     TStringArray      = array of String;
     TANSIStringArray  = array of ANSIString;
@@ -232,8 +235,6 @@ interface
     UTF8Fn = class
       class function Compare(const A, B: UTF8String; const aCaseMode: TCaseSensitivity = csCaseSensitive): Integer;
       class function Encode(const aString: String): UTF8String;
-      class function Decode(const aString: UTF8String): String; overload;
-      class function Decode(const aBuffer: PUTF8Char; const aMaxLen: Integer): String; overload;
       class function FromANSI(const aString: ANSIString): UTF8String;
       class function FromWIDE(const aString: UnicodeString): UTF8String;
       class function Len(const aString: PUTF8Char): Integer;
@@ -509,6 +510,11 @@ interface
     end;
 
 
+    ASCIIFn = class
+      class function Encode(const aString: String): ASCIIString;
+    end;
+
+
   {$ifdef UNICODE}
     STRFn = class(WIDEFn)
       class function FromWIDE(const aString: UnicodeString): UnicodeString;
@@ -524,10 +530,11 @@ interface
   {$endif}
 
 
-  ANSIClass = class of ANSIFn;
-  UTF8Class = class of UTF8Fn;
-  WIDEClass = class of WIDEFn;
-  STRClass  = class of STRFn;
+  ANSIClass   = class of ANSIFn;
+  UTF8Class   = class of UTF8Fn;
+  WIDEClass   = class of WIDEFn;
+  STRClass    = class of STRFn;
+  ASCIIClass  = class of ASCIIFn;
 
   function ANSI: ANSIClass; overload;
   function ANSI(const aChar: ANSIChar): IANSIChar; overload;
@@ -558,6 +565,7 @@ interface
   function UTF8FromSTR(const aString: String): IUTF8String;
   function UTF8FromWIDE(const aString: UnicodeString): IUTF8String;
 
+  function ASCII: ASCIIClass; overload;
 
 
 
@@ -1754,29 +1762,6 @@ implementation
 
 
 
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8Fn.Decode(const aString: UTF8String): String;
-  begin
-  {$ifdef UNICODE}
-    result := WIDE.FromUTF8(aString);
-  {$else}
-    result := ANSI.FromUTF8(aString);
-  {$endif}
-  end;
-
-
-  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
-  class function UTF8Fn.Decode(const aBuffer: PUTF8Char;
-                               const aMaxLen: Integer): String;
-  begin
-  {$ifdef UNICODE}
-    result := WIDE.FromUTF8(aBuffer, aMaxLen);
-  {$else}
-    result := ANSI.FromUTF8(aBuffer, aMaxLen);
-  {$endif}
-  end;
-
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   class function UTF8Fn.Encode(const aString: String): UTF8String;
@@ -3088,6 +3073,26 @@ implementation
 
 
 
+  class function ASCIIFn.Encode(const aString: String): ASCIIString;
+  var
+    i: Integer;
+    c: ANSIChar;
+  begin
+    SetLength(result, Length(aString));
+
+    for i := 1 to Length(aString) do
+    begin
+      c := aString[i];
+
+      if Ord(c) > 127 then
+        result := '?'
+      else
+        result := c;
+    end;
+  end;
+
+
+
 
 
 
@@ -3222,6 +3227,11 @@ implementation
   end;
 
 
+
+  function ASCII: ASCIIClass;
+  begin
+    result := ASCIIFn;
+  end;
 
 
 end.
