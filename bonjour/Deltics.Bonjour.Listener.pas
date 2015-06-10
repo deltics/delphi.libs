@@ -397,7 +397,11 @@ implementation
     sFullName := WIDE.FromUTF8(aFullName);
     sHostName := WIDE.FromUTF8(aHostTarget);
 
-    txt := TTXTInfo.Create(aTxtRecord, aTxtLen);
+    if Assigned(aTxtRecord) and (aTxtLen > 0) then
+      txt := TTXTInfo.Create(aTxtRecord, aTxtLen)
+    else
+      txt := NIL;
+      
     theService.TXT := txt;
     theService.fFullName    := sFullName;
     theService.fHostName    := sHostName;
