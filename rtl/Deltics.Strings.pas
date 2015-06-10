@@ -3076,7 +3076,7 @@ implementation
   class function ASCIIFn.Encode(const aString: String): ASCIIString;
   var
     i: Integer;
-    c: ANSIChar;
+    c: Char;
   begin
     SetLength(result, Length(aString));
 
@@ -3085,9 +3085,9 @@ implementation
       c := aString[i];
 
       if Ord(c) > 127 then
-        result := '?'
+        result[i] := '?'
       else
-        result := c;
+        result[i] := ANSIChar(c);
     end;
   end;
 
