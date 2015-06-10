@@ -71,10 +71,11 @@
         <DCCReference Include="..\..\..\rtl\Deltics.Strings.FXUtils.pas"/>
         <DCCReference Include="..\Test.JSON.pas"/>
         <DCCReference Include="..\Test.Strings.pas"/>
-        <DCCReference Include="..\Test.Strings.STR.pas"/>
         <DCCReference Include="..\Test.Strings.ANSI.pas"/>
-        <DCCReference Include="..\Test.Strings.WIDE.pas"/>
+        <DCCReference Include="..\Test.Strings.ASCII.pas"/>
+        <DCCReference Include="..\Test.Strings.STR.pas"/>
         <DCCReference Include="..\Test.Strings.UTF8.pas"/>
+        <DCCReference Include="..\Test.Strings.WIDE.pas"/>
         <DCCReference Include="..\Test.StringTemplates.pas"/>
         <DCCReference Include="..\Benchmark.Strings.pas"/>
         <DCCReference Include="..\Benchmark.Strings.ANSI.pas"/>
