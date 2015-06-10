@@ -79,7 +79,6 @@ implementation
     Test('WIDE.FromUTF8()').Expect(WIDE.FromUTF8(tm)).Equals('™');
 
     TestUTF8('UTF8.Encode!').Expect(UTF8.Encode(SRCS)).Equals(SRCU);
-    Test('UTF8.Decode!').Expect(UTF8.Decode(SRCU)).Equals(SRCS);
     Test('STR.FromUTF8!').Expect(Deltics.Strings.STR.FromUTF8(SRCU)).Equals(SRCS);
 
     TestUTF8('FromANSI!').Expect(UTF8.FromANSI(SRCA)).Equals(SRCU);

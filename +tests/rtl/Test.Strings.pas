@@ -53,6 +53,8 @@ interface
     SRCS: String        = 'Unicode™';
     SRCA: ANSIString    = 'Unicode™';
     SRCW: UnicodeString = 'Unicode™';
+
+    SRCASCII: ASCIIString = 'Unicode?';
   var
     SRCU: UTF8String;
 
@@ -62,6 +64,7 @@ implementation
 
   uses
     Test.Strings.ANSI,
+    Test.Strings.ASCII,
     Test.Strings.STR,
     Test.Strings.UTF8,
     Test.Strings.WIDE;
@@ -94,5 +97,6 @@ implementation
 initialization
   SRCU := UTF8.Encode('Unicode™');
 
-  Smoketest.Add(TTestStrings, [TSTRFnTests, TANSIFnTests, TWIDEFnTests, TANSITests, TWIDETests, TUTF8Tests]);
+  Smoketest.Add(TTestStrings, [TSTRFnTests, TANSIFnTests, TWIDEFnTests, TASCIIFnTests,
+                                            TANSITests,   TWIDETests,   TUTF8Tests]);
 end.
