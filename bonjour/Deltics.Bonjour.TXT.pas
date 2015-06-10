@@ -444,10 +444,7 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   function TTXTInfo.get_Count: Integer;
   begin
-    if NOT Assigned(self) then
-      result := 0
-    else
-      result := Length(fKeys);
+    result := Length(fKeys);
   end;
 
 
