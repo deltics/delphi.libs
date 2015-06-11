@@ -108,6 +108,7 @@ type
   private
     fName: String;
     fIsCaseSensitive: Boolean;
+    fTerminalColumn: Integer;
     fTokenType: TTokenType;
 
     fColumnDefinitions: array[1..80, 9..127] of TTokenDefinitions;
@@ -121,6 +122,7 @@ type
     procedure Initialise; virtual; abstract;
     procedure Prepare;
     procedure SetName(const aName: String);
+    procedure SetTerminal(const aColumn: Integer);
     property TokenType: TTokenType read fTokenType write fTokenType;
 
     procedure AddASCII(const aID: TTokenID;
@@ -241,6 +243,7 @@ type
     property Items[const aIndex: Integer]: TTokenDefinition read get_Items;
     property ItemCount: Integer read get_ItemCount;
     property Name: String read fName;
+    property TerminalColumn: Integer read fTerminalColumn;
   end;
 
 
@@ -1147,6 +1150,10 @@ implementation
   end;
 
 
+  procedure TTokenDictionary.SetTerminal(const aColumn: Integer);
+  begin
+    fTerminalColumn := aColumn;
+  end;
 
 
 
@@ -1972,6 +1979,10 @@ implementation
 
     if NOT fInLineComment and fIncludesStrings then
       CheckString(aBuffer, aLength);
+
+    result := fMultiLine or NOT (ANSIChar(aBuffer^[aLength - 1]) in [#10, #13]);
+    if NOT result then
+      EXIT;
 
     for i := SuffixLength downto 1 do
     begin

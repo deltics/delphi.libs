@@ -282,6 +282,7 @@ implementation
   begin
     SetCaseSensitivity(FALSE);
     SetName('COBOL Language');
+    SetTerminal(72);
 
     TokenType := ttWhitespace;
     AddCharSet(cblWhitespace, '[whitespace]', [' ', #9]);
@@ -411,8 +412,8 @@ implementation
     AddString(cblZeroes,                  'zeroes');
     AddString(cblZeros,                   'zeros');
 
-    AddString(cblExec,    'exec');
-    AddString(cblEndExec, 'end-exec');
+//    AddString(cblExec,    'exec');
+//    AddString(cblEndExec, 'end-exec');
 
     TokenType := ttLiteral;
     AddDelimited(cblString,               'String',           '''',   '''');
@@ -503,7 +504,7 @@ implementation
 
     TokenType := ttLiteral;
     AddString(cblEXEC,        'exec');
-    AddDelimited(cblEXECSQL,  'SQL', 'sql', 'end-exec');
+    AddDelimited(cblEXECSQL,  'SQL', 'sql', 'end-exec', TRUE);
     SetSubDictionary(cblEXECSQL, COBOLEmbeddedSQL);
   end;
 
@@ -527,11 +528,13 @@ implementation
     AddRange(sqlParagraph,     'Paragraph', 8, 72);
 
     TokenType := ttIdentifier;
-    SetLength(charSets, 3);
+    SetLength(charSets, 5);
     charSets[0] := [':'];
     charSets[1] := ['0'..'9', 'a'..'z'];
     charSets[2] := ['0'..'9', 'a'..'z', '-'];
-    AddCharSet(sqlHostVariable,  'host variable',  charSets, [2]);
+    charSets[3] := ['.'];
+    charSets[4] := ['0'..'9', 'a'..'z', '-'];
+    AddCharSet(sqlHostVariable,  'host variable',  charSets, [2, 4]);
 
     SetLength(charSets, 6);
     charSets[0] := [':'];

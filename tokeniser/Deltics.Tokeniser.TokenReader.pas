@@ -663,6 +663,13 @@ implementation
                                 UnreadChar;
                                 BREAK;
                               end;
+
+                              if   (Dictionary.TerminalColumn > 0)
+                               and (fCharPos = Dictionary.TerminalColumn) then
+                              begin
+                                result := TRUE;
+                                BREAK;
+                              end;
                             end;
 
           dcCharacterSet,
@@ -707,6 +714,9 @@ implementation
 
     fStartPos   := fCharPos;
     fStartLine  := fLineNo;
+
+//    if (fLineNo = 1597) and (fCharPos = 21) then
+//    asm int 3 end;
 
     // Get initial list of candidate token kinds
     CloneList(Dictionary.GetDefinitions(fStartPos, chr), fCandidateTokens);
