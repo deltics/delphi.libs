@@ -964,6 +964,8 @@ implementation
 
     Test('ANSI.Replace(''Food of the Gods'', ''o'', '''')').Expect(ANSI.Replace(ssFirst, 'Food of the Gods', 'o', '')).Equals('Fod of the Gods');
     Test('ANSI.Replace(''Food of the Gods'', ''o'', '''')').Expect(ANSI.Replace(ssLast, 'Food of the Gods', 'o', '')).Equals('Food of the Gds');
+
+    Test('ANSI.Replace(''Food of the Gods'', ''x'', '''')').Expect(ANSI.Replace(ssAll, 'Food of the Gods', 'x', '')).Equals('Food of the Gods');
   end;
 
 

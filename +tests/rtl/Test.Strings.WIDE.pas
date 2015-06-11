@@ -1060,6 +1060,8 @@ begin
 
     Test('WIDE.Replace(''Food of the Gods'', ''o'', '''')').Expect(WIDE.Replace(ssFirst, 'Food of the Gods', 'o', '')).Equals('Fod of the Gods');
     Test('WIDE.Replace(''Food of the Gods'', ''o'', '''')').Expect(WIDE.Replace(ssLast, 'Food of the Gods', 'o', '')).Equals('Food of the Gds');
+
+    Test('WIDE.Replace(''Food of the Gods'', ''x'', '''')').Expect(WIDE.Replace(ssAll, 'Food of the Gods', 'x', '')).Equals('Food of the Gods');
   end;
 
 
