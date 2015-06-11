@@ -1440,7 +1440,11 @@ implementation
       ANSI(aString).Find(aFindStr, pa, aCaseMode);
 
     case Length(pa) of
-      0 : EXIT;
+      0 : begin
+            result := aString;
+            EXIT;
+          end;
+
       1 : { NO-OP };
     else
       if (aScope = ssLast) then
@@ -2755,7 +2759,11 @@ implementation
       WIDE(aString).Find(aFindStr, pa, aCaseMode);
 
     case Length(pa) of
-      0 : EXIT;
+      0 : begin
+            result := aString;
+            EXIT;
+          end;
+
       1 : { NO-OP };
     else
       if (aScope = ssLast) then
