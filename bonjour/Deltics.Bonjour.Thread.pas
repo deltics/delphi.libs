@@ -64,11 +64,15 @@ interface
 
   const
     BJM_FIRST = WM_USER;
-    BJM_DomainFound       = BJM_FIRST + 0;
-    BJM_DomainLost        = BJM_FIRST + 1;
-    BJM_ServiceFound      = BJM_FIRST + 2;
-    BJM_ServiceLost       = BJM_FIRST + 3;
-    BJM_ServiceResolved   = BJM_FIRST + 4;
+
+    BJM_DomainFound         = BJM_FIRST + 0;
+    BJM_DomainLost          = BJM_FIRST + 1;
+    BJM_DomainEnumFinished  = BJM_FIRST + 2;
+
+    BJM_ServiceFound        = BJM_FIRST + 10;
+    BJM_ServiceLost         = BJM_FIRST + 11;
+    BJM_ServiceResolved     = BJM_FIRST + 12;
+
     BJM_LAST = BJM_ServiceResolved;
 
 
@@ -85,6 +89,7 @@ interface
       class procedure RemoveService(const aService: TDNSServiceRef);
       class function IsServicing(const aService: TDNSServiceRef): Boolean;
       class procedure NotifyVCL(const aMessage);
+      class procedure ProcessVCLMessages;
     end;
 
 
@@ -118,6 +123,7 @@ implementation
        pumping the message queue.
     }
     protected
+      procedure OnDomainEnumFinished(var aMessage: TDomainBrowserMessage); message BJM_DomainEnumFinished;
       procedure OnDomainFound(var aMessage: TDomainBrowserMessage); message BJM_DomainFound;
       procedure OnDomainLost(var aMessage: TDomainBrowserMessage); message BJM_DomainLost;
       procedure OnServiceFound(var aMessage: TListenerServiceMessage); message BJM_ServiceFound;
@@ -137,6 +143,13 @@ implementation
   procedure TVCLMediator.OnDomainLost(var aMessage: TDomainBrowserMessage);
   begin
     TDomainBrowserHelper(aMessage.Browser).DoOnDomainRemoved(aMessage.Domain);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TVCLMediator.OnDomainEnumFinished(var aMessage: TDomainBrowserMessage);
+  begin
+    TDomainBrowserHelper(aMessage.Browser).DoOnEnumFinished;
   end;
 
 
@@ -204,6 +217,16 @@ implementation
     msg: TMessage absolute aMessage;
   begin
     VCL.PostMessage(msg.Msg, msg.wParam, msg.lParam);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class procedure TBonjourThread.ProcessVCLMessages;
+  begin
+    if NOT InVCLThread then
+      EXIT;
+
+    VCL.ProcessMessages(BJM_FIRST, BJM_LAST);
   end;
 
 

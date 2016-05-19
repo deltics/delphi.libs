@@ -63,8 +63,9 @@ interface
       procedure BeforeDestruction; override;
       procedure PostMessage(const aMessageID: Cardinal; const wParam: Windows.WPARAM; const lParam: Windows.LPARAM);
       function SendMessage(const aMessageID: Cardinal; const wParam: Windows.WPARAM; const lParam: Windows.LPARAM): Integer;
+      procedure ProcessMessages; overload;
+      procedure ProcessMessages(aFirstID, aLastID: Cardinal); overload;
     end;
-
 
 
 
@@ -74,7 +75,8 @@ implementation
   { vcl: }
     Classes,
     Controls,
-    Graphics;
+    Graphics,
+    Deltics.Threads;
 
 
   var
@@ -108,8 +110,7 @@ implementation
 
   constructor TMessageHandler.Create;
   begin
-    ASSERT(_VCLThreadID = GetCurrentThreadId,
-           'Message handlers must be created in the Main VCL Thread context');
+    ASSERT(InVCLThread, 'Message handlers must be created in the Main VCL Thread context');
 
     inherited CreateNew(NIL);
 
@@ -136,8 +137,7 @@ implementation
 
   destructor TMessageHandler.Destroy;
   begin
-    ASSERT(_VCLThreadID = GetCurrentThreadID,
-           'Message handlers should be destroyed in the Main VCL Thread context');
+    ASSERT(InVCLThread, 'Message handlers should be destroyed in the Main VCL Thread context');
 
     // Implementation Note #1
     if Assigned(Screen) then
@@ -150,6 +150,23 @@ implementation
                                         const lParam: Windows.LPARAM);
   begin
     Windows.PostMessage(Handle, aMessageID, wParam, lParam);
+  end;
+
+
+  procedure TMessageHandler.ProcessMessages;
+  begin
+    ProcessMessages(0, 0);
+  end;
+
+
+  procedure TMessageHandler.ProcessMessages(aFirstID, aLastID: Cardinal);
+  var
+    msg: TMSG;
+  begin
+    ASSERT(InVCLThread, 'ProcessMessages on a TMessageHandler can only be called from the VCL thread');
+
+    while PeekMessage(msg, Handle, aFirstID, aLastID, PM_REMOVE) do
+      DispatchMessage(msg);
   end;
 
 

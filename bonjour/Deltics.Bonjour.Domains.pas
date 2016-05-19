@@ -66,6 +66,9 @@ interface
     TDomainBrowser = class;
     TDomain = class;
 
+    TDomainBrowserEvent = procedure(aSender: TDomainBrowser; aDomain: TDomain) of object;
+    TDomainBrowserFinishedEvent = procedure(aSender: TDomainBrowser) of object;
+
 
     TDomainBrowser = class
     private
@@ -74,12 +77,16 @@ interface
       fRefreshed: TEvent;
       fIsRefreshing: Boolean;
       fIsRefreshingLock: TCriticalSection;
+      fOnDomainAdded: TDomainBrowserEvent;
+      fOnDomainRemoved: TDomainBrowserEvent;
+      fOnEnumFinished: TDomainBrowserFinishedEvent;
       function get_Count: Integer;
       function get_Items(const aIndex: Integer): TDomain;
       function get_IsRefreshing: Boolean;
     protected
       procedure DoOnDomainAdded(const aDomain: TDomain);
       procedure DoOnDomainRemoved(const aDomain: TDomain);
+      procedure DoOnEnumFinished;
       function GetDomain(const aName: UnicodeString;
                          const aInterfaceID: Integer): TDomain;
     public
@@ -91,6 +98,9 @@ interface
       property DomainType: TDomainType read fDomainType;
       property Items[const aIndex: Integer]: TDomain read get_Items; default;
       property IsRefreshing: Boolean read get_IsRefreshing;
+      property OnDomainAdded: TDomainBrowserEvent read fOnDomainAdded write fOnDomainAdded;
+      property OnDomainRemoved: TDomainBrowserEvent read fOnDomainRemoved write fOnDomainRemoved;
+      property OnEnumFinished: TDomainBrowserFinishedEvent read fOnEnumFinished write fOnEnumFinished;
     end;
 
 
@@ -126,7 +136,8 @@ implementation
   { vcl: }
     Classes,
     SysUtils,
-    Types;
+    Types,
+    Deltics.Threads;
 
 
 
@@ -144,6 +155,7 @@ implementation
     msg.MessageID := BJM_DomainFound;
     msg.Browser   := aBrowser;
     msg.Domain    := domain;
+
     TBonjourThread.NotifyVCL(msg);
   end;
 
@@ -158,8 +170,23 @@ implementation
     msg.MessageID := BJM_DomainLost;
     msg.Browser   := aBrowser;
     msg.Domain    := aBrowser.GetDomain(aName, aInterfaceID);
+
     if Assigned(msg.Domain) then
       TBonjourThread.NotifyVCL(msg);
+  end;
+
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure Domain_EnumFinished(const aBrowser: TDomainBrowser);
+  var
+    msg: TDomainBrowserMessage;
+  begin
+    msg.MessageID := BJM_DomainEnumFinished;
+    msg.Browser   := aBrowser;
+    msg.Domain    := NIL;
+
+    TBonjourThread.NotifyVCL(msg);
   end;
 
 
@@ -303,6 +330,7 @@ implementation
   procedure TDomainBrowser.Refresh(const aTimeOut: Cardinal);
   begin
     TBonjourThread.WaitFor(Refresh, 'domains.refreshed', aTimeOut);
+    TBonjourThread.ProcessVCLMessages;
   end;
 
 
@@ -310,6 +338,9 @@ implementation
   procedure TDomainBrowser.DoOnDomainAdded(const aDomain: TDomain);
   begin
     fDomains.Add(aDomain);
+
+    if Assigned(OnDomainAdded) then
+      OnDomainAdded(self, aDomain);
   end;
 
 
@@ -317,6 +348,17 @@ implementation
   procedure TDomainBrowser.DoOnDomainRemoved(const aDomain: TDomain);
   begin
     fDomains.Remove(aDomain);
+
+    if Assigned(OnDomainRemoved) then
+      OnDomainRemoved(self, aDomain);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  procedure TDomainBrowser.DoOnEnumFinished;
+  begin
+    if Assigned(OnEnumFinished) then
+      OnEnumFinished(self);
   end;
 
 
