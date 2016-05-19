@@ -39,11 +39,11 @@
 
 {$i deltics.bonjour.inc}
 
-{$ifdef deltics_bonjour_domains}
+{.$ifdef deltics_bonjour_domains}
   {$debuginfo ON}
-{$else}
-  {$debuginfo OFF}
-{$endif}
+{.$else}
+  {.$debuginfo OFF}
+{.$endif}
 
   unit Deltics.Bonjour.Domains;
 
@@ -75,6 +75,7 @@ interface
       fDomains: TObjectList;
       fDomainType: TDomainType;
       fRefreshed: TEvent;
+      fIsDestroying: Boolean;
       fIsRefreshing: Boolean;
       fIsRefreshingLock: TCriticalSection;
       fOnDomainAdded: TDomainBrowserEvent;
@@ -83,6 +84,9 @@ interface
       function get_Count: Integer;
       function get_Items(const aIndex: Integer): TDomain;
       function get_IsRefreshing: Boolean;
+      property Refreshed: TEvent read fRefreshed;
+      property IsDestroying: Boolean read fIsDestroying;
+      property IsRefreshingLock: TCriticalSection read fIsRefreshingLock;
     protected
       procedure DoOnDomainAdded(const aDomain: TDomain);
       procedure DoOnDomainRemoved(const aDomain: TDomain);
@@ -117,7 +121,6 @@ interface
       property InterfaceID: Integer read fInterfaceID;
       property Name: UnicodeString read fName;
     end;
-
 
 
     TDomainBrowserMessage = record
@@ -202,6 +205,12 @@ implementation
     browser: TDomainBrowser absolute aContext;
     sDomain: UnicodeString;
   begin
+    if browser.IsDestroying then
+    begin
+      TBonjourThread.RemoveService(aHandle);
+      EXIT;
+    end;
+
     Deltics.Bonjour.CheckResult(aErrorCode);
 
     sDomain := WIDE.FromUTF8(aDomain);
@@ -215,15 +224,8 @@ implementation
 
     if ((kDNSServiceFlagsMoreComing and aFlags) = 0) then
     begin
-      browser.fIsRefreshingLock.Enter;
-      try
-        TBonjourThread.RemoveService(aHandle);
-        browser.fIsRefreshing := FALSE;
-        browser.fRefreshed.SetEvent;
-
-      finally
-        browser.fIsRefreshingLock.Leave;
-      end;
+      TBonjourThread.RemoveService(aHandle);
+      browser.DoOnEnumFinished;
     end;
   end;
 
@@ -250,6 +252,10 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   destructor TDomainBrowser.Destroy;
   begin
+    fIsDestroying := TRUE;
+
+    TBonjourThread.ProcessVCLMessages;
+
     FreeAndNIL(fDomains);
     FreeAndNIL(fRefreshed);
     FreeAndNIL(fIsRefreshingLock);
@@ -347,16 +353,34 @@ implementation
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TDomainBrowser.DoOnDomainRemoved(const aDomain: TDomain);
   begin
-    fDomains.Remove(aDomain);
+    // Extract the domain from the fDomains list (which removes it
+    //  but does NOT Free it)
 
-    if Assigned(OnDomainRemoved) then
-      OnDomainRemoved(self, aDomain);
+    fDomains.Extract(aDomain);
+    try
+      if Assigned(OnDomainRemoved) then
+        OnDomainRemoved(self, aDomain);
+
+    finally
+      // Now we can take care of freeíng the domain object
+
+      aDomain.Free;
+    end;
   end;
 
 
   { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
   procedure TDomainBrowser.DoOnEnumFinished;
   begin
+    fIsRefreshingLock.Enter;
+    try
+      fIsRefreshing := FALSE;
+      fRefreshed.SetEvent;
+
+    finally
+      fIsRefreshingLock.Leave;
+    end;
+
     if Assigned(OnEnumFinished) then
       OnEnumFinished(self);
   end;
