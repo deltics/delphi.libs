@@ -73,6 +73,7 @@ interface
 
     TServiceDiscoveryEvent = procedure(const Sender: TListener; const aService: TServiceInfo) of object;
     TServiceResolvedEvent = procedure(const Sender: TServiceInfo) of object;
+    TServiceMetaEvent = procedure(const aDomain: String; const aServiceType: String) of object;
 
 
     TListener = class(TBonjourComponent)
@@ -97,7 +98,8 @@ interface
       procedure DoServiceLost(const aService: TServiceInfo);
       procedure DoServiceResolved(const aService: TServiceInfo);
     public
-      class function ServiceMetaQuery: TServiceMetaQuery;
+      class procedure RegisterServiceMetaQueryHandler(aHandler: TServiceMetaEvent);
+      class procedure UnregisterServiceMetaQueryHandler(aHandler: TServiceMetaEvent);
       constructor Create(aOwner: TComponent); override;
       destructor Destroy; override;
       property Domain: UnicodeString read fDomain write set_Domain;
@@ -206,23 +208,32 @@ interface
     end;
 
 
+    TMultiCastServiceMeta = class(TMultiCastEvent)
+    private
+      fDomain: String;
+      fServiceType: String;
+    protected
+      procedure Call(const aMethod: TMethod); override;
+    public
+      procedure Add(const aHandler: TServiceMetaEvent); overload;
+      procedure Remove(const aHandler: TServiceMetaEvent); overload;
+      procedure DoEvent(const aDomain, aServiceType: String);
+    end;
+
+
     TServiceMetaQuery = class
     private
       CSS: TCriticalSection;
       fDomains: array of UnicodeString;
       fServiceTypes: array of UnicodeString;
-      fOn_Update: TMultiCastNotify;
+      fHandlers: TMultiCastServiceMeta;
       constructor Create;
-      function get_Count: Integer;
-      function get_Domain(const aIndex: Integer): UnicodeString;
-      function get_ServiceType(const aIndex: Integer): UnicodeString;
       procedure AddServiceType(const aListener: TListener; const aService: TServiceInfo);
+      procedure AddUpdateHandler(aHandler: TServiceMetaEvent);
+      procedure RemoveUpdateHandler(aHandler: TServiceMetaEvent);
+      property Handlers: TMultiCastServiceMeta read fHandlers;
     public
       destructor Destroy; override;
-      property Count: Integer read get_Count;
-      property Domains[const aIndex: Integer]: UnicodeString read get_Domain;
-      property ServiceTypes[const aIndex: Integer]: UnicodeString read get_ServiceType;
-      property On_Update: TMultiCastNotify read fOn_Update;
     end;
 
 
@@ -401,7 +412,7 @@ implementation
       txt := TTXTInfo.Create(aTxtRecord, aTxtLen)
     else
       txt := NIL;
-      
+
     theService.TXT := txt;
     theService.fFullName    := sFullName;
     theService.fHostName    := sHostName;
@@ -456,13 +467,13 @@ implementation
 
     CSS := TCriticalSection.Create;
 
-    fOn_Update := TMultiCastNotify.Create(self);
+    fHandlers := TMultiCastServiceMeta.Create;
   end;
 
 
   destructor TServiceMetaQuery.Destroy;
   begin
-    fOn_Update.Disable;
+    fHandlers.Disable;
 
     MetaQueryListener.Active         := FALSE;
     MetaQueryListener.OnServiceFound := NIL;
@@ -475,7 +486,7 @@ implementation
 
     CSS.Free;
 
-    fOn_Update.Free;
+    fHandlers.Free;
 
     inherited;
   end;
@@ -506,15 +517,20 @@ implementation
       CSS.Leave;
     end;
 
-    fOn_Update.DoEvent;
+    fHandlers.DoEvent(fDomains[i], fServiceTypes[i]);
   end;
 
 
-  function TServiceMetaQuery.get_Count: Integer;
+  procedure TServiceMetaQuery.AddUpdateHandler(aHandler: TServiceMetaEvent);
+  var
+    i: Integer;
   begin
     CSS.Enter;
     try
-      result := Length(fDomains);
+      for i := 0 to Pred(Length(fDomains)) do
+        aHandler(fDomains[i], fServiceTypes[i]);
+
+      fHandlers.Add(aHandler);
 
     finally
       CSS.Leave;
@@ -522,11 +538,11 @@ implementation
   end;
 
 
-  function TServiceMetaQuery.get_Domain(const aIndex: Integer): UnicodeString;
+  procedure TServiceMetaQuery.RemoveUpdateHandler(aHandler: TServiceMetaEvent);
   begin
     CSS.Enter;
     try
-      result := fDomains[aIndex];
+      fHandlers.Remove(aHandler);
 
     finally
       CSS.Leave;
@@ -534,20 +550,7 @@ implementation
   end;
 
 
-  function TServiceMetaQuery.get_ServiceType(const aIndex: Integer): UnicodeString;
-  begin
-    CSS.Enter;
-    try
-      result := fServiceTypes[aIndex];
-
-    finally
-      CSS.Leave;
-    end;
-  end;
-
-
-
-  class function TListener.ServiceMetaQuery: TServiceMetaQuery;
+  class procedure TListener.RegisterServiceMetaQueryHandler(aHandler: TServiceMetaEvent);
   begin
     if NOT Assigned(MetaQuery) then
     begin
@@ -561,7 +564,19 @@ implementation
       MetaQueryListener.Active  := TRUE;
     end;
 
-    result := MetaQuery;
+    MetaQuery.AddUpdateHandler(aHandler);
+  end;
+
+
+  class procedure TListener.UnregisterServiceMetaQueryHandler(aHandler: TServiceMetaEvent);
+  begin
+    if NOT Assigned(MetaQuery) then
+      EXIT;
+
+    MetaQuery.RemoveUpdateHandler(aHandler);
+
+    if MetaQuery.Handlers.Count = 0 then
+      MetaQuery.Free;
   end;
 
 
@@ -782,7 +797,14 @@ implementation
     if NOT Resolving then
     begin
       fResolved := TEvent.Create(NIL, TRUE, FALSE, Name + '.resolved');
-      result := TBonjourThread.WaitFor(Resolve, Name + '.resolved', aTimeOut);
+      try
+        result    := TBonjourThread.WaitFor(Resolve, Name + '.resolved', aTimeOut);
+
+      finally
+        FreeAndNIL(fResolved);
+      end;
+
+      TBonjourThread.ProcessVCLMessages(BJM_ServiceResolved);
     end
     else
       result := FALSE;
@@ -813,7 +835,7 @@ implementation
     if Assigned(fResolved) then
     begin
       fResolved.SetEvent;
-      FreeAndNIL(fResolved);
+//      FreeAndNIL(fResolved);
     end;
 
     fResolving := FALSE;
@@ -822,6 +844,37 @@ implementation
       fOnResolved(self);
 
     Owner.DoServiceResolved(self);
+  end;
+
+
+
+
+{ TMultiCastServiceMeta }
+
+  procedure TMultiCastServiceMeta.Add(const aHandler: TServiceMetaEvent);
+  begin
+    inherited Add(TMethod(aHandler));
+  end;
+
+
+  procedure TMultiCastServiceMeta.Call(const aMethod: TMethod);
+  begin
+    TServiceMetaEvent(aMethod)(fDomain, fServiceType);
+  end;
+
+
+  procedure TMultiCastServiceMeta.DoEvent(const aDomain, aServiceType: String);
+  begin
+    fDomain       := aDomain;
+    fServiceType  := aServiceType;
+
+    inherited DoEvent;
+  end;
+
+
+  procedure TMultiCastServiceMeta.Remove(const aHandler: TServiceMetaEvent);
+  begin
+    inherited Remove(TMethod(aHandler));
   end;
 
 
