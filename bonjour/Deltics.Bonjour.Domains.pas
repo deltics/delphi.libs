@@ -39,11 +39,11 @@
 
 {$i deltics.bonjour.inc}
 
-{.$ifdef deltics_bonjour_domains}
+{$ifdef deltics_bonjour_domains}
   {$debuginfo ON}
-{.$else}
-  {.$debuginfo OFF}
-{.$endif}
+{$else}
+  {$debuginfo OFF}
+{$endif}
 
   unit Deltics.Bonjour.Domains;
 
@@ -224,10 +224,10 @@ implementation
 
     if ((kDNSServiceFlagsMoreComing and aFlags) = 0) then
     begin
-      TBonjourThread.RemoveService(aHandle);
+        TBonjourThread.RemoveService(aHandle);
       browser.DoOnEnumFinished;
+      end;
     end;
-  end;
 
 
 
@@ -358,8 +358,8 @@ implementation
 
     fDomains.Extract(aDomain);
     try
-      if Assigned(OnDomainRemoved) then
-        OnDomainRemoved(self, aDomain);
+    if Assigned(OnDomainRemoved) then
+      OnDomainRemoved(self, aDomain);
 
     finally
       // Now we can take care of freeíng the domain object
