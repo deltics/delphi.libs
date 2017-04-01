@@ -89,7 +89,8 @@ interface
       class procedure RemoveService(const aService: TDNSServiceRef);
       class function IsServicing(const aService: TDNSServiceRef): Boolean;
       class procedure NotifyVCL(const aMessage);
-      class procedure ProcessVCLMessages;
+      class procedure ProcessVCLMessages; overload;
+      class procedure ProcessVCLMessages(aMessageID: Cardinal); overload;
     end;
 
 
@@ -227,6 +228,16 @@ implementation
       EXIT;
 
     VCL.ProcessMessages(BJM_FIRST, BJM_LAST);
+  end;
+
+
+  { - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - }
+  class procedure TBonjourThread.ProcessVCLMessages(aMessageID: Cardinal);
+  begin
+    if NOT InVCLThread then
+      EXIT;
+
+    VCL.ProcessMessages(aMessageID, aMessageID);
   end;
 
 
